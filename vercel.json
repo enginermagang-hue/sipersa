@@ -1,0 +1,8 @@
+{
+  "buildCommand": "nuxt build",
+  "functions": {
+    "api/**": {
+      "maxDuration": 60
+    }
+  }
+}
