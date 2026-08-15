@@ -4,6 +4,9 @@ import { logActivity } from '../../utils/logger'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
+  if (!['pimpinan', 'admin'].includes(auth.role)) {
+    throw createError({ statusCode: 403, statusMessage: 'Hanya pimpinan yang dapat membuat disposisi' })
+  }
   const body = await readBody(event)
   const parsed = disposisiSchema.safeParse(body)
   if (!parsed.success) throw createError({ statusCode: 422, statusMessage: 'Data tidak valid', data: parsed.error.issues })
@@ -14,9 +17,9 @@ export default defineEventHandler(async (event) => {
   if (surat.rows.length === 0) throw createError({ statusCode: 404, statusMessage: 'Surat tidak ditemukan' })
 
   const res = await db.execute({
-    sql: `INSERT INTO disposisi (surat_masuk_id, dari_user_id, kepada_user_id, instruksi, catatan, status)
-          VALUES (?, ?, ?, ?, ?, 'baru')`,
-    args: [data.surat_masuk_id, auth.userId, data.kepada_user_id, data.instruksi, data.catatan]
+    sql: `INSERT INTO disposisi (surat_masuk_id, dari_user_id, kepada_user_id, instruksi, catatan, status, prioritas, batas_waktu)
+          VALUES (?, ?, ?, ?, ?, 'baru', ?, ?)`,
+    args: [data.surat_masuk_id, auth.userId, data.kepada_user_id, data.instruksi, data.catatan, data.prioritas, data.batas_waktu || null]
   })
   const id = Number((res.rows[0] as any)?.id ?? res.lastInsertRowid)
 

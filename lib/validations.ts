@@ -27,7 +27,17 @@ export const disposisiSchema = z.object({
   surat_masuk_id: z.number().int().positive(),
   kepada_user_id: z.number().int().positive(),
   instruksi: z.string().optional().default(''),
-  catatan: z.string().optional().default('')
+  catatan: z.string().optional().default(''),
+  prioritas: z.enum(['normal', 'segera', 'penting']).default('normal'),
+  batas_waktu: z.string().optional().default('').or(z.null())
+})
+
+export const teruskanSchema = z.object({
+  kepada_user_id: z.number().int().positive(),
+  instruksi: z.string().optional().default(''),
+  catatan: z.string().optional().default(''),
+  prioritas: z.enum(['normal', 'segera', 'penting']).default('normal'),
+  batas_waktu: z.string().optional().default('').or(z.null())
 })
 
 export const klasifikasiSchema = z.object({

@@ -1,25 +1,63 @@
 <script setup lang="ts">
-const { user, logout } = useAuth()
+import { useLocalStorage } from '@vueuse/core'
+import type { NavigationMenuItem } from '@nuxt/ui'
 
-const open = ref(true)
+const { user, logout, fetchMe } = useAuth()
 
-const items = computed(() => {
-  const base = [
+const open = useLocalStorage('sidebar-open', true)
+
+onMounted(() => {
+  if (!user.value) fetchMe()
+})
+
+const items = computed<NavigationMenuItem[][]>(() => {
+  const utama: NavigationMenuItem[] = [
     { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: '/' },
     { label: 'Surat Masuk', icon: 'i-lucide-inbox', to: '/surat-masuk' },
     { label: 'Surat Keluar', icon: 'i-lucide-send', to: '/surat-keluar' },
-    { label: 'Disposisi', icon: 'i-lucide-share-2', to: '/disposisi' },
+    { label: 'Disposisi', icon: 'i-lucide-share-2', to: '/disposisi' }
+  ]
+
+  const manajemen: NavigationMenuItem[] = [
     { label: 'Arsip', icon: 'i-lucide-archive', to: '/arsip' },
-    { label: 'Pencarian', icon: 'i-lucide-search', to: '/search' },
     { label: 'Laporan', icon: 'i-lucide-file-bar-chart', to: '/laporan' }
   ]
-  if (user.value?.role === 'admin') base.push({ label: 'Admin', icon: 'i-lucide-settings', to: '/admin/users' })
-  return base
+
+  const operasional: NavigationMenuItem[] = []
+  if (['pimpinan', 'admin'].includes(user.value?.role)) {
+    operasional.push({ label: 'Kelola Disposisi', icon: 'i-lucide-list-checks', to: '/disposisi/kelola' })
+  }
+
+  const adminMenu: NavigationMenuItem[] = []
+  if (user.value?.role === 'admin') {
+    adminMenu.push({
+      label: 'Admin',
+      icon: 'i-lucide-settings',
+      children: [
+        { label: 'Users', icon: 'i-lucide-users', to: '/admin/users' },
+        { label: 'Session', icon: 'i-lucide-monitor-dot', to: '/admin/sessions' },
+        { label: 'Klasifikasi', icon: 'i-lucide-tags', to: '/admin/klasifikasi' },
+        { label: 'Log Aktivitas', icon: 'i-lucide-scroll-text', to: '/admin/activity' }
+      ]
+    })
+  }
+
+  const groups: NavigationMenuItem[][] = [utama, manajemen]
+  if (operasional.length) groups.push(operasional)
+  if (adminMenu.length) groups.push(adminMenu)
+  return groups
 })
 
 const userItems = computed(() => [[
   { label: 'Keluar', icon: 'i-lucide-log-out', onSelect: () => logout() }
 ]])
+
+const topSearch = ref('')
+function goSearch() {
+  const q = topSearch.value.trim()
+  if (!q) return
+  navigateTo(`/search?q=${encodeURIComponent(q)}`)
+}
 </script>
 
 <template>
@@ -31,9 +69,9 @@ const userItems = computed(() => [[
       :ui="{ container: 'h-full', inner: 'bg-elevated/25 divide-transparent', body: 'py-0' }"
     >
       <template #header>
-        <div class="flex items-center gap-2 px-2 font-bold text-lg truncate">
-          <UIcon name="i-lucide-mail" class="text-primary text-xl shrink-0" />
-          <span v-if="open">Persuratan</span>
+        <div class="flex items-center gap-2 truncate">
+          <UIcon name="i-lucide-mail" class="text-primary size-8  " />
+          <span v-if="open" class="font-bold text-lg">Persuratan</span>
         </div>
       </template>
 
@@ -77,6 +115,14 @@ const userItems = computed(() => [[
           @click="open = !open"
         />
         <div class="flex-1" />
+        <UInput
+          v-model="topSearch"
+          icon="i-lucide-search"
+          placeholder="Cari surat / arsip…"
+          class="w-36 md:w-64"
+          @keyup.enter="goSearch"
+        />
+        <UColorModeButton />
         <NotificationBell />
       </header>
 

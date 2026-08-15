@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const route = useRoute()
 const q = ref('')
 const { data } = await useFetch('/api/search', { query: { q }, watch: false })
 
@@ -9,6 +10,14 @@ async function cari() {
   data.value = res
   searched.value = true
 }
+
+onMounted(() => {
+  const urlQ = typeof route.query.q === 'string' ? route.query.q.trim() : ''
+  if (urlQ) {
+    q.value = urlQ
+    cari()
+  }
+})
 </script>
 
 <template>

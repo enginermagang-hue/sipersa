@@ -55,7 +55,9 @@ function onSaved() {
     </div>
     <div class="flex flex-wrap gap-2 mb-4">
       <UInput v-model="q" placeholder="Cari no/perihal/tujuan" icon="i-lucide-search" class="max-w-xs" />
-      <USelect v-model="sifat" :items="sifatOptions" class="w-40" />
+      <select v-model="sifat" class="w-40 rounded-md border border-default bg-default px-2.5 py-1.5 text-sm">
+        <option v-for="o in sifatOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+      </select>
       <UInput v-model="tahun" placeholder="Tahun" type="number" class="w-28" />
     </div>
     <UCard>
@@ -69,7 +71,7 @@ function onSaved() {
     </UCard>
     <UModal v-model:open="addOpen" title="Tambah Surat Keluar">
       <template #body>
-        <SuratForm type="keluar" @close="onSaved" />
+        <SuratForm v-if="addOpen" type="keluar" @close="onSaved" />
       </template>
     </UModal>
   </div>

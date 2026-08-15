@@ -20,7 +20,26 @@ export async function uploadToDrive(fileName: string, mimeType: string, data: Bu
   return { id: json.id, name: json.name }
 }
 
-export async function getDriveFile(fileId: string) {
+const EXT_MIME: Record<string, string> = {
+  pdf: 'application/pdf',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+}
+
+function inferMime(fileName?: string): string | null {
+  if (!fileName) return null
+  const ext = fileName.split('.').pop()?.toLowerCase()
+  return ext ? (EXT_MIME[ext] ?? null) : null
+}
+
+export async function getDriveFile(fileId: string, fileName?: string) {
   const token = (useRuntimeConfig().dropboxToken as string)
   const res = await fetch('https://content.dropboxapi.com/2/files/download', {
     method: 'POST',
@@ -33,7 +52,10 @@ export async function getDriveFile(fileId: string) {
     throw createError({ statusCode: 404, statusMessage: 'File tidak ditemukan di Dropbox' })
   }
   const buf = Buffer.from(await res.arrayBuffer())
-  const ct = res.headers.get('content-type') || 'application/octet-stream'
+  let ct = res.headers.get('content-type') || 'application/octet-stream'
+  if (ct === 'application/octet-stream') {
+    ct = inferMime(fileName) ?? ct
+  }
   const cl = res.headers.get('content-length') || String(buf.length)
   return { headers: { 'content-type': ct, 'content-length': cl }, data: buf }
 }

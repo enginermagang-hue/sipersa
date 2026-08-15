@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const meta = res.rows[0] as any
 
   const inline = getQuery(event).inline === '1'
-  const driveRes = await getDriveFile(id as string)
+  const driveRes = await getDriveFile(id as string, meta.file_name)
 
   setHeader(event, 'Content-Type', (driveRes.headers['content-type'] as string) || 'application/octet-stream')
   setHeader(event, 'Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${meta.file_name || 'file'}"`)

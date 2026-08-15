@@ -10,6 +10,9 @@ export default defineEventHandler(async (event) => {
 
   const exist = await db.execute({ sql: 'SELECT * FROM surat_masuk WHERE id = ? AND deleted_at IS NULL', args: [id] })
   if (exist.rows.length === 0) throw createError({ statusCode: 404, statusMessage: 'Surat tidak ditemukan' })
+  if (auth.role !== 'admin' && auth.userId !== (exist.rows[0] as any).created_by) {
+    throw createError({ statusCode: 403, statusMessage: 'Hanya admin atau pembuat surat yang dapat mengubah' })
+  }
 
   const { fields, file } = await readFormWithFile(event)
   let fileDriveId: string | null = (exist.rows[0] as any).file_drive_id

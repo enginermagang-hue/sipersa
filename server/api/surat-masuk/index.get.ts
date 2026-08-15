@@ -32,7 +32,10 @@ export default defineEventHandler(async (event) => {
     args
   })
   const rows = await db.execute({
-    sql: `SELECT sm.*, k.kode as klasifikasi_kode, k.nama as klasifikasi_nama
+    sql: `SELECT sm.*, k.kode as klasifikasi_kode, k.nama as klasifikasi_nama,
+          (SELECT d.status FROM disposisi d
+           WHERE d.surat_masuk_id = sm.id AND d.deleted_at IS NULL
+           ORDER BY d.created_at DESC LIMIT 1) as disposisi_status
           FROM surat_masuk sm
           LEFT JOIN klasifikasi k ON k.id = sm.klasifikasi_id
           WHERE ${where}

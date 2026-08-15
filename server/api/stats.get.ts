@@ -14,5 +14,11 @@ export default defineEventHandler(async (event) => {
     'SELECT COUNT(*) as c FROM disposisi WHERE kepada_user_id = ? AND deleted_at IS NULL AND status != \'selesai\'',
     [auth.userId]
   )
-  return { masuk, keluar, arsip, disposisiSaya }
+  const disposisiOverdue = await count(
+    `SELECT COUNT(*) as c FROM disposisi
+     WHERE kepada_user_id = ? AND deleted_at IS NULL AND status != 'selesai'
+       AND batas_waktu IS NOT NULL AND batas_waktu < date('now')`,
+    [auth.userId]
+  )
+  return { masuk, keluar, arsip, disposisiSaya, disposisiOverdue }
 })

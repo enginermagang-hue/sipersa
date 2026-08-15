@@ -73,14 +73,20 @@ export async function migrate() {
     `CREATE TABLE IF NOT EXISTS disposisi (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       surat_masuk_id INTEGER NOT NULL,
+      parent_id INTEGER,
       dari_user_id INTEGER NOT NULL,
       kepada_user_id INTEGER NOT NULL,
       instruksi TEXT,
       catatan TEXT,
       status TEXT NOT NULL DEFAULT 'baru',
+      prioritas TEXT NOT NULL DEFAULT 'normal',
+      batas_waktu TEXT,
+      diproses_at TEXT,
+      selesai_at TEXT,
       deleted_at TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (surat_masuk_id) REFERENCES surat_masuk(id),
+      FOREIGN KEY (parent_id) REFERENCES disposisi(id),
       FOREIGN KEY (dari_user_id) REFERENCES users(id),
       FOREIGN KEY (kepada_user_id) REFERENCES users(id)
     )`,
@@ -123,7 +129,23 @@ export async function migrate() {
     await db.execute(sql)
   }
 
+  await ensureColumn('disposisi', 'parent_id', 'parent_id INTEGER REFERENCES disposisi(id)')
+  await ensureColumn('disposisi', 'prioritas', "prioritas TEXT NOT NULL DEFAULT 'normal'")
+  await ensureColumn('disposisi', 'batas_waktu', 'batas_waktu TEXT')
+  await ensureColumn('disposisi', 'diproses_at', 'diproses_at TEXT')
+  await ensureColumn('disposisi', 'selesai_at', 'selesai_at TEXT')
+  await db.execute('CREATE INDEX IF NOT EXISTS idx_disposisi_parent ON disposisi(parent_id)')
+
   await seedAdmin()
+}
+
+async function ensureColumn(table: string, column: string, ddl: string) {
+  const db = useDb()
+  const res = await db.execute(`PRAGMA table_info(${table})`)
+  const exists = (res.rows as any[]).some((col) => col.name === column)
+  if (!exists) {
+    await db.execute(`ALTER TABLE ${table} ADD COLUMN ${ddl}`)
+  }
 }
 
 async function seedAdmin() {
