@@ -3,7 +3,7 @@ import { h } from 'vue'
 import { UBadge } from '#components'
 import type { TableColumn } from '@nuxt/ui'
 
-const { data: users } = await useFetch('/api/admin/users')
+const { data: users } = await useFetch('/api/admin/users', { query: { limit: 1000 } })
 
 const ACTION_LABELS: Record<string, string> = {
   LOGIN: 'Login',
@@ -40,7 +40,7 @@ const ENTITY_LABELS: Record<string, string> = {
 const actionOptions = Object.entries(ACTION_LABELS).map(([value, label]) => ({ label, value }))
 const entityOptions = Object.entries(ENTITY_LABELS).map(([value, label]) => ({ label, value }))
 const userOptions = computed(() =>
-  (users.value || []).map((u: any) => ({ label: u.nama, value: u.id }))
+  (users.value?.data || []).map((u: any) => ({ label: u.nama, value: u.id }))
 )
 
 const pageSize = 50
@@ -184,7 +184,7 @@ const columns: TableColumn<any>[] = [
       </div>
     </UCard>
 
-    <UCard>
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <UTable :data="rows" :columns="columns" empty="Tidak ada log" :loading="pending" />
       <template v-if="total > 0" #footer>
         <div class="flex items-center justify-between px-2 py-1">

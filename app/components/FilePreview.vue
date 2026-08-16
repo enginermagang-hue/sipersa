@@ -1,5 +1,14 @@
 <script setup lang="ts">
-const props = defineProps<{ fileId: string; fileName?: string }>()
+const props = withDefaults(
+  defineProps<{
+    fileId: string
+    fileName?: string
+    hideActions?: boolean
+  }>(),
+  {
+    hideActions: false
+  }
+)
 const isViewable = computed(() => {
   const n = (props.fileName || '').toLowerCase()
   return n.endsWith('.pdf') || /\.(png|jpe?g|gif|webp)$/.test(n)
@@ -8,7 +17,7 @@ const isViewable = computed(() => {
 
 <template>
   <div class="space-y-2">
-    <div class="flex items-center gap-2">
+    <div v-if="!hideActions" class="flex items-center gap-2">
       <UButton :to="`/api/files/${fileId}`" target="_blank" size="sm" icon="i-lucide-download" variant="soft">
         Unduh{{ fileName ? `: ${fileName}` : '' }}
       </UButton>

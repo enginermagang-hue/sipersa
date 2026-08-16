@@ -23,7 +23,8 @@ export default defineEventHandler(async (event) => {
 
   const countRes = await db.execute({ sql: `SELECT COUNT(*) as c FROM surat_keluar sk WHERE ${where}`, args })
   const rows = await db.execute({
-    sql: `SELECT sk.*, k.kode as klasifikasi_kode, k.nama as klasifikasi_nama
+    sql: `SELECT sk.*, k.kode as klasifikasi_kode, k.nama as klasifikasi_nama,
+          EXISTS (SELECT 1 FROM arsip a WHERE a.ref_keluar_id = sk.id AND a.deleted_at IS NULL) as is_arsip
           FROM surat_keluar sk
           LEFT JOIN klasifikasi k ON k.id = sk.klasifikasi_id
           WHERE ${where}

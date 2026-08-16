@@ -12,7 +12,7 @@ export const suratMasukSchema = z.object({
   perihal: z.string().min(1),
   sifat: z.enum(['biasa', 'segera', 'rahasia', 'penting']).default('biasa'),
   klasifikasi_id: z.number().int().positive().optional().nullable(),
-  no_agenda: z.number().int().optional().nullable()
+  no_agenda: z.string().optional().nullable()
 })
 
 export const suratKeluarSchema = z.object({
@@ -25,19 +25,32 @@ export const suratKeluarSchema = z.object({
 
 export const disposisiSchema = z.object({
   surat_masuk_id: z.number().int().positive(),
-  kepada_user_id: z.number().int().positive(),
+  kepada_user_ids: z.array(z.number().int().positive()).min(1),
+  instruksi_list: z.array(z.string()).default([]),
   instruksi: z.string().optional().default(''),
   catatan: z.string().optional().default(''),
-  prioritas: z.enum(['normal', 'segera', 'penting']).default('normal'),
-  batas_waktu: z.string().optional().default('').or(z.null())
+  sifat_disposisi: z.enum(['biasa', 'segera', 'sangat_segera', 'rahasia']).default('biasa'),
+  batas_waktu: z.string().optional().default('').or(z.null()),
+  notify: z.boolean().default(false)
 })
 
 export const teruskanSchema = z.object({
-  kepada_user_id: z.number().int().positive(),
+  kepada_user_ids: z.array(z.number().int().positive()).min(1),
+  instruksi_list: z.array(z.string()).default([]),
   instruksi: z.string().optional().default(''),
   catatan: z.string().optional().default(''),
-  prioritas: z.enum(['normal', 'segera', 'penting']).default('normal'),
-  batas_waktu: z.string().optional().default('').or(z.null())
+  sifat_disposisi: z.enum(['biasa', 'segera', 'sangat_segera', 'rahasia']).default('biasa'),
+  batas_waktu: z.string().optional().default('').or(z.null()),
+  notify: z.boolean().default(false)
+})
+
+export const arsipSchema = z.object({
+  nama_dokumen: z.string().min(1),
+  lokasi: z.string().optional().default(''),
+  tahun: z.number().int().optional().nullable(),
+  klasifikasi_id: z.number().int().positive().optional().nullable(),
+  ref_masuk_id: z.number().int().positive().optional().nullable(),
+  ref_keluar_id: z.number().int().positive().optional().nullable()
 })
 
 export const klasifikasiSchema = z.object({
@@ -61,4 +74,11 @@ export const userUpdateSchema = z.object({
   role: z.enum(['admin', 'staff_tu', 'pimpinan']).optional(),
   status: z.enum(['active', 'inactive']).optional(),
   password: z.string().min(4).optional()
+})
+
+export const profileUpdateSchema = z.object({
+  nama: z.string().min(1).optional(),
+  username: z.string().min(1).optional(),
+  email: z.string().email().optional().or(z.literal('')).nullable(),
+  password: z.string().min(4).optional().or(z.literal('')).nullable()
 })

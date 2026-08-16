@@ -1,4 +1,6 @@
 import { useDb } from '../../utils/db'
+import { getDriveFile } from '../../utils/dropbox'
+import { extractPdfText } from '../../utils/pdf-extract'
 
 export default defineEventHandler(async (event) => {
   const id = Number(event.context.params?.id)
@@ -13,7 +15,10 @@ export default defineEventHandler(async (event) => {
   if (res.rows.length === 0) {
     throw createError({ statusCode: 404, statusMessage: 'Surat tidak ditemukan' })
   }
-  const surat = res.rows[0]
+  const surat = res.rows[0] as any
+  const needsRingkasan = !surat.ringkasan &&
+    typeof surat.file_drive_id === 'string' &&
+    surat.file_drive_id.length > 0
 
   const disp = await db.execute({
     sql: `SELECT d.*, u.nama as kepada_nama, u2.nama as dari_nama
@@ -25,5 +30,33 @@ export default defineEventHandler(async (event) => {
     args: [id]
   })
 
-  return { surat, disposisi: disp.rows }
+  const ars = await db.execute({
+    sql: `SELECT id, nama_dokumen, lokasi, tahun FROM arsip
+          WHERE ref_masuk_id = ? AND deleted_at IS NULL LIMIT 1`,
+    args: [id]
+  })
+
+  const payload = { surat, disposisi: disp.rows, arsip: ars.rows[0] || null }
+
+  if (needsRingkasan) {
+    const fileDriveId = surat.file_drive_id as string
+    const fileName = surat.file_name || 'file.pdf'
+    void (async () => {
+      try {
+        console.log(`[ringkasan] mulai ekstrak surat id=${id} file=${fileName}`)
+        const driveRes = await getDriveFile(fileDriveId, fileName)
+        const text = await extractPdfText(driveRes.data as Buffer)
+        if (text) {
+          await db.execute({ sql: 'UPDATE surat_masuk SET ringkasan = ? WHERE id = ?', args: [text, id] })
+          console.log(`[ringkasan] sukses surat id=${id}, panjang=${text.length}`)
+        } else {
+          console.warn(`[ringkasan] teks kosong surat id=${id}`)
+        }
+      } catch (e: any) {
+        console.error(`[ringkasan] gagal surat id=${id}:`, e?.message || e)
+      }
+    })()
+  }
+
+  return payload
 })

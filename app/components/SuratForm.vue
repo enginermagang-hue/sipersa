@@ -2,9 +2,7 @@
 import type { FormError } from '@nuxt/ui'
 
 const props = defineProps<{ type: 'masuk' | 'keluar'; suratId?: number; surat?: any }>()
-const emit = defineEmits<{ close: [] }>()
-
-const isEdit = computed(() => !!props.suratId)
+const emit = defineEmits<{ close: []; busy: [boolean] }>()
 
 const { data: klas } = await useFetch('/api/klasifikasi')
 const klasOptions = computed(() =>
@@ -20,10 +18,10 @@ const state = reactive({
   perihal: s.perihal || '',
   sifat: s.sifat || 'biasa',
   klasifikasi_id: s.klasifikasi_id ?? null as number | null,
-  no_agenda: s.no_agenda ?? null as number | null
+  no_agenda: s.no_agenda ?? null as string | null,
+  ringkasan: s.ringkasan || ''
 })
 const file = ref<File | null>(null)
-const loading = ref(false)
 const error = ref('')
 
 const pihak = computed({
@@ -51,7 +49,7 @@ function validate(s: Partial<typeof state>): FormError[] {
 }
 
 async function submit() {
-  loading.value = true
+  emit('busy', true)
   error.value = ''
   const fd = new FormData()
   const fields: Record<string, any> = { ...state }
@@ -66,41 +64,55 @@ async function submit() {
   } catch (e: any) {
     error.value = e?.data?.statusMessage || 'Gagal menyimpan'
   } finally {
-    loading.value = false
+    emit('busy', false)
   }
 }
 </script>
 
 <template>
-  <UForm :state="state" :validate="validate" class="space-y-3" @submit="submit">
-    <UFormField label="Tanggal Surat" name="tgl_surat">
-      <UInput v-model="state.tgl_surat" type="date" class="w-full" />
-    </UFormField>
-    <UFormField v-if="type === 'masuk'" label="Tanggal Terima">
-      <UInput v-model="state.tgl_terima" type="date" class="w-full" />
-    </UFormField>
-    <UFormField :label="type === 'masuk' ? 'Pengirim' : 'Tujuan'" name="pihak">
-      <UInput v-model="pihak" class="w-full" />
-    </UFormField>
-    <UFormField label="Perihal" name="perihal">
-      <UInput v-model="state.perihal" class="w-full" />
-    </UFormField>
-    <UFormField label="Sifat">
-      <USelect v-model="state.sifat" :items="sifatOptions" class="w-full" />
-    </UFormField>
-    <UFormField label="Klasifikasi">
-      <USelect v-model="state.klasifikasi_id" :items="klasOptions" class="w-full" :placeholder="'(tanpa)'" />
-    </UFormField>
-    <UFormField v-if="type === 'masuk'" label="No. Agenda">
-      <UInput v-model.number="state.no_agenda" type="number" class="w-full" />
-    </UFormField>
-    <UFormField label="File Surat">
-      <FileUpload v-model:file="file" />
-    </UFormField>
-    <p v-if="error" class="text-sm text-error">{{ error }}</p>
-    <div class="flex justify-end gap-2">
-      <UButton variant="ghost" @click="emit('close')">Batal</UButton>
-      <UButton type="submit" :loading="loading">{{ isEdit ? 'Perbarui' : 'Simpan' }}</UButton>
+  <UForm id="surat-form" :state="state" :validate="validate" class="space-y-4" @submit="submit">
+    
+    <h3 class="font-semibold text-sm uppercase">Informasi Surat</h3>
+    <div class="space-y-3">
+      <UFormField label="Tanggal Surat" name="tgl_surat">
+        <UInput v-model="state.tgl_surat" class="w-full" type="date" />
+      </UFormField>
+      <UFormField v-if="type === 'masuk'" label="Tanggal Terima">
+        <UInput v-model="state.tgl_terima" class="w-full" type="date" />
+      </UFormField>
+      <UFormField :label="type === 'masuk' ? 'Pengirim' : 'Tujuan'" name="pihak">
+        <UInput v-model="pihak" class="w-full" />
+      </UFormField>
+      <UFormField label="Perihal" name="perihal">
+        <UInput v-model="state.perihal" class="w-full"/>
+      </UFormField>
     </div>
+
+    <h3 class="font-semibold text-sm uppercase mt-8">Meta Data</h3>
+    <div class="space-y-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <UFormField label="Sifat">
+          <USelect v-model="state.sifat" class="w-full" :items="sifatOptions" />
+        </UFormField>
+        <UFormField label="Klasifikasi">
+          <USelect v-model="state.klasifikasi_id" class="w-full" :items="klasOptions" placeholder="(tanpa)" />
+        </UFormField>
+      </div>
+      <UFormField v-if="type === 'masuk'" label="No. Agenda">
+        <UInput v-model="state.no_agenda" />
+      </UFormField>
+      <UFormField v-if="type === 'masuk'" label="Ringkasan">
+        <UTextarea v-model="state.ringkasan" :rows="4" placeholder="Ringkasan isi surat (opsional)" />
+      </UFormField>
+    </div>
+
+    <FileUpload
+      label="Unggah File Surat"
+      description="Format: PDF, JPG, PNG. Maks. 25 MB."
+      v-model:file="file"
+    />
+
+    <p v-if="error" class="text-sm text-error">{{ error }}</p>
+    <slot name="footer" :close="() => emit('close')" />
   </UForm>
 </template>

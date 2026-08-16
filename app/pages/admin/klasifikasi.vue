@@ -38,9 +38,9 @@ async function simpan() {
 
 const { confirm } = useConfirm()
 async function hapus(id: number) {
-  const ok = await confirm({ title: 'Hapus Klasifikasi', message: 'Hapus klasifikasi ini?', okLabel: 'Hapus' })
-  if (!ok) return
-  await $fetch(`/api/klasifikasi/${id}`, { method: 'DELETE' })
+  await confirm({ title: 'Hapus Klasifikasi', message: 'Hapus klasifikasi ini?', okLabel: 'Hapus', loadingTitle: 'Menghapus...' }, async () => {
+    await $fetch(`/api/klasifikasi/${id}`, { method: 'DELETE' })
+  })
   await refresh()
 }
 
@@ -66,7 +66,7 @@ const columns: TableColumn<any>[] = [
       <h1 class="text-xl font-bold">Klasifikasi Surat</h1>
       <UButton icon="i-lucide-plus" @click="bukaTambah">Tambah</UButton>
     </div>
-    <UCard>
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <UTable :data="data || []" :columns="columns" empty="Belum ada data" />
     </UCard>
 

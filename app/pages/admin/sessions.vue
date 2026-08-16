@@ -3,7 +3,7 @@ import { h } from 'vue'
 import { UBadge, UButton } from '#components'
 import type { TableColumn } from '@nuxt/ui'
 
-const { data: users } = await useFetch('/api/admin/users')
+const { data: users } = await useFetch('/api/admin/users', { query: { limit: 1000 } })
 
 const pageSize = ref(50)
 const page = ref(1)
@@ -32,7 +32,7 @@ watch(q, () => { page.value = 1 })
 watch(pageSize, () => { page.value = 1 })
 
 const userOptions = computed(() =>
-  (users.value || []).map((u: any) => ({ label: `${u.nama} (${u.username})`, value: u.id }))
+  (users.value?.data || []).map((u: any) => ({ label: `${u.nama} (${u.username})`, value: u.id }))
 )
 
 const statusOptions = [
@@ -53,9 +53,9 @@ function resetFilters() {
 
 const { confirm } = useConfirm()
 async function revoke(id: string) {
-  const ok = await confirm({ title: 'Putus Sesi', message: 'Putus sesi ini (force logout)?', okLabel: 'Putus' })
-  if (!ok) return
-  await $fetch(`/api/admin/sessions/${id}`, { method: 'DELETE' })
+  await confirm({ title: 'Putus Sesi', message: 'Putus sesi ini (force logout)?', okLabel: 'Putus', loadingTitle: 'Memutuskan...' }, async () => {
+    await $fetch(`/api/admin/sessions/${id}`, { method: 'DELETE' })
+  })
   await refresh()
 }
 
@@ -125,7 +125,7 @@ const columns: TableColumn<any>[] = [
       </div>
     </UCard>
 
-    <UCard>
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <UTable :data="rows" :columns="columns" empty="Tidak ada sesi" :loading="pending" />
       <template v-if="total > 0" #footer>
         <div class="flex flex-wrap items-center justify-between gap-2 px-2 py-1">

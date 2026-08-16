@@ -27,5 +27,9 @@ export const useAuth = () => {
     await navigateTo('/login')
   }
 
-  return { user, loaded, fetchMe, login, logout }
+  function googleLogin() {
+    window.location.assign('/api/auth/google')
+  }
+
+  return { user, loaded, fetchMe, login, logout, googleLogin }
 }

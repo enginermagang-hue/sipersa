@@ -5,6 +5,7 @@ export default defineEventHandler(async (event) => {
   const path = event.path
   if (!path.startsWith('/api/')) return
   if (path === '/api/auth/login') return
+  if (path.startsWith('/api/auth/google')) return
 
   const token = getCookie(event, SESSION_COOKIE)
   const user = await getSessionUser(token)

@@ -38,7 +38,7 @@ export async function migrate() {
     )`,
     `CREATE TABLE IF NOT EXISTS surat_masuk (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      no_agenda INTEGER,
+      no_agenda TEXT,
       no_urut INTEGER NOT NULL,
       no_surat TEXT NOT NULL,
       klasifikasi_id INTEGER,
@@ -134,7 +134,22 @@ export async function migrate() {
   await ensureColumn('disposisi', 'batas_waktu', 'batas_waktu TEXT')
   await ensureColumn('disposisi', 'diproses_at', 'diproses_at TEXT')
   await ensureColumn('disposisi', 'selesai_at', 'selesai_at TEXT')
+  await ensureColumn('disposisi', 'sifat_disposisi', "sifat_disposisi TEXT NOT NULL DEFAULT 'biasa'")
+  await ensureColumn('disposisi', 'instruksi_list', 'instruksi_list TEXT')
+  await ensureColumn('disposisi', 'notify', 'notify INTEGER NOT NULL DEFAULT 0')
   await db.execute('CREATE INDEX IF NOT EXISTS idx_disposisi_parent ON disposisi(parent_id)')
+
+  await ensureColumn('arsip', 'tgl_arsip', 'tgl_arsip TEXT')
+  await ensureColumn('arsip', 'alasan_musnah', 'alasan_musnah TEXT')
+  await ensureColumn('arsip', 'file_drive_id', 'file_drive_id TEXT')
+  await ensureColumn('arsip', 'file_name', 'file_name TEXT')
+  await db.execute(`UPDATE arsip SET tgl_arsip = created_at WHERE tgl_arsip IS NULL`)
+  await db.execute('CREATE INDEX IF NOT EXISTS idx_arsip_ref_masuk ON arsip(ref_masuk_id)')
+  await db.execute('CREATE INDEX IF NOT EXISTS idx_arsip_ref_keluar ON arsip(ref_keluar_id)')
+
+  await ensureColumn('surat_masuk', 'ringkasan', 'ringkasan TEXT')
+  await ensureColumn('users', 'google_id', 'google_id TEXT')
+  await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)')
 
   await seedAdmin()
 }

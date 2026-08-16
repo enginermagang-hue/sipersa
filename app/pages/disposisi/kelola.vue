@@ -113,14 +113,16 @@ const columns: TableColumn<any>[] = [
         </select>
       </div>
 
-      <UCard>
+      <UCard :ui="{ body: 'p-0 sm:p-0' }">
         <UTable :data="data?.data || []" :columns="columns" empty="Belum ada disposisi" />
-        <UPagination
-          v-model="page"
-          :page-count="data?.limit || 20"
-          :total="data?.total || 0"
-          class="mt-4 justify-end"
-        />
+        <div class="p-4 border-t border-default">
+          <UPagination
+            v-model="page"
+            :page-count="data?.limit || 20"
+            :total="data?.total || 0"
+            class="mt-0 justify-end"
+          />
+        </div>
       </UCard>
     </template>
   </div>

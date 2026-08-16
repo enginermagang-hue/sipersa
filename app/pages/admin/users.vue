@@ -5,7 +5,10 @@ import type { FormError, TableColumn } from '@nuxt/ui'
 import type { Row } from '@tanstack/vue-table'
 
 const { user } = useAuth()
-const { data, refresh } = await useFetch('/api/admin/users')
+const page = ref(1)
+const { data, refresh } = await useFetch('/api/admin/users', {
+  query: { page }
+})
 
 const roleOptions = [
   { label: 'Admin', value: 'admin' },
@@ -105,9 +108,9 @@ async function toggleStatus(u: any) {
 
 const { confirm } = useConfirm()
 async function hapus(id: number) {
-  const ok = await confirm({ title: 'Nonaktifkan User', message: 'Nonaktifkan user ini?', okLabel: 'Nonaktifkan' })
-  if (!ok) return
-  await $fetch(`/api/admin/users/${id}`, { method: 'DELETE' })
+  await confirm({ title: 'Nonaktifkan User', message: 'Nonaktifkan user ini?', okLabel: 'Nonaktifkan', loadingTitle: 'Menonaktifkan...' }, async () => {
+    await $fetch(`/api/admin/users/${id}`, { method: 'DELETE' })
+  })
   await refresh()
 }
 
@@ -177,8 +180,16 @@ const columns: TableColumn<any>[] = [
       <h1 class="text-xl font-bold">Manajemen User</h1>
       <UButton icon="i-lucide-plus" @click="createOpen = true">Tambah User</UButton>
     </div>
-    <UCard>
-      <UTable :data="data || []" :columns="columns" empty="Belum ada data" />
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
+      <UTable :data="data?.data || []" :columns="columns" empty="Belum ada data" />
+      <div class="p-4 border-t border-default">
+        <UPagination
+          v-model="page"
+          :page-count="data?.limit || 20"
+          :total="data?.total || 0"
+          class="mt-0 justify-end"
+        />
+      </div>
     </UCard>
 
     <UModal v-model:open="createOpen" title="Tambah User">

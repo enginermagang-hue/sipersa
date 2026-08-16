@@ -1,6 +1,6 @@
 import { useDb } from '../../utils/db'
 import { readFormWithFile, toIntOrNull } from '../../utils/body'
-import { uploadToDrive } from '../../utils/dropbox'
+import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { generateNo } from '../../utils/no'
 import { suratKeluarSchema } from '../../../lib/validations'
 import { logActivity } from '../../utils/logger'
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   let fileDriveId: string | null = null
   let fileName: string | null = null
   if (file) {
-    const up = await uploadToDrive(`${no_surat}_${file.filename}`, file.type, file.data)
+    const up = await uploadToDrive(`${no_surat}_${file.filename}`, file.type, file.data, DROPBOX_FOLDERS.SK)
     fileDriveId = up.id as string
     fileName = file.filename
   }

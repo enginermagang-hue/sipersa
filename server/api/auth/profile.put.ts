@@ -1,0 +1,36 @@
+import { useDb } from '../../utils/db'
+import { profileUpdateSchema } from '../../../lib/validations'
+import bcrypt from 'bcryptjs'
+import { logActivity } from '../../utils/logger'
+
+export default defineEventHandler(async (event) => {
+  const auth = (event.context as any).auth
+  const body = await readBody(event)
+  const parsed = profileUpdateSchema.safeParse(body)
+  if (!parsed.success) throw createError({ statusCode: 422, statusMessage: 'Data tidak valid', data: parsed.error.issues })
+  const d = parsed.data
+  const db = useDb()
+
+  if (d.username) {
+    const existing = await db.execute({ sql: 'SELECT id FROM users WHERE username = ? AND id != ? AND deleted_at IS NULL', args: [d.username, auth.userId] })
+    if (existing.rows.length) throw createError({ statusCode: 422, statusMessage: 'Username sudah digunakan' })
+  }
+
+  const sets: string[] = []
+  const args: any[] = []
+  if (d.nama) { sets.push('nama = ?'); args.push(d.nama) }
+  if (d.username) { sets.push('username = ?'); args.push(d.username) }
+  if (d.email !== undefined) { sets.push('email = ?'); args.push(d.email || null) }
+  if (d.password) {
+    const hash = await bcrypt.hash(d.password, 10)
+    sets.push('password_hash = ?'); args.push(hash)
+  }
+  if (sets.length) {
+    await db.execute({ sql: `UPDATE users SET ${sets.join(', ')} WHERE id = ? AND deleted_at IS NULL`, args: [...args, auth.userId] })
+  }
+
+  const me = await db.execute({ sql: 'SELECT id, nama, username, email, role, status FROM users WHERE id = ? AND deleted_at IS NULL', args: [auth.userId] })
+  await logActivity({ userId: auth.userId, action: 'UPDATE_PROFILE', entity: 'users', entityId: auth.userId, ip: getRequestIP(event, { xForwardedFor: true }) })
+
+  return { user: me.rows[0] }
+})

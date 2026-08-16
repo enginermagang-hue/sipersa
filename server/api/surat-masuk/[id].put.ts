@@ -1,6 +1,6 @@
 import { useDb } from '../../utils/db'
 import { readFormWithFile, toIntOrNull } from '../../utils/body'
-import { uploadToDrive } from '../../utils/dropbox'
+import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { logActivity } from '../../utils/logger'
 
 export default defineEventHandler(async (event) => {
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
   let fileDriveId: string | null = (exist.rows[0] as any).file_drive_id
   let fileName: string | null = (exist.rows[0] as any).file_name
   if (file) {
-    const up = await uploadToDrive(`${fields.no_surat || id}_${file.filename}`, file.type, file.data)
+    const up = await uploadToDrive(`${fields.no_surat || id}_${file.filename}`, file.type, file.data, DROPBOX_FOLDERS.SM)
     fileDriveId = up.id as string
     fileName = file.filename
   }
@@ -26,11 +26,12 @@ export default defineEventHandler(async (event) => {
   await db.execute({
     sql: `UPDATE surat_masuk SET
       tgl_surat = ?, tgl_terima = ?, pengirim = ?, perihal = ?, sifat = ?,
-      klasifikasi_id = ?, file_drive_id = ?, file_name = ?
+      klasifikasi_id = ?, no_agenda = ?, ringkasan = ?, file_drive_id = ?, file_name = ?
       WHERE id = ?`,
     args: [
       fields.tgl_surat, fields.tgl_terima, fields.pengirim, fields.perihal,
-      fields.sifat || 'biasa', toIntOrNull(fields.klasifikasi_id),
+      fields.sifat || 'biasa',       toIntOrNull(fields.klasifikasi_id),
+      fields.no_agenda || null, fields.ringkasan || null,
       fileDriveId, fileName, id
     ]
   })

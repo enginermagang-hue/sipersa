@@ -1,6 +1,12 @@
 import { useDb } from '../../utils/db'
 import { getDriveFile } from '../../utils/dropbox'
 
+function safeDisposition(fileName: string | null, inline: boolean) {
+  const clean = (fileName || 'file').replace(/["\\\r\n]/g, '_')
+  const encoded = encodeURIComponent(clean)
+  return `${inline ? 'inline' : 'attachment'}; filename="${clean}"; filename*=UTF-8''${encoded}`
+}
+
 export default defineEventHandler(async (event) => {
   const id = event.context.params?.id
   const db = useDb()
@@ -9,8 +15,10 @@ export default defineEventHandler(async (event) => {
     sql: `SELECT file_drive_id, file_name FROM surat_masuk WHERE file_drive_id = ? AND deleted_at IS NULL
           UNION ALL
           SELECT file_drive_id, file_name FROM surat_keluar WHERE file_drive_id = ? AND deleted_at IS NULL
+          UNION ALL
+          SELECT file_drive_id, file_name FROM arsip WHERE file_drive_id = ? AND deleted_at IS NULL
           LIMIT 1`,
-    args: [id as string, id as string]
+    args: [id as string, id as string, id as string]
   })
   if (res.rows.length === 0) throw createError({ statusCode: 404, statusMessage: 'File tidak ditemukan' })
   const meta = res.rows[0] as any
@@ -19,9 +27,10 @@ export default defineEventHandler(async (event) => {
   const driveRes = await getDriveFile(id as string, meta.file_name)
 
   setHeader(event, 'Content-Type', (driveRes.headers['content-type'] as string) || 'application/octet-stream')
-  setHeader(event, 'Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${meta.file_name || 'file'}"`)
+  setHeader(event, 'Content-Disposition', safeDisposition(meta.file_name, inline))
   if (driveRes.headers['content-length']) {
     setHeader(event, 'Content-Length', driveRes.headers['content-length'] as string)
   }
+  setHeader(event, 'Cache-Control', 'no-store')
   return driveRes.data
 })

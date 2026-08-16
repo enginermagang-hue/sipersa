@@ -1,38 +1,40 @@
 import ExcelJS from 'exceljs'
-import { useDb } from '../../utils/db'
+import { parseLaporanQuery, validRange, queryLaporan } from '../../utils/laporan'
+import { logActivity } from '../../utils/logger'
 
 export default defineEventHandler(async (event) => {
+  const auth = (event.context as any).auth
+  if (!['admin', 'staff_tu'].includes(auth.role)) {
+    throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan' })
+  }
+
   const body = await readBody(event)
-  const jenis = body.jenis === 'keluar' ? 'keluar' : 'masuk'
-  const start = body.start as string
-  const end = body.end as string
-  const db = useDb()
-  const table = jenis === 'masuk' ? 'surat_masuk' : 'surat_keluar'
-  const wheres = ['deleted_at IS NULL']
-  const args: any[] = []
-  if (start) { wheres.push('tgl_surat >= ?'); args.push(start) }
-  if (end) { wheres.push('tgl_surat <= ?'); args.push(end) }
-  const rows = await db.execute({
-    sql: `SELECT * FROM ${table} WHERE ${wheres.join(' AND ')} ORDER BY tgl_surat ASC`,
-    args
-  })
+  const f = parseLaporanQuery(body)
+  if (!validRange(f)) {
+    throw createError({ statusCode: 422, statusMessage: 'Tanggal awal harus lebih kecil atau sama dengan tanggal akhir' })
+  }
+
+  const { data: rows } = await queryLaporan(f, { page: 1, limit: 100000 })
 
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('Laporan')
-  const headers = jenis === 'masuk'
-    ? ['No', 'No Surat', 'Tgl Surat', 'Tgl Terima', 'Pengirim', 'Perihal', 'Sifat']
-    : ['No', 'No Surat', 'Tgl Surat', 'Tujuan', 'Perihal', 'Sifat']
+  const headers = ['No', 'Jenis', 'No Surat', 'Tanggal', 'Asal / Tujuan', 'Perihal', 'Status', 'Lokasi']
   ws.addRow(headers)
-  ;(rows.rows as any[]).forEach((r, i) => {
-    ws.addRow(
-      jenis === 'masuk'
-        ? [i + 1, r.no_surat, r.tgl_surat, r.tgl_terima, r.pengirim, r.perihal, r.sifat]
-        : [i + 1, r.no_surat, r.tgl_surat, r.tujuan, r.perihal, r.sifat]
-    )
+  ;(rows as any[]).forEach((r, i) => {
+    ws.addRow([i + 1, r.jenis, r.no_surat, r.tgl_surat, r.asal_tujuan, r.perihal, r.status, r.lokasi])
   })
+  ws.getRow(1).font = { bold: true }
 
   const buf = await wb.xlsx.writeBuffer()
+  await logActivity({
+    userId: auth.userId,
+    action: 'EXPORT_LAPORAN',
+    entity: 'laporan',
+    detail: { tab: f.tab, start: f.start, end: f.end, klasifikasi_id: f.klasifikasiId, q: f.q, rows: (rows as any[]).length },
+    ip: getRequestIP(event, { xForwardedFor: true })
+  })
+
   setHeader(event, 'Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-  setHeader(event, 'Content-Disposition', `attachment; filename="laporan-${jenis}-${Date.now()}.xlsx"`)
+  setHeader(event, 'Content-Disposition', `attachment; filename="laporan-${f.tab}-${Date.now()}.xlsx"`)
   return buf
 })
