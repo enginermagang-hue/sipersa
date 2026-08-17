@@ -30,6 +30,9 @@ const props = defineProps<{
 const config = useRuntimeConfig()
 const instansiNama = config.public.instansiNama || 'Pemerintah Provinsi Nusa Tenggara Timur'
 const instansiUnit = config.public.instansiUnit || 'Dinas Pendidikan dan Kebudayaan'
+const instansiAlamat = config.public.instansiAlamat || ''
+
+const { logoSrc } = useLogoUrl()
 
 const first = computed(() => props.disposisi?.[0] || null)
 const pimpinan = computed(() => first.value?.dari_nama || '')
@@ -94,10 +97,12 @@ const semuaInstruksi = [
   <div class="lembar-disposisi">
     <!-- HEADER -->
     <div class="ld-header">
-      <div class="ld-logo-placeholder">[Logo]</div>
+      <img v-if="logoSrc" :src="logoSrc" class="ld-logo" alt="Logo" />
+      <div v-else class="ld-logo-placeholder">[Logo]</div>
       <div class="ld-instansi">
         <div class="ld-instansi-nama">{{ instansiNama }}</div>
         <div class="ld-instansi-unit">{{ instansiUnit }}</div>
+        <div v-if="instansiAlamat" class="ld-instansi-alamat">{{ instansiAlamat }}</div>
       </div>
     </div>
 
@@ -200,6 +205,12 @@ const semuaInstruksi = [
   color: #222;
   flex-shrink: 0;
 }
+.ld-logo {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
 .ld-instansi {
   text-align: center;
   flex: 1;
@@ -218,6 +229,14 @@ const semuaInstruksi = [
   text-transform: uppercase;
   letter-spacing: 0.5px;
   line-height: 1.3;
+}
+.ld-instansi-alamat {
+  font-size: 10pt;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.3;
+  margin-top: 2px;
 }
 .ld-judul {
   text-align: center;

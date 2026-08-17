@@ -133,7 +133,7 @@ const columns: TableColumn<any>[] = [
             <p class="text-sm text-muted">{{ total }} sesi</p>
             <USelect v-model="pageSize" :items="pageSizeOptions" class="w-36" size="sm" />
           </div>
-          <UPagination v-model="page" :total="total" :items-per-page="pageSize" :max="5" show-edges />
+          <UPagination v-model:page="page" :total="total" :items-per-page="pageSize" :max="5" show-edges />
         </div>
       </template>
     </UCard>

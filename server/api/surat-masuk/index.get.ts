@@ -5,9 +5,11 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const q = (query.q as string) || ''
   const sifat = query.sifat as string
+  const status = query.status as string
   const tahun = query.tahun as string
+  const bulan = query.bulan as string
   const page = Math.max(1, Number(query.page) || 1)
-  const limit = 20
+  const limit = Math.min(100, Math.max(1, Number(query.perPage) || 20))
   const offset = (page - 1) * limit
 
   const db = useDb()
@@ -21,9 +23,21 @@ export default defineEventHandler(async (event) => {
     wheres.push('sm.sifat = ?')
     args.push(sifat)
   }
+  if (status) {
+    if (status === 'baru') {
+      wheres.push('NOT EXISTS (SELECT 1 FROM disposisi d WHERE d.surat_masuk_id = sm.id AND d.deleted_at IS NULL)')
+    } else {
+      wheres.push(`(SELECT d.status FROM disposisi d WHERE d.surat_masuk_id = sm.id AND d.deleted_at IS NULL ORDER BY d.created_at DESC LIMIT 1) = ?`)
+      args.push(status)
+    }
+  }
   if (tahun) {
     wheres.push('sm.no_surat LIKE ?')
     args.push(`%/${tahun}`)
+  }
+  if (bulan) {
+    wheres.push('sm.tgl_terima LIKE ?')
+    args.push(`${bulan}%`)
   }
   const where = wheres.join(' AND ')
 

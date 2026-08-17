@@ -27,21 +27,22 @@ export default defineEventHandler(async (event) => {
   if (p.status === 'selesai') {
     throw createError({ statusCode: 422, statusMessage: 'Disposisi sudah selesai, tidak dapat diteruskan' })
   }
-  if (data.kepada_user_id === auth.userId) {
+  const kepadaUserId = data.kepada_user_ids[0]
+  if (kepadaUserId === auth.userId) {
     throw createError({ statusCode: 422, statusMessage: 'Tidak dapat meneruskan ke diri sendiri' })
   }
 
   const res = await db.execute({
-    sql: `INSERT INTO disposisi (surat_masuk_id, parent_id, dari_user_id, kepada_user_id, instruksi, catatan, status, prioritas, batas_waktu)
+    sql: `INSERT INTO disposisi (surat_masuk_id, parent_id, dari_user_id, kepada_user_id, instruksi, catatan, status, sifat_disposisi, batas_waktu)
           VALUES (?, ?, ?, ?, ?, ?, 'baru', ?, ?)`,
     args: [
       p.surat_masuk_id,
       p.id,
       auth.userId,
-      data.kepada_user_id,
+      kepadaUserId,
       data.instruksi,
       data.catatan,
-      data.prioritas,
+      data.sifat_disposisi,
       data.batas_waktu || null
     ]
   })
@@ -55,7 +56,7 @@ export default defineEventHandler(async (event) => {
     sql: `INSERT INTO notifications (user_id, title, message, entity, entity_id)
           VALUES (?, ?, ?, 'disposisi', ?)`,
     args: [
-      data.kepada_user_id,
+      kepadaUserId,
       'Disposisi Diteruskan',
       `Surat: ${(surat.rows[0] as any)?.no_surat ?? ''}`,
       newId
@@ -67,7 +68,7 @@ export default defineEventHandler(async (event) => {
     action: 'FORWARD_DISPOSISI',
     entity: 'disposisi',
     entityId: newId,
-    detail: { parent_id: p.id, kepada: data.kepada_user_id, prioritas: data.prioritas, batas_waktu: data.batas_waktu || null },
+    detail: { parent_id: p.id, kepada: kepadaUserId, sifat_disposisi: data.sifat_disposisi, batas_waktu: data.batas_waktu || null },
     ip: getRequestIP(event, { xForwardedFor: true })
   })
 

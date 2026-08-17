@@ -20,7 +20,11 @@ export const suratKeluarSchema = z.object({
   tujuan: z.string().min(1),
   perihal: z.string().min(1),
   sifat: z.enum(['biasa', 'segera', 'rahasia', 'penting']).default('biasa'),
-  klasifikasi_id: z.number().int().positive().optional().nullable()
+  klasifikasi_id: z.number().int().positive().optional().nullable(),
+  status: z.enum(['draft', 'proses_ttd', 'terkirim', 'selesai']).default('draft'),
+  penandatangan: z.string().optional().default(''),
+  no_urut: z.number().int().positive().optional().nullable(),
+  no_surat: z.string().optional().nullable()
 })
 
 export const disposisiSchema = z.object({

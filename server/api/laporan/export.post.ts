@@ -18,12 +18,37 @@ export default defineEventHandler(async (event) => {
 
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('Laporan')
+
+  const instansiNama = process.env.NUXT_PUBLIC_INSTANSI_NAMA || ''
+  const instansiUnit = process.env.NUXT_PUBLIC_INSTANSI_UNIT || ''
+  const instansiAlamat = process.env.NUXT_PUBLIC_INSTANSI_ALAMAT || ''
+  const lastCol = 'H'
+
+  const kopRows: { text: string; font: Partial<ExcelJS.Font>; underline?: boolean }[] = [
+    { text: instansiNama, font: { bold: true, size: 14 } },
+    { text: instansiUnit, font: { bold: true, size: 12 } }
+  ]
+  if (instansiAlamat) kopRows.push({ text: instansiAlamat, font: { size: 10 } })
+  kopRows.push({ text: 'LAPORAN PERSURATAN & ARSIP', font: { bold: true, size: 11 }, underline: true })
+
+  let kopRow = 1
+  for (const r of kopRows) {
+    const cell = `A${kopRow}`
+    ws.getCell(cell).value = r.text
+    ws.getCell(cell).font = r.font
+    if (r.underline) ws.getCell(cell).font = { ...r.font, underline: true }
+    ws.getCell(cell).alignment = { horizontal: 'center' }
+    ws.mergeCells(`A${kopRow}:${lastCol}${kopRow}`)
+    kopRow++
+  }
+
+  const headerRow = kopRow + 1
   const headers = ['No', 'Jenis', 'No Surat', 'Tanggal', 'Asal / Tujuan', 'Perihal', 'Status', 'Lokasi']
-  ws.addRow(headers)
+  ws.getRow(headerRow).values = headers
+  ws.getRow(headerRow).font = { bold: true }
   ;(rows as any[]).forEach((r, i) => {
-    ws.addRow([i + 1, r.jenis, r.no_surat, r.tgl_surat, r.asal_tujuan, r.perihal, r.status, r.lokasi])
+    ws.getRow(headerRow + 1 + i).values = [i + 1, r.jenis, r.no_surat, r.tgl_surat, r.asal_tujuan, r.perihal, r.status, r.lokasi]
   })
-  ws.getRow(1).font = { bold: true }
 
   const buf = await wb.xlsx.writeBuffer()
   await logActivity({

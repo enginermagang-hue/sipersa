@@ -5,20 +5,24 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const q = (query.q as string) || ''
   const sifat = query.sifat as string
+  const status = query.status as string
   const tahun = query.tahun as string
+  const bulan = query.bulan as string
   const page = Math.max(1, Number(query.page) || 1)
-  const limit = 20
+  const limit = Math.min(100, Math.max(1, Number(query.perPage) || 20))
   const offset = (page - 1) * limit
 
   const db = useDb()
   const wheres = ['sk.deleted_at IS NULL']
   const args: any[] = []
   if (q) {
-    wheres.push('(sk.perihal LIKE ? OR sk.tujuan LIKE ? OR sk.no_surat LIKE ?)')
-    args.push(`%${q}%`, `%${q}%`, `%${q}%`)
+    wheres.push('(sk.perihal LIKE ? OR sk.tujuan LIKE ? OR sk.no_surat LIKE ? OR sk.penandatangan LIKE ?)')
+    args.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
   }
   if (sifat) { wheres.push('sk.sifat = ?'); args.push(sifat) }
-  if (tahun) { wheres.push('sk.no_surat LIKE ?'); args.push(`%/${tahun}`) }
+  if (status) { wheres.push('sk.status = ?'); args.push(status) }
+  if (tahun) { wheres.push('sk.tgl_surat LIKE ?'); args.push(`${tahun}%`) }
+  if (bulan) { wheres.push('sk.tgl_surat LIKE ?'); args.push(`${bulan}%`) }
   const where = wheres.join(' AND ')
 
   const countRes = await db.execute({ sql: `SELECT COUNT(*) as c FROM surat_keluar sk WHERE ${where}`, args })

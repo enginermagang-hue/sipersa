@@ -7,12 +7,14 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "seed": "node scripts/seed.mjs"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.123",
     "@libsql/client": "^0.17.4",
     "@nuxt/ui": "^4.10.0",
+    "@tinymce/tinymce-vue": "^6.3.0",
     "bcryptjs": "^3.0.3",
     "exceljs": "^4.4.0",
     "nuxt": "^4.5.2",

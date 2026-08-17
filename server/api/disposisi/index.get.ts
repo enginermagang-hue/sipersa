@@ -11,8 +11,10 @@ export default defineEventHandler(async (event) => {
   const q = (query.q as string) || ''
   const status = query.status as string
   const prioritas = query.prioritas as string
+  const sifat = query.sifat as string
+  const bulan = query.bulan as string
   const page = Math.max(1, Number(query.page) || 1)
-  const limit = 20
+  const limit = Math.min(100, Math.max(1, Number(query.perPage) || 20))
   const offset = (page - 1) * limit
 
   const db = useDb()
@@ -29,6 +31,14 @@ export default defineEventHandler(async (event) => {
   if (prioritas) {
     wheres.push('d.prioritas = ?')
     args.push(prioritas)
+  }
+  if (sifat) {
+    wheres.push('d.sifat_disposisi = ?')
+    args.push(sifat)
+  }
+  if (bulan) {
+    wheres.push('d.batas_waktu LIKE ?')
+    args.push(`${bulan}%`)
   }
   const where = wheres.join(' AND ')
 

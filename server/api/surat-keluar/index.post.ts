@@ -14,15 +14,28 @@ export default defineEventHandler(async (event) => {
     tujuan: fields.tujuan,
     perihal: fields.perihal,
     sifat: fields.sifat,
-    klasifikasi_id: toIntOrNull(fields.klasifikasi_id)
+    klasifikasi_id: toIntOrNull(fields.klasifikasi_id),
+    status: fields.status || 'draft',
+    penandatangan: fields.penandatangan || '',
+    no_urut: toIntOrNull(fields.no_urut),
+    no_surat: fields.no_surat || ''
   })
   if (!parsed.success) {
     throw createError({ statusCode: 422, statusMessage: 'Data tidak valid', data: parsed.error.issues })
   }
   const data = parsed.data
 
-  const year = new Date(data.tgl_surat).getFullYear()
-  const { no_urut, no_surat } = await generateNo('surat_keluar', 'SK-INST', year)
+  let no_urut: number
+  let no_surat: string
+  if (data.no_surat) {
+    no_surat = data.no_surat
+    no_urut = data.no_urut ?? 0
+  } else {
+    const year = new Date(data.tgl_surat).getFullYear()
+    const gen = await generateNo('surat_keluar', 'SK-INST', year)
+    no_urut = gen.no_urut
+    no_surat = gen.no_surat
+  }
 
   let fileDriveId: string | null = null
   let fileName: string | null = null
@@ -34,11 +47,11 @@ export default defineEventHandler(async (event) => {
 
   const db = useDb()
   const res = await db.execute({
-    sql: `INSERT INTO surat_keluar (no_urut, no_surat, klasifikasi_id, tgl_surat, tujuan, perihal, sifat, file_drive_id, file_name, created_by)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    sql: `INSERT INTO surat_keluar (no_urut, no_surat, klasifikasi_id, tgl_surat, tujuan, perihal, sifat, status, penandatangan, file_drive_id, file_name, created_by)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       no_urut, no_surat, data.klasifikasi_id ?? null, data.tgl_surat, data.tujuan,
-      data.perihal, data.sifat, fileDriveId, fileName, auth.userId
+      data.perihal, data.sifat, data.status, data.penandatangan, fileDriveId, fileName, auth.userId
     ]
   })
   const id = Number((res.rows[0] as any)?.id ?? res.lastInsertRowid)

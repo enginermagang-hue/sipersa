@@ -147,9 +147,12 @@ export async function migrate() {
   await db.execute('CREATE INDEX IF NOT EXISTS idx_arsip_ref_masuk ON arsip(ref_masuk_id)')
   await db.execute('CREATE INDEX IF NOT EXISTS idx_arsip_ref_keluar ON arsip(ref_keluar_id)')
 
+  await ensureColumn('surat_keluar', 'status', "status TEXT NOT NULL DEFAULT 'draft'")
+  await ensureColumn('surat_keluar', 'penandatangan', 'penandatangan TEXT')
   await ensureColumn('surat_masuk', 'ringkasan', 'ringkasan TEXT')
   await ensureColumn('users', 'google_id', 'google_id TEXT')
   await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)')
+  await ensureColumn('users', 'nip', 'nip TEXT')
 
   await seedAdmin()
 }

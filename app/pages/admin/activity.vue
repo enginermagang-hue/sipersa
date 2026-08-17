@@ -189,7 +189,7 @@ const columns: TableColumn<any>[] = [
       <template v-if="total > 0" #footer>
         <div class="flex items-center justify-between px-2 py-1">
           <p class="text-sm text-muted">{{ total }} log</p>
-          <UPagination v-model="page" :total="total" :items-per-page="pageSize" :max="5" show-edges />
+          <UPagination v-model:page="page" :total="total" :items-per-page="pageSize" :max="5" show-edges />
         </div>
       </template>
     </UCard>

@@ -5,6 +5,9 @@ const route = useRoute()
 const config = useRuntimeConfig()
 const instansiNama = config.public.instansiNama || 'Pemerintah Provinsi Nusa Tenggara Timur'
 const instansiUnit = config.public.instansiUnit || 'Dinas Pendidikan dan Kebudayaan'
+const instansiAlamat = config.public.instansiAlamat || ''
+
+const { logoSrc } = useLogoUrl()
 
 const q = computed(() => ({
   tab: (route.query.tab as string) || 'gabungan',
@@ -57,10 +60,14 @@ onMounted(() => {
 <template>
   <div v-if="!pending" class="cetak-page">
     <div class="kop">
-      <h1>{{ instansiNama }}</h1>
-      <h2>{{ instansiUnit }}</h2>
-      <div class="kop-judul">LAPORAN PERSURATAN &amp; ARSIP</div>
-      <p>Periode: {{ periodeLabel }} | Jenis: {{ jenisLabel }} | Dicetak: {{ tglIndo(new Date().toISOString()) }}</p>
+      <img v-if="logoSrc" :src="logoSrc" class="kop-logo" alt="Logo" />
+      <div class="kop-text">
+        <h1>{{ instansiNama }}</h1>
+        <h2>{{ instansiUnit }}</h2>
+        <div v-if="instansiAlamat" class="kop-alamat">{{ instansiAlamat }}</div>
+        <div class="kop-judul">LAPORAN PERSURATAN & ARSIP</div>
+        <p>Periode: {{ periodeLabel }} | Jenis: {{ jenisLabel }} | Dicetak: {{ tglIndo(new Date().toISOString()) }}</p>
+      </div>
     </div>
 
     <div class="ringkasan">
@@ -159,10 +166,24 @@ onMounted(() => {
 }
 
 .kop {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
   border-bottom: 3px double #000;
   padding-bottom: 12px;
   margin-bottom: 20px;
+  position: relative;
+}
+.kop-logo {
+  width: 60px;
+  height: auto;
+  align-self: center;
+  flex-shrink: 0;
+}
+.kop-text {
+  text-align: center;
+  flex: 1;
 }
 .kop h1 {
   margin: 0;
@@ -182,6 +203,12 @@ onMounted(() => {
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+.kop-alamat {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 400;
+  text-transform: none;
 }
 .kop p {
   margin: 4px 0 0;

@@ -17,6 +17,8 @@ const state = reactive({
   tujuan: s.tujuan || '',
   perihal: s.perihal || '',
   sifat: s.sifat || 'biasa',
+  status: s.status || 'draft',
+  penandatangan: s.penandatangan || '',
   klasifikasi_id: s.klasifikasi_id ?? null as number | null,
   no_agenda: s.no_agenda ?? null as string | null,
   ringkasan: s.ringkasan || ''
@@ -37,6 +39,13 @@ const sifatOptions = [
   { label: 'Segera', value: 'segera' },
   { label: 'Rahasia', value: 'rahasia' },
   { label: 'Penting', value: 'penting' }
+]
+
+const statusOptions = [
+  { label: 'Draft', value: 'draft' },
+  { label: 'Proses TTD', value: 'proses_ttd' },
+  { label: 'Terkirim', value: 'terkirim' },
+  { label: 'Selesai', value: 'selesai' }
 ]
 
 function validate(s: Partial<typeof state>): FormError[] {
@@ -91,13 +100,21 @@ async function submit() {
     <h3 class="font-semibold text-sm uppercase mt-8">Meta Data</h3>
     <div class="space-y-3">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <UFormField label="Sifat">
-          <USelect v-model="state.sifat" class="w-full" :items="sifatOptions" />
-        </UFormField>
-        <UFormField label="Klasifikasi">
-          <USelect v-model="state.klasifikasi_id" class="w-full" :items="klasOptions" placeholder="(tanpa)" />
-        </UFormField>
-      </div>
+      <UFormField label="Sifat">
+        <USelect v-model="state.sifat" class="w-full" :items="sifatOptions" />
+      </UFormField>
+      <UFormField label="Klasifikasi">
+        <USelect v-model="state.klasifikasi_id" class="w-full" :items="klasOptions" placeholder="(tanpa)" />
+      </UFormField>
+    </div>
+    <div v-if="type === 'keluar'" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <UFormField label="Status">
+        <USelect v-model="state.status" class="w-full" :items="statusOptions" />
+      </UFormField>
+      <UFormField label="Penandatangan">
+        <UInput v-model="state.penandatangan" class="w-full" />
+      </UFormField>
+    </div>
       <UFormField v-if="type === 'masuk'" label="No. Agenda">
         <UInput v-model="state.no_agenda" />
       </UFormField>

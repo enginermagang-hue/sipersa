@@ -31,9 +31,14 @@ export default defineNuxtConfig({
     googleRedirectUri: '',
     sessionSecret: '',
     sessionMaxAge: 86400,
-    instansiNama: '',
-    instansiUnit: '',
-    appName: process.env.NUXT_PUBLIC_APP_NAME || 'SIPERSA'
+    appName: process.env.NUXT_PUBLIC_APP_NAME || 'SIPERSA',
+    public: {
+      instansiNama: process.env.NUXT_PUBLIC_INSTANSI_NAMA || '',
+      instansiUnit: process.env.NUXT_PUBLIC_INSTANSI_UNIT || '',
+      instansiSubUnit: process.env.NUXT_PUBLIC_INSTANSI_SUB_UNIT || '',
+      instansiAlamat: process.env.NUXT_PUBLIC_INSTANSI_ALAMAT || '',
+      logoPath: process.env.NUXT_PUBLIC_LOGO_PATH || ''
+    }
   },
   nitro: {
     bodySize: 25,

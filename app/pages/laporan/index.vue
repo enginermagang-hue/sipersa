@@ -302,7 +302,7 @@ function cetak() {
         <p class="text-xs text-muted">
           Menampilkan {{ items?.data?.length || 0 }} dari {{ items?.total || 0 }} surat • {{ periodeLabel }}
         </p>
-        <UPagination v-model="page" :page-count="limit" :total="items?.total || 0" />
+        <UPagination v-model:page="page" :items-per-page="limit" :total="items?.total || 0" />
       </div>
     </UCard>
 

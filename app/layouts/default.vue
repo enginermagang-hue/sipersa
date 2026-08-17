@@ -115,7 +115,7 @@ function goSearch() {
       </template>
     </USidebar>
 
-    <div class="flex-1 flex flex-col min-h-screen">
+    <div class="flex-1 flex flex-col min-h-screen min-w-0">
       <header class="h-14 border-b border-default flex items-center justify-between px-4">
         <UButton
           icon="i-lucide-panel-left"
@@ -157,7 +157,7 @@ function goSearch() {
         </UDropdownMenu>
       </header>
 
-      <main class="flex-1 p-4">
+      <main class="flex-1 p-4 min-w-0">
         <slot />
       </main>
     </div>
