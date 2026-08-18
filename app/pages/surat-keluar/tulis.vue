@@ -278,7 +278,16 @@ async function simpan() {
     <div class="grid grid-cols-1 lg:grid-cols-[7fr_3fr] gap-5 items-start">
       <UCard :ui="{ body: 'p-2' }" class="min-w-0">
         <div class="min-h-[600px]">
-          <TinyMceEditor ref="tinyRef" v-model="isi" :height="620" />
+          <TinyMceEditor
+            ref="tinyRef"
+            v-model="isi"
+            :height="620"
+            paper
+            :paper-width="PAPER[ukuranKertas][0]"
+            :paper-height="PAPER[ukuranKertas][1]"
+            :orientation="orientasi"
+            :margin-mm="marginMm"
+          />
           <div v-if="logoLoading" class="flex items-center gap-2 mt-2 text-sm text-muted">
             <UIcon name="i-lucide-loader-circle" class="animate-spin" />
             Memuat logo…

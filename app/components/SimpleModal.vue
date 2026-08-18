@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch, ref } from 'vue'
+import { watch, ref, onMounted } from 'vue'
 
 const props = defineProps<{
   open: boolean
@@ -12,13 +12,20 @@ const emit = defineEmits<{
 
 const dialogRef = ref<HTMLDialogElement | null>(null)
 
-watch(() => props.open, (newVal) => {
-  if (newVal) {
-    dialogRef.value?.showModal()
-  } else {
-    dialogRef.value?.close()
+function sync() {
+  const el = dialogRef.value
+  if (!el) return
+  if (props.open && !el.open) {
+    el.showModal()
+  } else if (!props.open && el.open) {
+    el.close()
   }
-}, { immediate: true })
+}
+
+// showModal hanya valid setelah <dialog> ter-render. onMounted menangani pola
+// pemakaian `v-if` + `:open="true"` saat komponen baru diciptakan dalam keadaan terbuka.
+onMounted(sync)
+watch(() => props.open, sync, { immediate: true })
 
 function close() {
   emit('update:open', false)

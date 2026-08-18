@@ -32,6 +32,14 @@ const sifatOptions = [
   { label: 'Rahasia', value: 'rahasia' }
 ]
 
+// Opsi sifat untuk form "teruskan/tindak lanjuti" — tanpa opsi filter "Semua Sifat".
+const forwardSifatOptions = [
+  { label: 'Biasa', value: 'biasa' },
+  { label: 'Segera', value: 'segera' },
+  { label: 'Sangat Segera', value: 'sangat_segera' },
+  { label: 'Rahasia', value: 'rahasia' }
+]
+
 const sortOptions = [
   { label: 'Terbaru', value: 'terbaru' },
   { label: 'Batas Waktu Terdekat', value: 'batas_waktu' },
@@ -341,13 +349,13 @@ function exportExcel() {
       </div>
     </UCard>
 
-    <SimpleModal v-if="fwdOpen" :open="fwdOpen" @update:open="fwdOpen = $event" title="Tindak Lanjuti Disposisi">
+    <UModal v-model:open="fwdOpen" title="Tindak Lanjuti Disposisi" :ui="{ footer: 'justify-end' }">
       <template #body>
         <DisposisiForwardForm
           :target="fwdTarget"
           :form="fwdForm"
           :user-options="userOptions"
-          :sifat-options="sifatOptions"
+          :sifat-options="forwardSifatOptions"
           :loading="fwdLoading"
           :error="fwdError"
           @submit="forward"
@@ -358,6 +366,6 @@ function exportExcel() {
         <UButton variant="ghost" @click="fwdOpen = false">Batal</UButton>
         <UButton type="submit" form="fwd-form" :loading="fwdLoading">Kirim</UButton>
       </template>
-    </SimpleModal>
+    </UModal>
   </div>
 </template>

@@ -16,7 +16,7 @@
     "@nuxt/ui": "^4.10.0",
     "@tinymce/tinymce-vue": "^6.3.0",
     "bcryptjs": "^3.0.3",
-    "exceljs": "^4.4.0",
+    "exceljs": "^3.4.0",
     "nuxt": "^4.5.2",
     "pdf-parse": "^2.4.5",
     "sweetalert2": "^11.26.25",
