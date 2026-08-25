@@ -21,11 +21,12 @@ export default defineEventHandler(async (event) => {
 
   await db.execute({
     sql: `UPDATE surat_keluar SET
-      tgl_surat = ?, tujuan = ?, perihal = ?, sifat = ?, klasifikasi_id = ?, status = ?, penandatangan = ?, file_drive_id = ?, file_name = ?
+      tgl_surat = ?, tujuan = ?, perihal = ?, sifat = ?, klasifikasi_id = ?, status = ?, penandatangan = ?, html_content = ?, render_config = ?, file_drive_id = ?, file_name = ?
       WHERE id = ?`,
     args: [
       fields.tgl_surat, fields.tujuan, fields.perihal, fields.sifat || 'biasa',
       toIntOrNull(fields.klasifikasi_id), fields.status || 'draft', fields.penandatangan || '',
+      fields.html_content || null, fields.render_config || null,
       fileDriveId, fileName, id
     ]
   })

@@ -43,7 +43,8 @@ const sifatOptions = [
 
 const statusOptions = [
   { label: 'Draft', value: 'draft' },
-  { label: 'Proses TTD', value: 'proses_ttd' },
+  { label: 'Menunggu Persetujuan', value: 'menunggu_persetujuan' },
+  { label: 'Ditolak', value: 'ditolak' },
   { label: 'Terkirim', value: 'terkirim' },
   { label: 'Selesai', value: 'selesai' }
 ]

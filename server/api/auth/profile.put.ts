@@ -21,6 +21,11 @@ export default defineEventHandler(async (event) => {
   if (d.nama) { sets.push('nama = ?'); args.push(d.nama) }
   if (d.username) { sets.push('username = ?'); args.push(d.username) }
   if (d.email !== undefined) { sets.push('email = ?'); args.push(d.email || null) }
+  if (d.no_hp !== undefined) { sets.push('no_hp = ?'); args.push(d.no_hp || null) }
+  if (d.unit_kerja !== undefined) { sets.push('unit_kerja = ?'); args.push(d.unit_kerja || null) }
+  if (d.jabatan !== undefined) { sets.push('jabatan = ?'); args.push(d.jabatan || null) }
+  if (d.tanggal_bergabung !== undefined) { sets.push('tanggal_bergabung = ?'); args.push(d.tanggal_bergabung || null) }
+  if (d.email_notifikasi !== undefined) { sets.push('email_notifikasi = ?'); args.push(d.email_notifikasi ? 1 : 0) }
   if (d.password) {
     const hash = await bcrypt.hash(d.password, 10)
     sets.push('password_hash = ?'); args.push(hash)
@@ -29,7 +34,7 @@ export default defineEventHandler(async (event) => {
     await db.execute({ sql: `UPDATE users SET ${sets.join(', ')} WHERE id = ? AND deleted_at IS NULL`, args: [...args, auth.userId] })
   }
 
-  const me = await db.execute({ sql: 'SELECT id, nama, username, email, role, status FROM users WHERE id = ? AND deleted_at IS NULL', args: [auth.userId] })
+  const me = await db.execute({ sql: 'SELECT id, nama, username, email, role, status, no_hp, unit_kerja, jabatan, tanggal_bergabung, email_notifikasi FROM users WHERE id = ? AND deleted_at IS NULL', args: [auth.userId] })
   await logActivity({ userId: auth.userId, action: 'UPDATE_PROFILE', entity: 'users', entityId: auth.userId, ip: getRequestIP(event, { xForwardedFor: true }) })
 
   return { user: me.rows[0] }

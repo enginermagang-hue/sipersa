@@ -4,6 +4,11 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxt/ui'],
   css: ['~/assets/css/main.css'],
+  icon: {
+    serverBundle: {
+      collections: ['lucide']
+    }
+  },
   app: {
     head: {
       title: process.env.NUXT_PUBLIC_APP_NAME || 'SIPERSA',

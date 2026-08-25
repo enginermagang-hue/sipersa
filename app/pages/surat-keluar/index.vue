@@ -25,14 +25,16 @@ const { data: stats } = await useFetch('/api/surat-keluar/stats')
 const statusOptions = [
   { label: 'Semua Status', value: '' },
   { label: 'Draft', value: 'draft' },
-  { label: 'Proses TTD', value: 'proses_ttd' },
+  { label: 'Menunggu Persetujuan', value: 'menunggu_persetujuan' },
+  { label: 'Ditolak', value: 'ditolak' },
   { label: 'Terkirim', value: 'terkirim' },
   { label: 'Selesai', value: 'selesai' }
 ]
 
-const statusMeta: Record<string, { label: string; color: 'neutral' | 'info' | 'success' | 'primary' }> = {
+const statusMeta: Record<string, { label: string; color: 'neutral' | 'info' | 'success' | 'primary' | 'warning' | 'error' }> = {
   draft: { label: 'Draft', color: 'neutral' },
-  proses_ttd: { label: 'Proses TTD', color: 'info' },
+  menunggu_persetujuan: { label: 'Menunggu Persetujuan', color: 'warning' },
+  ditolak: { label: 'Ditolak', color: 'error' },
   terkirim: { label: 'Terkirim', color: 'success' },
   selesai: { label: 'Selesai', color: 'primary' }
 }
@@ -47,8 +49,8 @@ const sifatOptions = [
 
 const kpiCards = computed(() => [
   { label: 'Total Surat Keluar', value: stats.value?.total ?? 0, sub: 'Sejak Januari 2026', icon: 'i-lucide-send', color: 'primary' },
-  { label: 'Draft', value: stats.value?.draft ?? 0, sub: 'Perlu ditindaklanjuti', icon: 'i-lucide-file-text', color: 'neutral' },
-  { label: 'Proses TTD', value: stats.value?.proses_ttd ?? 0, sub: 'Menunggu tanda tangan', icon: 'i-lucide-pen-line', color: 'info' },
+  { label: 'Draft & Ditolak', value: (stats.value?.draft ?? 0) + (stats.value?.ditolak ?? 0), sub: 'Perlu ditindaklanjuti', icon: 'i-lucide-file-text', color: 'neutral' },
+  { label: 'Menunggu Persetujuan', value: stats.value?.menunggu_persetujuan ?? 0, sub: 'Menunggu pimpinan', icon: 'i-lucide-pen-line', color: 'info' },
   { label: 'Terkirim Bulan Ini', value: stats.value?.terkirim_bulan_ini ?? 0, sub: 'Bulan ini (WITA)', icon: 'i-lucide-check-circle', color: 'success' }
 ])
 

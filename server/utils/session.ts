@@ -24,7 +24,7 @@ export async function getSessionUser(token: string | undefined) {
   if (!token) return null
   const db = useDb()
   const res = await db.execute({
-    sql: `SELECT s.*, u.id as uid, u.nama, u.username, u.role, u.status, u.email
+    sql: `SELECT s.*, u.id as uid, u.nama, u.username, u.role, u.status, u.email, u.no_hp, u.unit_kerja, u.jabatan, u.tanggal_bergabung, u.email_notifikasi
           FROM sessions s JOIN users u ON u.id = s.user_id
           WHERE s.token = ? AND s.revoked = 0 AND s.expires_at > datetime('now') AND u.deleted_at IS NULL`,
     args: [token]
@@ -42,7 +42,12 @@ export async function getSessionUser(token: string | undefined) {
     username: row.username,
     email: row.email,
     role: row.role,
-    status: row.status
+    status: row.status,
+    no_hp: row.no_hp,
+    unit_kerja: row.unit_kerja,
+    jabatan: row.jabatan,
+    tanggal_bergabung: row.tanggal_bergabung,
+    email_notifikasi: row.email_notifikasi
   }
 }
 

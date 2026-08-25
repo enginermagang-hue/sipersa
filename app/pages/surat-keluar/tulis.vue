@@ -21,7 +21,6 @@ const state = reactive({
   tujuan: '',
   perihal: '',
   sifat: 'biasa',
-  status: 'draft',
   penandatangan: '',
   klasifikasi_id: null as number | null
 })
@@ -32,12 +31,6 @@ const ukuranKertas = ref<'a4' | 'f4' | 'letter'>('a4')
 const font = ref('Inter')
 const marginMm = ref(25)
 const orientasi = ref<'portrait' | 'landscape'>('portrait')
-
-const PAPER: Record<string, [number, number]> = {
-  a4: [210, 297],
-  f4: [210, 330],
-  letter: [215.9, 279.4]
-}
 
 const kertasOptions = [
   { label: 'A4 (210 × 297 mm)', value: 'a4' },
@@ -63,13 +56,6 @@ const sifatOptions = [
   { label: 'Segera', value: 'segera' },
   { label: 'Rahasia', value: 'rahasia' },
   { label: 'Penting', value: 'penting' }
-]
-
-const statusOptions = [
-  { label: 'Draft', value: 'draft' },
-  { label: 'Proses TTD', value: 'proses_ttd' },
-  { label: 'Terkirim', value: 'terkirim' },
-  { label: 'Selesai', value: 'selesai' }
 ]
 
 const templateOptions = SURAT_TEMPLATES.map((t) => ({ label: t.label, value: t.id }))
@@ -193,48 +179,6 @@ function validate(): string | null {
   return null
 }
 
-function renderPdf(html: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const [w, h] = PAPER[ukuranKertas.value]
-    const [pw, ph] = orientasi.value === 'landscape' ? [Math.max(w, h), Math.min(w, h)] : [w, h]
-    const ifr = document.createElement('iframe')
-    ifr.style.cssText = 'position:fixed;top:0;left:-10000px;width:210mm;height:297mm;border:0;visibility:hidden'
-    document.body.appendChild(ifr)
-
-    const srcdoc = ['<!DOCTYPE html><html lang="id"><head>',
-      '<meta charset="utf-8"/>',
-      '<link rel="preconnect" href="https://fonts.googleapis.com"/>',
-      '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>',
-      `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Times+New+Roman&display=swap"/>`,
-      '<style>',
-      `body{margin:0}#sheet{width:${pw}mm;min-height:${ph}mm;box-sizing:border-box;padding:${marginMm.value}mm;font-family:${font.value === 'Inter' ? "'Inter',sans-serif" : `'${font.value}',serif`};font-size:12pt;line-height:1.6;color:#000;background:#fff}`,
-      'img{max-width:100%}</style>',
-      '<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>',
-      '<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>',
-      `<script>window.__imReady=false;window.__render=async function(html){document.getElementById("sheet").innerHTML=html;await document.fonts.ready;var c=await html2canvas(document.getElementById("sheet"),{scale:2,backgroundColor:"#ffffff"});var img=c.toDataURL("image/jpeg",0.98);var pdf=new jspdf.jsPDF({unit:"mm",format:[${pw},${ph}],orientation:"${orientasi.value}"});pdf.addImage(img,"JPEG",0,0,${pw},${ph},undefined,"FAST");window.__imReady=false;return pdf.output("datauristring")};window.__imReady=true<\/script>`,
-      '</head><body><div id="sheet"></div></body></html>'
-    ].join('')
-
-    ifr.srcdoc = srcdoc
-    ifr.addEventListener('load', async () => {
-      const w = ifr.contentWindow!
-      const deadline = Date.now() + 15000
-      while (!w.__imReady && Date.now() < deadline) {
-        await new Promise(r => setTimeout(r, 150))
-      }
-      try {
-        if (!w.__imReady) throw new Error('Library PDF gagal dimuat di iframe')
-        const dataUrl = await w.__render(html)
-        ifr.remove()
-        resolve(dataUrl)
-      } catch (e: any) {
-        ifr.remove()
-        reject(new Error(e?.message || 'Gagal membuat PDF'))
-      }
-    })
-  })
-}
-
 async function simpan() {
   const err = validate()
   if (err) {
@@ -243,16 +187,13 @@ async function simpan() {
   }
   saving.value = true
   try {
-    const dataUrl = await renderPdf(isi.value)
-    const blob = await (await fetch(dataUrl)).blob()
-
-    const file = new File([blob], `${state.no_surat.replace(/\//g, '-')}.pdf`, { type: 'application/pdf' })
     const fd = new FormData()
     Object.entries({ ...state, klasifikasi_id: state.klasifikasi_id ?? '' }).forEach(([k, v]) => fd.append(k, String(v)))
-    fd.append('file', file)
+    fd.append('html_content', isi.value)
+    fd.append('render_config', JSON.stringify({ ukuranKertas: ukuranKertas.value, font: font.value, marginMm: marginMm.value, orientasi: orientasi.value }))
 
     const res = await $fetch('/api/surat-keluar', { method: 'POST', body: fd })
-    toast.add({ title: 'Berhasil', description: 'Surat dibuat & PDF diunggah', color: 'success' })
+    toast.add({ title: 'Berhasil', description: 'Surat disimpan sebagai draft. Submit untuk persetujuan pimpinan di halaman detail.', color: 'success' })
     navigateTo(`/surat-keluar/${res.id}`)
   } catch (e: any) {
     toast.add({ title: 'Gagal menyimpan', description: e?.data?.statusMessage || 'Terjadi kesalahan', color: 'error' })
@@ -269,7 +210,7 @@ async function simpan() {
         <UButton icon="i-lucide-arrow-left" variant="ghost" :to="'/surat-keluar'" aria-label="Kembali" />
         <div>
           <h1 class="text-2xl font-bold tracking-tight">Tulis Surat Keluar</h1>
-          <p class="text-sm text-muted mt-0.5">Tulis langsung di aplikasi, otomatis jadi PDF & diunggah ke Drive</p>
+          <p class="text-sm text-muted mt-0.5">Simpan sebagai draft; PDF dibuat otomatis setelah disetujui pimpinan</p>
         </div>
       </div>
       <UButton icon="i-lucide-save" color="primary" :loading="saving" @click="simpan">Simpan Surat</UButton>
@@ -320,9 +261,7 @@ async function simpan() {
                     <USelect class="w-full" v-model="state.klasifikasi_id" :items="klasOptions" placeholder="(tanpa)" />
                   </UFormField>
                 </div>
-                <UFormField label="Status">
-                  <USelect class="w-full" v-model="state.status" :items="statusOptions" />
-                </UFormField>
+                <UAlert color="info" variant="soft" icon="i-lucide-info" title="Surat disimpan sebagai draft dan dapat disubmit untuk persetujuan pimpinan." />
               </div>
             </template>
 

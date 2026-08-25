@@ -103,7 +103,8 @@ function mapDropboxError(status: number, tag: string, scopeFor: 'read' | 'write'
 export const DROPBOX_FOLDERS = {
   SM: 'Surat Masuk',
   SK: 'Surat Keluar',
-  ARSIP: 'Arsip'
+  ARSIP: 'Arsip',
+  TT: 'Tanda Tangan'
 } as const
 
 export type DropboxFolder = typeof DROPBOX_FOLDERS[keyof typeof DROPBOX_FOLDERS]

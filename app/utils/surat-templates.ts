@@ -128,7 +128,7 @@ export function ttdBlock(ctx: TemplateCtx): string {
   <p style="margin:0;">${ctx.tglSurat}</p>
   <p style="margin:0;">Mengetahui,</p>
   <p style="margin:0 0 4px;">Kepala ${ctx.instansiUnit}</p>
-  <div style="height:66px;"></div>
+  <div style="height:66px;">{{%ttd%}}</div>
   <p style="margin:0;font-weight:bold;text-decoration:underline;">${nama}</p>
   <p style="margin:0;">${nip}</p>
   </div>

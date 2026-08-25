@@ -11,6 +11,7 @@ export const suratMasukSchema = z.object({
   pengirim: z.string().min(1),
   perihal: z.string().min(1),
   sifat: z.enum(['biasa', 'segera', 'rahasia', 'penting']).default('biasa'),
+  status: z.enum(['diterima', 'didisposisikan', 'selesai']).default('diterima'),
   klasifikasi_id: z.number().int().positive().optional().nullable(),
   no_agenda: z.string().optional().nullable()
 })
@@ -21,10 +22,17 @@ export const suratKeluarSchema = z.object({
   perihal: z.string().min(1),
   sifat: z.enum(['biasa', 'segera', 'rahasia', 'penting']).default('biasa'),
   klasifikasi_id: z.number().int().positive().optional().nullable(),
-  status: z.enum(['draft', 'proses_ttd', 'terkirim', 'selesai']).default('draft'),
+  status: z.enum(['draft', 'menunggu_persetujuan', 'ditolak', 'terkirim', 'selesai']).default('draft'),
   penandatangan: z.string().optional().default(''),
+  html_content: z.string().optional().nullable(),
+  render_config: z.string().optional().nullable(),
   no_urut: z.number().int().positive().optional().nullable(),
   no_surat: z.string().optional().nullable()
+})
+
+export const suratKeluarApprovalSchema = z.object({
+  status: z.enum(['approved', 'rejected']),
+  catatan: z.string().optional().default('')
 })
 
 export const disposisiSchema = z.object({
@@ -52,6 +60,7 @@ export const arsipSchema = z.object({
   nama_dokumen: z.string().min(1),
   lokasi: z.string().optional().default(''),
   tahun: z.number().int().optional().nullable(),
+  sifat: z.enum(['biasa', 'segera', 'rahasia', 'penting']).default('biasa'),
   klasifikasi_id: z.number().int().positive().optional().nullable(),
   ref_masuk_id: z.number().int().positive().optional().nullable(),
   ref_keluar_id: z.number().int().positive().optional().nullable()
@@ -84,5 +93,10 @@ export const profileUpdateSchema = z.object({
   nama: z.string().min(1).optional(),
   username: z.string().min(1).optional(),
   email: z.string().email().optional().or(z.literal('')).nullable(),
-  password: z.string().min(4).optional().or(z.literal('')).nullable()
+  password: z.string().min(4).optional().or(z.literal('')).nullable(),
+  no_hp: z.string().optional().or(z.literal('')).nullable(),
+  unit_kerja: z.string().optional().or(z.literal('')).nullable(),
+  jabatan: z.string().optional().or(z.literal('')).nullable(),
+  tanggal_bergabung: z.string().optional().or(z.literal('')).nullable(),
+  email_notifikasi: z.boolean().optional()
 })

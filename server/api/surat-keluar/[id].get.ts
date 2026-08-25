@@ -20,5 +20,15 @@ export default defineEventHandler(async (event) => {
     args: [id]
   })
 
-  return { ...res.rows[0], arsip: ars.rows[0] || null }
+  const approvals = await db.execute({
+    sql: `SELECT a.id, a.status, a.catatan, a.reviewed_at,
+                 u.nama AS reviewer_nama, u.jabatan AS reviewer_jabatan
+          FROM surat_keluar_approval a
+          LEFT JOIN users u ON u.id = a.reviewed_by
+          WHERE a.surat_keluar_id = ?
+          ORDER BY a.reviewed_at DESC`,
+    args: [id]
+  })
+
+  return { ...res.rows[0], arsip: ars.rows[0] || null, approvals: approvals.rows }
 })

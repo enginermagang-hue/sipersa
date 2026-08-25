@@ -1,59 +1,444 @@
 <script setup lang="ts">
-const route = useRoute()
-const q = ref('')
-const { data } = await useFetch('/api/search', { query: { q }, watch: false })
+import { useLocalStorage, watchDebounced } from '@vueuse/core'
 
-const searched = ref(false)
-async function cari() {
-  if (q.value.length < 2) return
-  const res: any = await $fetch(`/api/search?q=${encodeURIComponent(q.value)}`)
-  data.value = res
-  searched.value = true
+const route = useRoute()
+const router = useRouter()
+
+const initial = typeof route.query.q === 'string' ? route.query.q.trim() : ''
+const qInput = ref(initial)
+const q = ref(initial)
+const jenisTab = ref<'semua' | 'masuk' | 'keluar' | 'arsip'>('semua')
+const sort = ref<'relevance' | 'newest'>('relevance')
+const preset = ref<'' | 'hari_ini' | '7hari' | '30hari' | 'tahun' | 'kustom'>('')
+const customFrom = ref('')
+const customTo = ref('')
+const sifats = ref<string[]>([])
+const statuses = ref<string[]>([])
+const history = useLocalStorage<string[]>('sipersa.search.history', [])
+const page = ref(1)
+const limit = 15
+
+function iso(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-onMounted(() => {
-  const urlQ = typeof route.query.q === 'string' ? route.query.q.trim() : ''
-  if (urlQ) {
-    q.value = urlQ
-    cari()
+const range = computed(() => {
+  const now = new Date()
+  switch (preset.value) {
+    case 'hari_ini': return { from: iso(now), to: iso(now) }
+    case '7hari': { const f = new Date(now); f.setDate(f.getDate() - 6); return { from: iso(f), to: iso(now) } }
+    case '30hari': { const f = new Date(now); f.setDate(f.getDate() - 29); return { from: iso(f), to: iso(now) } }
+    case 'tahun': return { from: `${now.getFullYear()}-01-01`, to: `${now.getFullYear()}-12-31` }
+    case 'kustom': return { from: customFrom.value, to: customTo.value }
+    default: return { from: '', to: '' }
   }
 })
+
+watchDebounced(qInput, (v) => {
+  q.value = v
+  const t = v.trim()
+  if (t.length >= 2) {
+    history.value = [t, ...history.value.filter((h) => h !== t)].slice(0, 5)
+  }
+}, { debounce: 300 })
+
+watch(q, (v) => {
+  if (import.meta.server) return
+  const cur = typeof route.query.q === 'string' ? route.query.q : ''
+  if (v === cur) return
+  router.replace({ query: { ...route.query, ...(v ? { q: v } : { q: undefined }) } })
+})
+
+// Reset ke halaman 1 saat kriteria pencarian berubah
+watch([q, jenisTab, sort, preset, customFrom, customTo, sifats, statuses], () => {
+  page.value = 1
+}, { deep: true })
+
+const hasFilter = computed(() =>
+  q.value.trim().length >= 2 || !!range.value.from || !!range.value.to || sifats.value.length > 0 || statuses.value.length > 0
+)
+
+const { data, pending } = await useFetch('/api/search', {
+  query: {
+    q,
+    jenis: computed(() => (jenisTab.value === 'semua' ? 'masuk,keluar,arsip' : jenisTab.value)),
+    sifat: computed(() => sifats.value.join(',')),
+    status: computed(() => statuses.value.join(',')),
+    date_from: computed(() => range.value.from),
+    date_to: computed(() => range.value.to),
+    sort,
+    page
+  }
+})
+
+const d = computed(() => (data.value as any) || {})
+const rows = computed<any[]>(() => d.value.rows || [])
+const totalCount = computed(() => d.value.count ?? 0)
+
+const typeMeta: Record<string, { label: string; base: string; icon: string }> = {
+  surat_masuk: { label: 'Surat Masuk', base: '/surat-masuk', icon: 'i-lucide-inbox' },
+  surat_keluar: { label: 'Surat Keluar', base: '/surat-keluar', icon: 'i-lucide-send' },
+  arsip: { label: 'Arsip', base: '', icon: 'i-lucide-archive' }
+}
+
+const jenisOptions = [
+  { value: 'semua', label: 'Semua' },
+  { value: 'masuk', label: 'Surat Masuk' },
+  { value: 'keluar', label: 'Surat Keluar' },
+  { value: 'arsip', label: 'Arsip' }
+]
+
+const waktuOptions = [
+  { value: '', label: 'Semua waktu' },
+  { value: 'hari_ini', label: 'Hari ini' },
+  { value: '7hari', label: '7 hari terakhir' },
+  { value: '30hari', label: '30 hari terakhir' },
+  { value: 'tahun', label: `Tahun ${new Date().getFullYear()}` },
+  { value: 'kustom', label: 'Kustom' }
+]
+
+const sifatOptions = [
+  { value: 'biasa', label: 'Biasa' },
+  { value: 'segera', label: 'Segera' },
+  { value: 'penting', label: 'Penting' },
+  { value: 'rahasia', label: 'Rahasia' }
+]
+
+const statusOptions = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'menunggu_persetujuan', label: 'Menunggu Persetujuan' },
+  { value: 'diterima', label: 'Diterima' },
+  { value: 'didisposisikan', label: 'Didisposisikan' },
+  { value: 'ditolak', label: 'Ditolak' },
+  { value: 'terkirim', label: 'Terkirim' },
+  { value: 'selesai', label: 'Selesai' }
+]
+
+const statusMeta: Record<string, { label: string; color: 'neutral' | 'info' | 'success' | 'primary' | 'warning' | 'error' }> = {
+  draft: { label: 'Draft', color: 'neutral' },
+  menunggu_persetujuan: { label: 'Menunggu Persetujuan', color: 'warning' },
+  diterima: { label: 'Diterima', color: 'success' },
+  didisposisikan: { label: 'Didisposisikan', color: 'info' },
+  ditolak: { label: 'Ditolak', color: 'error' },
+  terkirim: { label: 'Terkirim', color: 'success' },
+  selesai: { label: 'Selesai', color: 'primary' },
+  diarsipkan: { label: 'Diarsipkan', color: 'primary' }
+}
+
+const sifatColor: Record<string, 'neutral' | 'warning' | 'info' | 'error'> = {
+  biasa: 'neutral',
+  segera: 'warning',
+  penting: 'info',
+  rahasia: 'error'
+}
+
+function esc(s: string) {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
+}
+
+function hl(text?: string | null) {
+  const t = text ?? ''
+  const needle = q.value.trim()
+  if (!needle) return esc(t)
+  const re = new RegExp(`(${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  return esc(t).replace(re, '<mark class="rounded-sm bg-yellow-200 px-0.5 text-inherit dark:bg-yellow-500/30">$1</mark>')
+}
+
+function excerpt(r: any) {
+  return r.ringkasan || r.perihal || ''
+}
+
+function fmtTgl(s?: string | null) {
+  if (!s) return '—'
+  const dt = new Date(s.length === 10 ? `${s}T00:00:00` : s)
+  if (Number.isNaN(dt.getTime())) return s
+  return dt.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function cariLangsung(term: string) {
+  qInput.value = term
+  q.value = term
+}
+
+function resetFilter() {
+  preset.value = ''
+  customFrom.value = ''
+  customTo.value = ''
+  sifats.value = []
+  statuses.value = []
+  qInput.value = ''
+  q.value = ''
+}
+
+function unduh(fileDriveId?: string | null) {
+  if (fileDriveId) window.open(`/api/files/${fileDriveId}`, '_blank')
+}
+
+function buka(r: any) {
+  const meta = typeMeta[r._type]
+  if (meta?.base) navigateTo(`${meta.base}/${r.id}`)
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault()
+    document.getElementById('global-search')?.focus()
+  }
+}
+
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
-  <div>
-    <h1 class="text-xl font-bold mb-4">Pencarian Global</h1>
-    <UForm class="flex gap-2 mb-4" @submit="cari">
-      <UInput v-model="q" placeholder="No surat, perihal, pengirim, tujuan, dokumen..." class="max-w-md" />
-      <UButton type="submit" icon="i-lucide-search">Cari</UButton>
-    </UForm>
+  <div class="space-y-5">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Pencarian Global</h1>
+      <p class="text-sm text-muted mt-1">Cari surat masuk, surat keluar, dan berkas arsip dalam satu tempat</p>
+    </div>
 
-    <div v-if="searched" class="space-y-4">
-      <UCard>
-        <template #header><span class="font-semibold">Surat Masuk ({{ data?.surat_masuk?.length || 0 }})</span></template>
-        <ul class="text-sm space-y-1">
-          <li v-for="s in data?.surat_masuk || []" :key="s.id">
-            <NuxtLink :to="`/surat-masuk/${s.id}`" class="hover:underline">{{ s.no_surat }} — {{ s.perihal }} ({{ s.pengirim }})</NuxtLink>
-          </li>
-          <li v-if="!data?.surat_masuk?.length" class="text-muted">Tidak ada</li>
-        </ul>
+    <UCard :ui="{ body: 'p-4' }">
+      <UInput
+        id="global-search"
+        v-model="qInput"
+        icon="i-lucide-search"
+        size="xl"
+        placeholder="Cari surat, arsip, disposisi, atau lampiran..."
+        class="w-full"
+      >
+        <template #trailing>
+          <UKbd value="control-k" variant="subtle">⌘K</UKbd>
+        </template>
+      </UInput>
+
+      <div v-if="history.length" class="flex flex-wrap items-center gap-2 mt-3">
+        <span class="text-xs text-muted">Pencarian terakhir:</span>
+        <UButton
+          v-for="h in history"
+          :key="h"
+          :label="h"
+          size="xs"
+          color="neutral"
+          variant="soft"
+          @click="cariLangsung(h)"
+        />
+      </div>
+    </UCard>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <div role="group" aria-label="Jenis dokumen" class="inline-flex rounded-md border border-default bg-default p-0.5">
+        <UButton
+          v-for="j in jenisOptions"
+          :key="j.value"
+          :label="j.label"
+          size="sm"
+          :color="jenisTab === j.value ? 'primary' : 'neutral'"
+          :variant="jenisTab === j.value ? 'solid' : 'ghost'"
+          @click="jenisTab = j.value as any"
+        />
+      </div>
+      <div class="flex-1" />
+      <div role="group" aria-label="Urutan hasil" class="inline-flex rounded-md border border-default bg-default p-0.5">
+        <UButton
+          label="Paling Relevan"
+          size="sm"
+          :color="sort === 'relevance' ? 'primary' : 'neutral'"
+          :variant="sort === 'relevance' ? 'soft' : 'ghost'"
+          @click="sort = 'relevance'"
+        />
+        <UButton
+          label="Terbaru"
+          size="sm"
+          :color="sort === 'newest' ? 'primary' : 'neutral'"
+          :variant="sort === 'newest' ? 'soft' : 'ghost'"
+          @click="sort = 'newest'"
+        />
+      </div>
+    </div>
+
+    <div v-if="!hasFilter" class="py-16 text-center">
+      <UIcon name="i-lucide-search" class="w-10 h-10 mx-auto text-muted" />
+      <p class="mt-3 text-sm text-muted">Ketik minimal 2 karakter untuk mulai mencari, atau gunakan filter di samping.</p>
+    </div>
+
+    <div v-else class="grid grid-cols-1 gap-5 lg:grid-cols-[260px_1fr] items-start">
+      <UCard class="lg:sticky lg:top-[80px]" :ui="{ body: 'p-4 space-y-5' }">
+        <template #header>
+          <div class="flex items-center justify-between w-full">
+            <span class="font-semibold text-sm">Filter</span>
+            <UButton label="Reset" size="xs" variant="ghost" color="neutral" icon="i-lucide-rotate-ccw" @click="resetFilter" />
+          </div>
+        </template>
+
+        <fieldset>
+          <legend class="text-xs font-medium uppercase text-muted mb-2">Rentang Waktu</legend>
+          <div class="space-y-1.5">
+            <label v-for="w in waktuOptions" :key="w.value" class="flex items-center gap-2 text-sm cursor-pointer">
+              <input v-model="preset" type="radio" name="waktu" :value="w.value" class="accent-primary">
+              {{ w.label }}
+            </label>
+          </div>
+          <div v-if="preset === 'kustom'" class="mt-2 space-y-2">
+            <UInput v-model="customFrom" type="date" class="w-full" />
+            <UInput v-model="customTo" type="date" class="w-full" />
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend class="text-xs font-medium uppercase text-muted mb-2">Sifat</legend>
+          <div class="space-y-1.5">
+            <label v-for="s in sifatOptions" :key="s.value" class="flex items-center gap-2 text-sm cursor-pointer">
+              <input v-model="sifats" type="checkbox" :value="s.value" class="accent-primary">
+              {{ s.label }}
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend class="text-xs font-medium uppercase text-muted mb-2">Status</legend>
+          <div class="space-y-1.5">
+            <label v-for="s in statusOptions" :key="s.value" class="flex items-center gap-2 text-sm cursor-pointer">
+              <input v-model="statuses" type="checkbox" :value="s.value" class="accent-primary">
+              {{ s.label }}
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="rounded-md bg-muted/40 p-3 text-xs text-muted">
+          <span class="font-medium">Tips:</span> gunakan tanda kutip untuk frase persis.
+        </div>
       </UCard>
-      <UCard>
-        <template #header><span class="font-semibold">Surat Keluar ({{ data?.surat_keluar?.length || 0 }})</span></template>
-        <ul class="text-sm space-y-1">
-          <li v-for="s in data?.surat_keluar || []" :key="s.id">
-            <NuxtLink :to="`/surat-keluar/${s.id}`" class="hover:underline">{{ s.no_surat }} — {{ s.perihal }} ({{ s.tujuan }})</NuxtLink>
-          </li>
-          <li v-if="!data?.surat_keluar?.length" class="text-muted">Tidak ada</li>
-        </ul>
-      </UCard>
-      <UCard>
-        <template #header><span class="font-semibold">Arsip ({{ data?.arsip?.length || 0 }})</span></template>
-        <ul class="text-sm space-y-1">
-          <li v-for="a in data?.arsip || []" :key="a.id">{{ a.nama_dokumen }} — {{ a.lokasi }} ({{ a.tahun }})</li>
-          <li v-if="!data?.arsip?.length" class="text-muted">Tidak ada</li>
-        </ul>
-      </UCard>
+
+      <div class="space-y-4 min-w-0" aria-live="polite">
+        <div v-if="pending && !data" class="space-y-3">
+          <div v-for="i in 3" :key="i" class="h-24 rounded-xl border border-default animate-pulse bg-muted/30" />
+        </div>
+
+        <template v-else>
+          <p class="text-sm text-muted">
+            Menampilkan <span class="font-semibold text-default">{{ totalCount }}</span> hasil
+            <template v-if="q.trim()"> untuk '<span class="font-semibold text-default">{{ q }}</span>'</template>
+            <template v-if="d.took_ms != null"> • {{ d.took_ms }} ms</template>
+          </p>
+
+          <UCard v-if="d.best_match && page === 1" :ui="{ body: 'p-4 sm:p-5' }">
+            <div class="flex items-center gap-2 mb-2">
+              <UBadge label="Hasil Terbaik" color="primary" variant="subtle" icon="i-lucide-sparkles" />
+              <UBadge :label="typeMeta[d.best_match._type]?.label || d.best_match._type" variant="subtle" />
+            </div>
+            <div class="cursor-pointer" @click="buka(d.best_match)">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="font-semibold">{{ hl(d.best_match.nomor || d.best_match.judul) }}</div>
+                  <div class="text-sm font-medium mt-0.5 line-clamp-1" v-html="hl(d.best_match.judul)" />
+                </div>
+                <div class="flex gap-1 shrink-0" @click.stop>
+                  <UButton
+                    v-if="typeMeta[d.best_match._type]?.base"
+                    icon="i-lucide-eye"
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    aria-label="Lihat Detail"
+                    @click="buka(d.best_match)"
+                  />
+                  <UButton
+                    v-if="d.best_match.file_drive_id"
+                    icon="i-lucide-download"
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    aria-label="Unduh File"
+                    @click="unduh(d.best_match.file_drive_id)"
+                  />
+                </div>
+              </div>
+              <p class="text-sm text-muted mt-1 line-clamp-2" v-html="hl(excerpt(d.best_match))" />
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted">
+                <UIcon :name="typeMeta[d.best_match._type]?.icon" class="w-3.5 h-3.5" />
+                <span>{{ fmtTgl(d.best_match.tanggal) }}</span>
+                <span v-if="d.best_match.entitas">{{ d.best_match.entitas }}</span>
+                <span v-if="d.best_match.klasifikasi_kode">Klasifikasi {{ d.best_match.klasifikasi_kode }}</span>
+                <span v-if="d.best_match.tahun">{{ d.best_match.tahun }}</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5 mt-3">
+                <UBadge v-if="d.best_match.sifat" :label="d.best_match.sifat" :color="sifatColor[d.best_match.sifat] || 'neutral'" variant="subtle" size="sm" />
+                <UBadge
+                  v-if="d.best_match.status"
+                  :label="statusMeta[d.best_match.status]?.label || d.best_match.status"
+                  :color="statusMeta[d.best_match.status]?.color || 'neutral'"
+                  variant="subtle"
+                  size="sm"
+                />
+              </div>
+            </div>
+          </UCard>
+
+          <UCard v-if="!rows.length" :ui="{ body: 'p-10' }">
+            <div class="text-center">
+              <UIcon name="i-lucide-search-x" class="w-8 h-8 mx-auto text-muted" />
+              <p class="mt-3 text-sm text-muted">Tidak ada hasil<template v-if="q.trim()"> untuk '<span class="font-semibold">{{ q }}</span>'</template></p>
+            </div>
+          </UCard>
+
+          <template v-else>
+            <UCard v-for="r in rows" :key="`${r._type}-${r.id}`" :ui="{ body: 'p-4' }">
+              <div :class="{ 'cursor-pointer': !!typeMeta[r._type]?.base }" @click="buka(r)">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <UBadge :label="typeMeta[r._type]?.label || r._type" variant="subtle" size="sm" :icon="typeMeta[r._type]?.icon" />
+                      <div class="font-semibold text-sm truncate">{{ hl(r.nomor || r.judul) }}</div>
+                    </div>
+                    <div v-if="(r.perihal || '').trim()" class="text-sm font-medium mt-1 line-clamp-1" v-html="hl(r.judul)" />
+                  </div>
+                  <div class="flex gap-1 shrink-0" @click.stop>
+                    <UButton
+                      v-if="typeMeta[r._type]?.base"
+                      icon="i-lucide-eye"
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      aria-label="Lihat Detail"
+                      @click="buka(r)"
+                    />
+                    <UButton
+                      v-if="r.file_drive_id"
+                      icon="i-lucide-download"
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      aria-label="Unduh File"
+                      @click="unduh(r.file_drive_id)"
+                    />
+                  </div>
+                </div>
+                <p class="text-sm text-muted mt-1 line-clamp-2" v-html="hl(excerpt(r))" />
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-muted">
+                  <span>{{ fmtTgl(r.tanggal) }}</span>
+                  <span v-if="r.entitas">{{ r.entitas }}</span>
+                  <span v-if="r.klasifikasi_kode">Klasifikasi {{ r.klasifikasi_kode }}</span>
+                  <span v-if="r.tahun">{{ r.tahun }}</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                  <UBadge v-if="r.sifat" :label="r.sifat" :color="sifatColor[r.sifat] || 'neutral'" variant="subtle" size="sm" />
+                  <UBadge
+                    v-if="r.status"
+                    :label="statusMeta[r.status]?.label || r.status"
+                    :color="statusMeta[r.status]?.color || 'neutral'"
+                    variant="subtle"
+                    size="sm"
+                  />
+                </div>
+              </div>
+            </UCard>
+
+            <div v-if="totalCount > limit" class="flex justify-center pt-2">
+              <UPagination v-model:page="page" :items-per-page="limit" :total="totalCount" :max="5" show-edges />
+            </div>
+          </template>
+        </template>
+      </div>
     </div>
   </div>
 </template>

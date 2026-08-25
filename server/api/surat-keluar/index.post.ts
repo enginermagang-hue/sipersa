@@ -17,6 +17,8 @@ export default defineEventHandler(async (event) => {
     klasifikasi_id: toIntOrNull(fields.klasifikasi_id),
     status: fields.status || 'draft',
     penandatangan: fields.penandatangan || '',
+    html_content: fields.html_content || null,
+    render_config: fields.render_config || null,
     no_urut: toIntOrNull(fields.no_urut),
     no_surat: fields.no_surat || ''
   })
@@ -47,11 +49,11 @@ export default defineEventHandler(async (event) => {
 
   const db = useDb()
   const res = await db.execute({
-    sql: `INSERT INTO surat_keluar (no_urut, no_surat, klasifikasi_id, tgl_surat, tujuan, perihal, sifat, status, penandatangan, file_drive_id, file_name, created_by)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    sql: `INSERT INTO surat_keluar (no_urut, no_surat, klasifikasi_id, tgl_surat, tujuan, perihal, sifat, status, penandatangan, html_content, render_config, file_drive_id, file_name, created_by)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       no_urut, no_surat, data.klasifikasi_id ?? null, data.tgl_surat, data.tujuan,
-      data.perihal, data.sifat, data.status, data.penandatangan, fileDriveId, fileName, auth.userId
+      data.perihal, data.sifat, data.status, data.penandatangan, data.html_content, data.render_config, fileDriveId, fileName, auth.userId
     ]
   })
   const id = Number((res.rows[0] as any)?.id ?? res.lastInsertRowid)

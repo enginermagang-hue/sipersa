@@ -398,7 +398,7 @@ async function main() {
       tujuan: rand(PENGIRIM),
       perihal: `${rand(PERIHAL)} #${i + 1}`,
       sifat: rand(SIFAT),
-      status: rand(['terkirim', 'terkirim', 'terkirim', 'selesai', 'proses_ttd']),
+      status: rand(['terkirim', 'terkirim', 'terkirim', 'selesai', 'draft']),
       penandatangan: rand(NAMA_PEGAWAI),
       created_by: rand(userIds)
     }

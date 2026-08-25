@@ -63,12 +63,31 @@ export async function migrate() {
       tujuan TEXT NOT NULL,
       perihal TEXT NOT NULL,
       sifat TEXT NOT NULL DEFAULT 'biasa',
+      status TEXT NOT NULL DEFAULT 'diterima',
+      penandatangan TEXT,
+      html_content TEXT,
+      render_config TEXT,
+      submitted_at TEXT,
+      submitted_by INTEGER,
+      approved_at TEXT,
+      approved_by INTEGER,
+      catatan_tolak TEXT,
       file_drive_id TEXT,
       file_name TEXT,
       created_by INTEGER,
       deleted_at TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (klasifikasi_id) REFERENCES klasifikasi(id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS surat_keluar_approval (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      surat_keluar_id INTEGER NOT NULL,
+      reviewed_by INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      catatan TEXT,
+      reviewed_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (surat_keluar_id) REFERENCES surat_keluar(id),
+      FOREIGN KEY (reviewed_by) REFERENCES users(id)
     )`,
     `CREATE TABLE IF NOT EXISTS disposisi (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,6 +117,7 @@ export async function migrate() {
       nama_dokumen TEXT NOT NULL,
       lokasi TEXT,
       tahun INTEGER,
+      sifat TEXT NOT NULL DEFAULT 'biasa',
       deleted_at TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (klasifikasi_id) REFERENCES klasifikasi(id)
@@ -149,10 +169,26 @@ export async function migrate() {
 
   await ensureColumn('surat_keluar', 'status', "status TEXT NOT NULL DEFAULT 'draft'")
   await ensureColumn('surat_keluar', 'penandatangan', 'penandatangan TEXT')
+  await ensureColumn('surat_keluar', 'html_content', 'html_content TEXT')
+  await ensureColumn('surat_keluar', 'render_config', 'render_config TEXT')
+  await ensureColumn('surat_keluar', 'submitted_at', 'submitted_at TEXT')
+  await ensureColumn('surat_keluar', 'submitted_by', 'submitted_by INTEGER')
+  await ensureColumn('surat_keluar', 'approved_at', 'approved_at TEXT')
+  await ensureColumn('surat_keluar', 'approved_by', 'approved_by INTEGER')
+  await ensureColumn('surat_keluar', 'catatan_tolak', 'catatan_tolak TEXT')
+  await ensureColumn('users', 'ttd_file_drive_id', 'ttd_file_drive_id TEXT')
+  await ensureColumn('users', 'ttd_file_name', 'ttd_file_name TEXT')
   await ensureColumn('surat_masuk', 'ringkasan', 'ringkasan TEXT')
   await ensureColumn('users', 'google_id', 'google_id TEXT')
   await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)')
   await ensureColumn('users', 'nip', 'nip TEXT')
+  await ensureColumn('users', 'no_hp', 'no_hp TEXT')
+  await ensureColumn('users', 'unit_kerja', 'unit_kerja TEXT')
+  await ensureColumn('users', 'jabatan', 'jabatan TEXT')
+  await ensureColumn('users', 'tanggal_bergabung', 'tanggal_bergabung TEXT')
+  await ensureColumn('users', 'email_notifikasi', 'email_notifikasi INTEGER NOT NULL DEFAULT 0')
+  await ensureColumn('surat_masuk', 'status', "status TEXT NOT NULL DEFAULT 'diterima'")
+  await ensureColumn('arsip', 'sifat', "sifat TEXT NOT NULL DEFAULT 'biasa'")
 
   await seedAdmin()
 }

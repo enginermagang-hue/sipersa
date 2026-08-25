@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { useLocalStorage } from '@vueuse/core'
-import type { NavigationMenuItem } from '@nuxt/ui'
-
 const { user, logout, fetchMe } = useAuth()
 
-const open = useLocalStorage('sidebar-open', true)
+const open = ref(true)
+onMounted(() => {
+  const stored = localStorage.getItem('sidebar-open')
+  if (stored !== null) open.value = stored === 'true'
+  watch(open, value => localStorage.setItem('sidebar-open', String(value)))
+})
 
 const { data: stats, refresh: refreshStats } = await useFetch('/api/stats', {
   headers: useRequestHeaders(['cookie']) as Record<string, string>
