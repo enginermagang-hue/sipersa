@@ -89,14 +89,25 @@ function goSearch() {
       rail
       :ui="{ container: 'h-full', inner: 'bg-elevated/25 divide-transparent', body: 'py-0', header: 'px-0'}"
     >
-      <template #header>
+      <template #header="{ close }">
         <div class="flex flex-col gap-2 truncate border-b border-gray-200 dark:border-gray-800 py-4 px-4">
-          <div class="flex flex-row items-center justify-start">
-            <img class="mr-4" src="/ntt.png" style="width: 48px;"/>
-            <div>
-              <div class="font-bold text-lg" v-if="open" style="letter-spacing: 10px !important;">{{ config.public.appName || 'SIPERSA' }}</div>
-              <div class="text-xs text-wrap">SISTEM INFORMASI PERSURATAN DAN ARSIP</div>
+          <div class="flex flex-row items-center justify-between static">
+            <div class="flex flex-row items-center justify-start">
+              <img class="mr-4" src="/ntt.png" style="width: 48px;"/>
+              <div>
+                <div class="font-bold text-lg" v-if="open" style="letter-spacing: 10px !important;">{{ config.public.appName || 'SIPERSA' }}</div>
+                <div class="text-xs text-wrap">SISTEM INFORMASI PERSURATAN DAN ARSIP</div>
+              </div>
             </div>
+            <UButton
+              icon="i-lucide-x"
+              color="neutral"
+              variant="ghost"
+              aria-label="Tutup menu"
+              class="lg:hidden absolute"
+              style="right: 5px; top: 5px"
+              @click="close"
+            />
           </div>
           <div v-if="open" class="text-wrap text-xs">UPTD Tekkomdik - Dinas Pendidikan dan Kebudayaan Provinsi NTT</div>
         </div>
