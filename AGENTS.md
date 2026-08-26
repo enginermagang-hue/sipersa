@@ -41,7 +41,7 @@
 
 ## Env & deploy
 - Copy `.env.example` → `.env` (never commit `.env`). Vars are `NUXT_`-prefixed (runtimeConfig in `nuxt.config.ts`).
-- Vercel: `vercel.json` (build `nuxt build`, api/** maxDuration 60). Preset auto-detected.
+- Vercel: `vercel.json` hanya berisi `buildCommand: "nuxt build"` (Vercel auto-detect Nuxt lalu membuat serverless function sendiri). JANGAN pakai `functions: { "api/**": ... }` — app ini tidak punya direktori `api/` sehingga build gagal. `maxDuration` (default 60s) diatur di Vercel Dashboard (Project Settings → Functions).
 
 ## One-off scripts
 - `scripts/migrate-dropbox.mjs` — idempotent, moves legacy Dropbox files from root into folders by DB `file_drive_id`; needs `.env`; `node scripts/migrate-dropbox.mjs`.

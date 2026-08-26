@@ -87,22 +87,27 @@ function goSearch() {
       v-model:open="open"
       collapsible="icon"
       rail
-      :ui="{ container: 'h-full', inner: 'bg-elevated/25 divide-transparent', body: 'py-0' }"
+      :ui="{ container: 'h-full', inner: 'bg-elevated/25 divide-transparent', body: 'py-0', header: 'px-0'}"
     >
       <template #header>
-        <div class="flex items-center gap-2 truncate">
-          <UIcon name="i-lucide-mail" class="text-primary size-8  " />
-          <span v-if="open" class="font-bold text-lg">{{ config.public.appName || 'SIPERSA' }}</span>
+        <div class="flex items-center gap-2 truncate border-b border-gray-200 dark:border-gray-800 py-4 px-4">
+          <img src="/ntt.png" style="width: 32px;"/>
+          <div v-if="open">
+            <div class="font-bold text-lg" style="letter-spacing: 10px !important;">{{ config.public.appName || 'SIPERSA' }}</div>
+          </div>
+          <div class="text-wrap text-xs">Aplikasi persuratan UPTD Tekkomdik - Dinas Pendidikan dan Kebudayaan Provinsi NTT</div>
         </div>
       </template>
 
       <template #default="{ state }">
-        <UNavigationMenu
-          :key="state"
-          :items="items"
-          orientation="vertical"
-          :ui="{ link: 'p-2 overflow-hidden' }"
-        />
+        <div class="py-6">
+          <UNavigationMenu
+            :key="state"
+            :items="items"
+            orientation="vertical"
+            :ui="{ link: 'p-2 overflow-hidden' }"
+          />
+          </div>
       </template>
 
       <template #footer>
@@ -134,7 +139,7 @@ function goSearch() {
           class="w-36 md:w-64"
           @keyup.enter="goSearch"
         />
-        <UColorModeButton />
+        <UColorModeButton  class="ml-2"/>
         <NotificationBell />
         <UDropdownMenu
           v-if="user"
