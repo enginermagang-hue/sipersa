@@ -272,50 +272,50 @@ async function hapus() {
                 variant="subtle"
                 size="md"
               />
-              <span class="ml-auto font-mono text-xs text-slate-500">{{ formatNoAgenda(data.surat.no_agenda, data.surat.tgl_terima) }}</span>
+              <span class="ml-auto font-mono text-xs text-muted">{{ formatNoAgenda(data.surat.no_agenda, data.surat.tgl_terima) }}</span>
             </div>
           </template>
-            <dl class="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-[13px] text-slate-700">
+            <dl class="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-[13px] text-muted">
               <div>
-                <dt class="text-slate-400 text-xs mb-0.5">NO. SURAT</dt>
+                <dt class="text-muted text-xs mb-0.5">NO. SURAT</dt>
                 <dd class="font-medium">{{ data.surat.no_surat }}</dd>
               </div>
               <div>
-                <dt class="text-slate-400 text-xs mb-0.5">ASAL SURAT</dt>
+                <dt class="text-muted text-xs mb-0.5">ASAL SURAT</dt>
                 <dd class="font-medium">{{ data.surat.pengirim }}</dd>
               </div>
               <div>
-                <dt class="text-slate-400 text-xs mb-0.5">TGL SURAT</dt>
+                <dt class="text-muted text-xs mb-0.5">TGL SURAT</dt>
                 <dd class="font-medium">{{ fmtTgl(data.surat.tgl_surat) }}</dd>
               </div>
               <div>
-                <dt class="text-slate-400 text-xs mb-0.5">TGL DITERIMA</dt>
+                <dt class="text-muted text-xs mb-0.5">TGL DITERIMA</dt>
                 <dd class="flex items-center gap-2 font-medium">
                   <span>{{ fmtTglWaktu(data.surat.tgl_terima) }}</span>
                   <UBadge v-if="isNewSurat(data.surat.tgl_terima)" label="Baru" color="success" variant="subtle" size="2xs" />
                 </dd>
               </div>
               <div class="sm:col-span-2">
-                <dt class="text-slate-400 text-xs mb-0.5">HAL</dt>
+                <dt class="text-muted text-xs mb-0.5">HAL</dt>
                 <dd class="font-medium">{{ data.surat.perihal }}</dd>
               </div>
               <div v-if="data.surat.klasifikasi_nama" class="sm:col-span-2">
-                <dt class="text-slate-400 text-xs mb-0.5">KLASIFIKASI</dt>
+                <dt class="text-muted text-xs mb-0.5">KLASIFIKASI</dt>
                 <dd class="font-medium">{{ data.surat.klasifikasi_kode }} - {{ data.surat.klasifikasi_nama }}</dd>
               </div>
             </dl>
 
-            <div v-if="ringkasanText" class="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-3.5 md:p-4 flex gap-3">
-              <span class="text-slate-400 mt-0.5">✨</span>
-              <p class="text-[13px] text-slate-600 leading-relaxed">{{ ringkasanText }}</p>
+            <div v-if="ringkasanText" class="mt-4 bg-muted border border-default rounded-xl p-3.5 md:p-4 flex gap-3">
+              <span class="text-muted mt-0.5">✨</span>
+              <p class="text-[13px] text-muted leading-relaxed">{{ ringkasanText }}</p>
             </div>
-            <div v-else-if="needsExtraction && extractingRingkasan" class="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-3.5 md:p-4">
-              <p class="text-xs text-slate-400">Memuat ringkasan surat…</p>
+            <div v-else-if="needsExtraction && extractingRingkasan" class="mt-4 bg-muted border border-default rounded-xl p-3.5 md:p-4">
+              <p class="text-xs text-muted">Memuat ringkasan surat…</p>
             </div>
-            <div v-else-if="needsExtraction && extractionError" class="mt-4 bg-red-50 border border-red-200 rounded-xl p-3.5 md:p-4 flex items-center justify-between gap-3">
+            <div v-else-if="needsExtraction && extractionError" class="mt-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl p-3.5 md:p-4 flex items-center justify-between gap-3">
               <div class="flex items-center gap-2">
                 <span class="text-red-500">⚠</span>
-                <p class="text-xs text-red-600">{{ extractionError }}</p>
+                <p class="text-xs text-red-600 dark:text-red-400">{{ extractionError }}</p>
               </div>
               <UButton size="xs" variant="soft" @click="onRetryExtraction">Coba lagi</UButton>
             </div>
@@ -329,40 +329,30 @@ async function hapus() {
                 <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
                   <UIcon name="i-lucide-send" class="h-4 w-4" />
                 </span>
-                <h3 class="font-semibold text-slate-900">Formulir Disposisi</h3>
+                <h3 class="font-semibold text-highlighted">Formulir Disposisi</h3>
               </div>
-              <span v-if="dispForm.recipients.length" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span v-if="dispForm.recipients.length" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/300" />
                 Siap diteruskan
               </span>
             </div>
           </template>
             <UForm :state="dispForm" :validate="validate" class="space-y-5" @submit="submit({ draft: false })">
               <!-- Penerima -->
-              <UFormField label="DITERUSKAN KEPADA" :required="true">
-                <p class="text-xs text-slate-500 mb-2">Pilih satu atau lebih penerima disposisi</p>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="r in recipientOptions"
-                    :key="r.value"
-                    type="button"
-                    @click="dispForm.recipients.includes(r.value)
-                      ? dispForm.recipients = dispForm.recipients.filter((v: number) => v !== r.value)
-                      : dispForm.recipients.push(r.value)"
-                    class="group inline-flex items-center gap-2 h-9 rounded-full border px-3 text-[13px] font-medium transition-all"
-                    :class="dispForm.recipients.includes(r.value)
-                      ? 'bg-indigo-600 border-indigo-600 text-white'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-400'"
-                  >
-                    <span class="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold tracking-wide"
-                      :class="dispForm.recipients.includes(r.value) ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'"
-                    >{{ String(r.label).charAt(0).toUpperCase() }}</span>
-                    {{ r.label }}
-                    <span class="h-3.5 w-3.5 rounded-full border"
-                      :class="dispForm.recipients.includes(r.value) ? 'border-white/40' : 'border-slate-300 group-hover:border-indigo-400'" />
-                  </button>
-                  <span v-if="!recipientOptions.length" class="text-sm text-slate-400">Memuat penerima…</span>
-                </div>
+              <UFormField label="DITERUSKAN KEPADA" name="recipients" :required="true">
+                <USelectMenu
+                  v-model="dispForm.recipients"
+                  :items="recipientOptions"
+                  value-key="value"
+                  multiple
+                  placeholder="Cari dan pilih penerima..."
+                  :search-input="{ placeholder: 'Cari nama staf...', icon: 'i-lucide-search' }"
+                  clear
+                  class="w-full"
+                >
+                  <template #empty>Tidak ada staf ditemukan</template>
+                </USelectMenu>
+                <p class="text-xs text-muted mt-1.5">Bisa pilih lebih dari satu penerima — ketik untuk mencari</p>
               </UFormField>
 
               <!-- Instruksi -->
@@ -371,7 +361,7 @@ async function hapus() {
                   <label
                     v-for="opt in instruksiOptions"
                     :key="opt"
-                    class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none"
+                    class="flex items-center gap-2 text-sm text-muted cursor-pointer select-none"
                   >
                     <UCheckbox
                       :model-value="dispForm.instruksi.includes(opt)"
@@ -390,7 +380,7 @@ async function hapus() {
                     placeholder="Tulis instruksi tambahan pimpinan di sini..."
                     @input="onInstruksiInput"
                   />
-                  <span class="absolute bottom-2 right-3 text-[11px] text-slate-400">{{ instruksiCharCount }}/500</span>
+                  <span class="absolute bottom-2 right-3 text-[11px] text-muted">{{ instruksiCharCount }}/500</span>
                 </div>
               </UFormField>
 
@@ -398,14 +388,14 @@ async function hapus() {
               <div class="grid grid-cols-2 gap-3">
                 <UFormField label="SIFAT DISPOSISI">
                   <USelect v-model="dispForm.sifat_disposisi" :items="sifatOptions" class="w-full" />
-                  <p v-if="isUrgent" class="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-medium text-amber-700">
-                    <span class="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  <p v-if="isUrgent" class="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                    <span class="h-1.5 w-1.5 rounded-full bg-amber-50 dark:bg-amber-950/300" />
                     Butuh tindak lanjut < 3 hari
                   </p>
                 </UFormField>
                 <UFormField label="BATAS WAKTU">
                   <UInput v-model="dispForm.batas_waktu" type="date" class="w-full" />
-                  <p class="mt-1 text-[11px] text-slate-500">Sistem akan mengirim pengingat H-1</p>
+                  <p class="mt-1 text-[11px] text-muted">Sistem akan mengirim pengingat H-1</p>
                 </UFormField>
               </div>
 
@@ -416,7 +406,7 @@ async function hapus() {
 
               <!-- Notify -->
               <UCheckbox v-model="dispForm.notify" label="Kirim notifikasi WhatsApp/Email ke penerima" />
-              <p v-if="dispForm.notify" class="text-xs text-slate-500 -mt-3">
+              <p v-if="dispForm.notify" class="text-xs text-muted -mt-3">
                 Penerima akan mendapat notifikasi push, WhatsApp, dan email otomatis saat disposisi diteruskan.
               </p>
 
@@ -436,22 +426,22 @@ async function hapus() {
         <UCard>
           <template #header>
             <div class="flex items-center gap-2">
-              <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-white text-xs">
+              <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-inverted text-inverted text-xs">
                 <UIcon name="i-lucide-file-text" class="h-4 w-4" />
               </span>
-              <h3 class="font-semibold text-slate-900">Pratinjau Surat</h3>
+              <h3 class="font-semibold text-highlighted">Pratinjau Surat</h3>
               <UBadge v-if="hasPdf" :label="`PDF • ${safeSize}`" color="neutral" variant="subtle" size="sm" class="ml-auto" />
             </div>
           </template>
           <div v-if="data.surat.file_drive_id">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 border border-red-200 text-red-600">
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400">
                   <UIcon name="i-lucide-file-text" class="h-5 w-5" />
                 </span>
                 <div>
-                  <p class="text-sm font-medium text-slate-700">{{ data.surat.file_name || 'Dokumen Surat' }}</p>
-                  <p class="text-xs text-slate-400">{{ safePages }} halaman • dipindai {{ fmtTglWaktu(data.surat.tgl_terima) }}</p>
+                  <p class="text-sm font-medium text-muted">{{ data.surat.file_name || 'Dokumen Surat' }}</p>
+                  <p class="text-xs text-muted">{{ safePages }} halaman • dipindai {{ fmtTglWaktu(data.surat.tgl_terima) }}</p>
                 </div>
               </div>
               <div class="flex items-center gap-1.5">
@@ -459,7 +449,7 @@ async function hapus() {
                 <UButton :href="`/api/files/${data.surat.file_drive_id}`" target="_blank" size="xs" variant="ghost" icon="i-lucide-download" />
               </div>
             </div>
-            <div v-if="isViewable" class="mt-3 rounded-lg border border-slate-200 overflow-hidden">
+            <div v-if="isViewable" class="mt-3 rounded-lg border border-default overflow-hidden">
               <FilePreview :file-id="data.surat.file_drive_id" :file-name="data.surat.file_name" :hide-actions="true" />
             </div>
           </div>
@@ -472,7 +462,7 @@ async function hapus() {
         <UCard>
           <template #header>
             <div class="flex items-center gap-2">
-              <h3 class="font-semibold text-slate-900">Riwayat Disposisi</h3>
+              <h3 class="font-semibold text-highlighted">Riwayat Disposisi</h3>
               <UBadge :label="`${timelineItems.length} aktivitas`" color="primary" variant="subtle" size="sm" />
             </div>
           </template>
@@ -481,35 +471,35 @@ async function hapus() {
               <template v-for="(s, i) in stepperSteps" :key="s.key">
                 <li class="flex flex-col items-center text-center relative z-10">
                   <span class="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold transition-colors"
-                    :class="stepperState[s.key as keyof typeof stepperState] ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-500'">
+                    :class="stepperState[s.key as keyof typeof stepperState] ? 'bg-indigo-600 text-white' : 'bg-muted text-muted'">
                     {{ i + 1 }}
                   </span>
                   <span class="mt-1 text-[10px] font-medium whitespace-nowrap transition-colors"
-                    :class="stepperState[s.key as keyof typeof stepperState] ? 'text-indigo-600 font-semibold' : 'text-slate-400'">
+                    :class="stepperState[s.key as keyof typeof stepperState] ? 'text-indigo-600 font-semibold' : 'text-muted'">
                     {{ s.label }}
                   </span>
                 </li>
-                <li v-if="i < stepperSteps.length - 1" class="flex-1 h-0.5 mx-2 bg-slate-200 transition-colors"
+                <li v-if="i < stepperSteps.length - 1" class="flex-1 h-0.5 mx-2 bg-muted transition-colors"
                   :class="{ 'bg-indigo-600': isLineActive(i) }" />
               </template>
             </ol>
 
             <!-- Timeline entries -->
-            <ul class="relative border-l border-slate-200 ml-3.5 space-y-4">
+            <ul class="relative border-l border-default ml-3.5 space-y-4">
               <li v-for="item in timelineItems" :key="item.id" class="relative pl-6">
-                <span class="absolute -left-[13px] top-1.5 h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold ring-4 ring-white shadow-sm transition-colors"
-                  :class="item.statusLabel === 'DIDISPOSISIKAN' ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-white'">
+                <span class="absolute -left-[13px] top-1.5 h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold ring-4 ring-white dark:ring-gray-900 shadow-sm transition-colors"
+                  :class="item.statusLabel === 'DIDISPOSISIKAN' ? 'bg-indigo-600 text-white' : 'bg-inverted text-inverted'">
                   {{ item.initials }}
                 </span>
-                <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <div class="rounded-xl border border-default bg-muted p-3">
                   <div class="flex flex-wrap items-center gap-2 mb-1">
-                    <span class="text-[11px] font-medium text-slate-500">{{ item.timestamp }}</span>
+                    <span class="text-[11px] font-medium text-muted">{{ item.timestamp }}</span>
                     <UBadge :label="item.statusLabel" size="2xs"
                       :color="statusBadgeColor[item.statusLabel] || 'neutral'"
                       :variant="statusBadgeVariant[item.statusLabel] || 'subtle'" />
                   </div>
-                  <p class="text-sm font-medium text-slate-800">{{ item.description }}</p>
-                  <div v-if="item.instruksi" class="mt-2 bg-white border border-slate-100 rounded-lg p-2 text-xs text-slate-600 italic">
+                  <p class="text-sm font-medium text-highlighted">{{ item.description }}</p>
+                  <div v-if="item.instruksi" class="mt-2 bg-default border border-default rounded-lg p-2 text-xs text-muted italic">
                     "{{ item.instruksi }}"
                   </div>
                   <div v-if="item.tags.length" class="flex flex-wrap gap-1.5 mt-2">
@@ -533,7 +523,7 @@ async function hapus() {
     <UModal v-model:open="showSuccess" title="Berhasil">
       <template #header><h3 class="font-semibold">Disposisi Terkirim</h3></template>
       <template #body>
-        <p class="text-sm text-slate-600">Disposisi berhasil diteruskan ke {{ successCount }} penerima.</p>
+        <p class="text-sm text-muted">Disposisi berhasil diteruskan ke {{ successCount }} penerima.</p>
       </template>
       <template #footer>
         <div class="flex justify-end">
