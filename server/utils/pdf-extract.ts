@@ -1,6 +1,10 @@
 import { PDFParse } from 'pdf-parse'
 
 export async function extractPdfText(buffer: Buffer, maxChars = 500): Promise<string> {
+  if (typeof (globalThis as any).DOMMatrix === 'undefined') {
+    console.warn('[pdf-extract] DOMMatrix tidak tersedia (serverless), skip ekstrak')
+    return ''
+  }
   let parser: any = null
   try {
     parser = new PDFParse({ data: buffer })

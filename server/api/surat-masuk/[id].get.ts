@@ -1,6 +1,4 @@
 import { useDb } from '../../utils/db'
-import { getDriveFile } from '../../utils/dropbox'
-import { extractPdfText } from '../../utils/pdf-extract'
 
 export default defineEventHandler(async (event) => {
   const id = Number(event.context.params?.id)
@@ -44,6 +42,8 @@ export default defineEventHandler(async (event) => {
     void (async () => {
       try {
         console.log(`[ringkasan] mulai ekstrak surat id=${id} file=${fileName}`)
+        const { getDriveFile } = await import('../../utils/dropbox')
+        const { extractPdfText } = await import('../../utils/pdf-extract')
         const driveRes = await getDriveFile(fileDriveId, fileName)
         const text = await extractPdfText(driveRes.data as Buffer)
         if (text) {
