@@ -20,7 +20,14 @@ export default defineEventHandler(async (event) => {
   const args: any[] = []
   if (d.nama) { sets.push('nama = ?'); args.push(d.nama) }
   if (d.username) { sets.push('username = ?'); args.push(d.username) }
-  if (d.email !== undefined) { sets.push('email = ?'); args.push(d.email || null) }
+  if (d.email !== undefined) {
+    const emailNorm = d.email ? d.email.trim().toLowerCase() : null
+    if (emailNorm) {
+      const dup = await db.execute({ sql: `SELECT id FROM users WHERE LOWER(TRIM(email)) = ? AND id != ? AND deleted_at IS NULL LIMIT 1`, args: [emailNorm, auth.userId] })
+      if (dup.rows.length > 0) throw createError({ statusCode: 422, statusMessage: 'Email sudah dipakai' })
+    }
+    sets.push('email = ?'); args.push(emailNorm)
+  }
   if (d.no_hp !== undefined) { sets.push('no_hp = ?'); args.push(d.no_hp || null) }
   if (d.unit_kerja !== undefined) { sets.push('unit_kerja = ?'); args.push(d.unit_kerja || null) }
   if (d.jabatan !== undefined) { sets.push('jabatan = ?'); args.push(d.jabatan || null) }

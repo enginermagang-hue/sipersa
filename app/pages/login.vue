@@ -6,6 +6,7 @@ const { login, googleLogin } = useAuth()
 const config = useRuntimeConfig()
 const toast = useToast()
 const route = useRoute()
+const router = useRouter()
 const state = reactive({ username: '', password: '' })
 const error = ref('')
 const loading = ref(false)
@@ -20,12 +21,48 @@ const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
   'google': 'Login Google gagal. Silakan coba lagi.'
 }
 
+function showGoogleErrorToast(code: string) {
+  const msg = GOOGLE_ERROR_MESSAGES[code]
+  if (!msg) return
+  error.value = msg
+  const isWarning = code === 'google-unregistered' || code === 'google-inactive'
+  const isCancelled = code === 'google-cancelled'
+  toast.add({
+    title: isWarning ? 'Akun tidak terdaftar' : isCancelled ? 'Login dibatalkan' : 'Login Google gagal',
+    description: msg,
+    color: isWarning ? 'warning' : isCancelled ? 'neutral' : 'error',
+    icon: isWarning ? 'i-lucide-triangle-alert' : isCancelled ? 'i-lucide-circle-pause' : 'i-lucide-circle-x'
+  })
+}
+
 onMounted(() => {
   const q = route.query.error
   if (typeof q === 'string' && GOOGLE_ERROR_MESSAGES[q]) {
-    error.value = GOOGLE_ERROR_MESSAGES[q]
+    showGoogleErrorToast(q)
+    // bersihkan query ?error= tanpa reload
+    router.replace({ query: {} })
   }
+
+  // dengarkan pesan dari popup mini Google OAuth
+  const onMessage = (e: MessageEvent) => {
+    if (e.origin !== window.location.origin) return
+    const data = e.data as any
+    if (!data || typeof data.type !== 'string') return
+    if (data.type === 'google-auth-success') {
+      toast.add({ title: 'Berhasil masuk', description: 'Mengalihkan ke dashboard...', color: 'success' })
+      navigateTo('/')
+    } else if (data.type === 'google-auth-error' && typeof data.error === 'string') {
+      showGoogleErrorToast(data.error)
+    }
+  }
+  window.addEventListener('message', onMessage)
+  onBeforeUnmount(() => window.removeEventListener('message', onMessage))
 })
+
+function handleGoogleLogin() {
+  // delegasikan ke composable yang sudah handle mini window + postMessage + toast
+  googleLogin()
+}
 
 function validate(s: Partial<typeof state>): FormError[] {
   const errors: FormError[] = []
@@ -226,7 +263,7 @@ function ssoLogin() {
               variant="outline"
               color="neutral"
               class="h-12 rounded-lg border-slate-200 dark:border-slate-700"
-              @click="googleLogin"
+              @click="handleGoogleLogin"
             >
               <svg class="size-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" />

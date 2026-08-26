@@ -190,6 +190,14 @@ export async function migrate() {
   await ensureColumn('surat_masuk', 'status', "status TEXT NOT NULL DEFAULT 'diterima'")
   await ensureColumn('arsip', 'sifat', "sifat TEXT NOT NULL DEFAULT 'biasa'")
 
+  // Normalisasi email existing ke lowercase trim untuk pencocokan Google login case-insensitive
+  try {
+    await db.execute(`UPDATE users SET email = LOWER(TRIM(email)) WHERE email IS NOT NULL AND TRIM(email) != '' AND email != LOWER(TRIM(email))`)
+  } catch {}
+  try {
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(TRIM(email)))')
+  } catch {}
+
   await seedAdmin()
 }
 

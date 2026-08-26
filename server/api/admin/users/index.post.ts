@@ -15,10 +15,16 @@ export default defineEventHandler(async (event) => {
   const exist = await db.execute({ sql: 'SELECT id FROM users WHERE username = ? AND deleted_at IS NULL', args: [d.username] })
   if (exist.rows.length > 0) throw createError({ statusCode: 409, statusMessage: 'Username sudah dipakai' })
 
+  const emailNorm = d.email ? d.email.trim().toLowerCase() : null
+  if (emailNorm) {
+    const dup = await db.execute({ sql: `SELECT id FROM users WHERE LOWER(TRIM(email)) = ? AND deleted_at IS NULL LIMIT 1`, args: [emailNorm] })
+    if (dup.rows.length > 0) throw createError({ statusCode: 409, statusMessage: 'Email sudah dipakai' })
+  }
+
   const hash = await bcrypt.hash(d.password, 10)
   const res = await db.execute({
     sql: 'INSERT INTO users (nama, username, email, password_hash, role, status) VALUES (?, ?, ?, ?, ?, ?)',
-    args: [d.nama, d.username, d.email || null, hash, d.role, 'active']
+    args: [d.nama, d.username, emailNorm, hash, d.role, 'active']
   })
   await logActivity({ userId: auth.userId, action: 'CREATE_USER', entity: 'users', entityId: Number(res.lastInsertRowid), ip: getRequestIP(event, { xForwardedFor: true }) })
   return { id: Number(res.lastInsertRowid) }
