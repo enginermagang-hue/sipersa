@@ -73,6 +73,8 @@ const userItems = computed(() => [[
   { label: 'Keluar', icon: 'i-lucide-log-out', onSelect: () => logout() }
 ]])
 
+const currentYear = new Date().getFullYear()
+
 const topSearch = ref('')
 function goSearch() {
   const q = topSearch.value.trim()
@@ -87,13 +89,14 @@ function goSearch() {
       v-model:open="open"
       collapsible="icon"
       rail
+      class="responsive-sidebar"
       :ui="{ container: 'h-full', inner: 'bg-elevated/25 divide-transparent', body: 'py-0', header: 'px-0'}"
     >
       <template #header="{ close }">
         <div class="flex flex-col gap-2 truncate border-b border-gray-200 dark:border-gray-800 py-4 px-4">
           <div class="flex flex-row items-center justify-between static">
             <div class="flex flex-row items-center justify-start">
-              <img class="mr-4" src="/ntt.png" style="width: 48px;"/>
+              <img class="mr-4" src="/ntt.png" style="width: 32px;"/>
               <div>
                 <div class="font-bold text-lg" v-if="open" style="letter-spacing: 10px !important;">{{ config.public.appName || 'SIPERSA' }}</div>
                 <div class="text-xs text-wrap">SISTEM INFORMASI PERSURATAN DAN ARSIP</div>
@@ -109,7 +112,6 @@ function goSearch() {
               @click="close"
             />
           </div>
-          <div v-if="open" class="text-wrap text-xs">UPTD Tekkomdik - Dinas Pendidikan dan Kebudayaan Provinsi NTT</div>
         </div>
       </template>
 
@@ -137,7 +139,7 @@ function goSearch() {
     </USidebar>
 
     <div class="flex-1 flex flex-col min-h-screen min-w-0">
-      <header class="h-14 border-b border-default flex items-center justify-between px-4">
+      <header class="sticky top-0 z-30 h-14 border-b border-default bg-default shrink-0 flex items-center justify-between px-4">
         <UButton
           icon="i-lucide-panel-left"
           color="neutral"
@@ -146,13 +148,15 @@ function goSearch() {
           @click="open = !open"
         />
         <div class="flex-1" />
-        <UInput
-          v-model="topSearch"
-          icon="i-lucide-search"
-          placeholder="Cari surat / arsip…"
-          class="w-36 md:w-64"
-          @keyup.enter="goSearch"
-        />
+        <form class="w-36 md:w-64" @submit.prevent="goSearch">
+          <UInput
+            v-model="topSearch"
+            icon="i-lucide-search"
+            placeholder="Cari surat / arsip…"
+            type="search"
+            enterkeyhint="search"
+          />
+        </form>
         <UColorModeButton  class="ml-2"/>
         <NotificationBell />
         <UDropdownMenu
@@ -181,6 +185,14 @@ function goSearch() {
       <main class="flex-1 p-4 min-w-0">
         <slot />
       </main>
+      <footer class="shrink-0 border-t border-default px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted">
+        <div>© {{ currentYear }} {{ config.public.appName || 'SIPERSA' }}</div>
+        <div class="flex items-center gap-2">
+          <span>v{{ appConfig.app.version }}</span>
+          <span class="hidden sm:inline">•</span>
+          <span>Sistem Informasi Persuratan dan Arsip</span>
+        </div>
+      </footer>
     </div>
   </div>
 </template>
