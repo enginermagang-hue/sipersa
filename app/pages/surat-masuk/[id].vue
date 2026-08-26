@@ -455,8 +455,8 @@ async function hapus() {
                 </div>
               </div>
               <div class="flex items-center gap-1.5">
-                <UButton v-if="isViewable" :to="`/api/files/${data.surat.file_drive_id}?inline=1`" target="_blank" size="xs" variant="ghost" icon="i-lucide-eye" />
-                <UButton :to="`/api/files/${data.surat.file_drive_id}`" target="_blank" size="xs" variant="ghost" icon="i-lucide-download" />
+                <UButton v-if="isViewable" :href="`/api/files/${data.surat.file_drive_id}?inline=1`" target="_blank" size="xs" variant="ghost" icon="i-lucide-eye" />
+                <UButton :href="`/api/files/${data.surat.file_drive_id}`" target="_blank" size="xs" variant="ghost" icon="i-lucide-download" />
               </div>
             </div>
             <div v-if="isViewable" class="mt-3 rounded-lg border border-slate-200 overflow-hidden">

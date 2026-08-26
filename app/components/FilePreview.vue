@@ -18,12 +18,12 @@ const isViewable = computed(() => {
 <template>
   <div class="space-y-2">
     <div v-if="!hideActions" class="flex items-center gap-2">
-      <UButton :to="`/api/files/${fileId}`" target="_blank" size="sm" icon="i-lucide-download" variant="soft">
+      <UButton :href="`/api/files/${fileId}`" target="_blank" size="sm" icon="i-lucide-download" variant="soft">
         Unduh{{ fileName ? `: ${fileName}` : '' }}
       </UButton>
       <UButton
         v-if="isViewable"
-        :to="`/api/files/${fileId}?inline=1`"
+        :href="`/api/files/${fileId}?inline=1`"
         target="_blank"
         size="sm"
         icon="i-lucide-eye"

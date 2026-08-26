@@ -108,7 +108,7 @@ const columns: TableColumn<any>[] = [
       const r = row.original
       if (!r.file_drive_id) return h('span', { class: 'text-muted' }, '-')
       return h('div', { class: 'flex gap-1' }, [
-        h(UButton, { to: `/api/files/${r.file_drive_id}`, target: '_blank', size: 'xs', variant: 'soft', icon: 'i-lucide-download' }, () => 'Unduh'),
+        h(UButton, { href: `/api/files/${r.file_drive_id}`, target: '_blank', size: 'xs', variant: 'soft', icon: 'i-lucide-download' }, () => 'Unduh'),
         h(UButton, { size: 'xs', variant: 'ghost', icon: 'i-lucide-eye', onClick: () => { previewTarget.value = r } })
       ])
     }

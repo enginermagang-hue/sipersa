@@ -4,12 +4,17 @@ const TOKEN_EXPIRY_BUFFER_MS = 60_000
 let cachedToken: { token: string; expiresAt: number } | null = null
 let refreshing: Promise<string> | null = null
 
+function norm(v?: string): string {
+  if (!v) return ''
+  return v.trim().replace(/^["']|["']$/g, '')
+}
+
 async function getAccessToken(): Promise<string> {
   const config = useRuntimeConfig()
-  const refreshToken = (config.dropboxRefreshToken as string) || ''
+  const refreshToken = norm(config.dropboxRefreshToken as string)
+  const staticToken = norm(config.dropboxToken as string)
 
   if (!refreshToken) {
-    const staticToken = (config.dropboxToken as string) || ''
     if (!staticToken) throw createError({ statusCode: 500, statusMessage: 'Dropbox token belum dikonfigurasi' })
     return staticToken
   }
@@ -20,9 +25,13 @@ async function getAccessToken(): Promise<string> {
 
   if (refreshing) return refreshing
 
-  const appKey = (config.dropboxAppKey as string) || ''
-  const appSecret = (config.dropboxAppSecret as string) || ''
+  const appKey = norm(config.dropboxAppKey as string)
+  const appSecret = norm(config.dropboxAppSecret as string)
   if (!appKey || !appSecret) {
+    if (staticToken) {
+      console.warn('[Dropbox] app key/secret belum dikonfigurasi, fallback ke static token')
+      return staticToken
+    }
     throw createError({ statusCode: 500, statusMessage: 'Dropbox app key/secret belum dikonfigurasi (untuk refresh token)' })
   }
 
@@ -41,6 +50,10 @@ async function getAccessToken(): Promise<string> {
     if (!res.ok) {
       const text = await res.text()
       console.error('[Dropbox] refresh token gagal', { status: res.status, body: text.slice(0, 300) })
+      if (staticToken) {
+        console.warn('[Dropbox] fallback ke static token')
+        return staticToken
+      }
       throw createError({ statusCode: 502, statusMessage: `Gagal refresh token Dropbox (${res.status}): ${text.slice(0, 200)}` })
     }
     const json = await res.json() as any
