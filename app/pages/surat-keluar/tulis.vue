@@ -6,10 +6,7 @@ const toast = useToast()
 const saving = ref(false)
 const config = useRuntimeConfig()
 
-const { data: klas } = await useFetch('/api/klasifikasi')
-const klasOptions = computed(() =>
-  (klas.value || []).map((k: any) => ({ label: `${k.kode} - ${k.nama}`, value: k.id }))
-)
+const { openPopup } = useKlasifikasiPopup()
 
 const { data: nextNo } = await useFetch('/api/surat-keluar/next-no')
 const { data: users } = await useFetch('/api/users')
@@ -22,7 +19,7 @@ const state = reactive({
   perihal: '',
   sifat: 'biasa',
   penandatangan: '',
-  klasifikasi_id: null as number | null
+  klasifikasi_kode: ''
 })
 
 const isi = ref('')
@@ -170,7 +167,16 @@ const tabItems = [
   { label: 'Template', value: 'template', slot: 'template' }
 ]
 
+watch(() => [state.tgl_surat, state.klasifikasi_kode] as const, async ([tgl, kode]) => {
+  if (!kode?.trim() || !tgl) return
+  try {
+    const r: any = await $fetch('/api/surat-keluar/next-no', { query: { kode: kode.trim(), tgl_surat: tgl } })
+    state.no_surat = r.no_surat; state.no_urut = r.no_urut
+  } catch {}
+})
+
 function validate(): string | null {
+  if (!state.klasifikasi_kode?.trim()) return 'Kode klasifikasi wajib diisi'
   if (!state.tgl_surat) return 'Tanggal surat wajib diisi'
   if (!state.tujuan.trim()) return 'Tujuan wajib diisi'
   if (!state.perihal.trim()) return 'Perihal wajib diisi'
@@ -188,7 +194,7 @@ async function simpan() {
   saving.value = true
   try {
     const fd = new FormData()
-    Object.entries({ ...state, klasifikasi_id: state.klasifikasi_id ?? '' }).forEach(([k, v]) => fd.append(k, String(v)))
+    Object.entries({ ...state }).forEach(([k, v]) => fd.append(k, String(v)))
     fd.append('html_content', isi.value)
     fd.append('render_config', JSON.stringify({ ukuranKertas: ukuranKertas.value, font: font.value, marginMm: marginMm.value, orientasi: orientasi.value }))
 
@@ -204,8 +210,8 @@ async function simpan() {
 </script>
 
 <template>
-  <div class="space-y-5">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div class="flex flex-col gap-5 flex-1 min-h-0 h-[calc(100dvh-3.5rem-2rem)]">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shrink-0">
       <div class="flex items-center gap-3">
         <UButton icon="i-lucide-arrow-left" variant="ghost" :to="'/surat-keluar'" aria-label="Kembali" />
         <div>
@@ -216,27 +222,27 @@ async function simpan() {
       <UButton icon="i-lucide-save" color="primary" :loading="saving" @click="simpan">Simpan Surat</UButton>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-[7fr_3fr] gap-5 items-start">
-      <UCard :ui="{ body: 'p-2' }" class="min-w-0">
-        <div class="min-h-[600px]">
+    <div class="grid grid-cols-1 lg:grid-cols-[7fr_3fr] gap-5 flex-1 min-h-0 items-stretch">
+      <UCard :ui="{ body: 'p-2 h-full flex flex-col min-h-0' }" class="min-w-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div class="flex-1 min-h-0 flex flex-col">
           <TinyMceEditor
             ref="tinyRef"
             v-model="isi"
-            :height="620"
+            class="flex-1 min-h-0"
             paper
             :paper-width="PAPER[ukuranKertas][0]"
             :paper-height="PAPER[ukuranKertas][1]"
             :orientation="orientasi"
             :margin-mm="marginMm"
           />
-          <div v-if="logoLoading" class="flex items-center gap-2 mt-2 text-sm text-muted">
+          <div v-if="logoLoading" class="flex items-center gap-2 mt-2 text-sm text-muted shrink-0">
             <UIcon name="i-lucide-loader-circle" class="animate-spin" />
             Memuat logo…
           </div>
         </div>
       </UCard>
 
-      <div class="lg:sticky lg:top-[80px] min-w-0">
+      <div class="lg:sticky lg:top-[80px] lg:max-h-[calc(100dvh-80px)] lg:overflow-auto min-w-0 self-start">
         <UCard :ui="{ body: 'p-0' }">
           <UTabs :items="tabItems" :default-value="'informasi'">
             <template #informasi>
@@ -258,7 +264,8 @@ async function simpan() {
                     <USelect class="w-full" v-model="state.sifat" :items="sifatOptions" />
                   </UFormField>
                   <UFormField label="Klasifikasi">
-                    <USelect class="w-full" v-model="state.klasifikasi_id" :items="klasOptions" placeholder="(tanpa)" />
+                    <UInput class="w-full" v-model="state.klasifikasi_kode" placeholder="mis. 800.1" />
+                    <a href="#" class="text-xs text-primary underline mt-1 inline-block" @click.prevent="openPopup()">Lihat daftar kode klasifikasi</a>
                   </UFormField>
                 </div>
                 <UAlert color="info" variant="soft" icon="i-lucide-info" title="Surat disimpan sebagai draft dan dapat disubmit untuk persetujuan pimpinan." />

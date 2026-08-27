@@ -1,5 +1,5 @@
 import { useDb } from '../../utils/db'
-import { readFormWithFile, toIntOrNull } from '../../utils/body'
+import { readFormWithFile } from '../../utils/body'
 import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { logActivity } from '../../utils/logger'
 
@@ -19,16 +19,12 @@ export default defineEventHandler(async (event) => {
     fileName = file.filename
   }
 
+  const kode = (fields.klasifikasi_kode ?? fields.klasifikasi_id ?? (exist.rows[0] as any).klasifikasi_kode ?? '').toString().trim()
+  if (!kode) throw createError({ statusCode: 422, statusMessage: 'Kode klasifikasi wajib diisi' })
+
   await db.execute({
-    sql: `UPDATE surat_keluar SET
-      tgl_surat = ?, tujuan = ?, perihal = ?, sifat = ?, klasifikasi_id = ?, status = ?, penandatangan = ?, html_content = ?, render_config = ?, file_drive_id = ?, file_name = ?
-      WHERE id = ?`,
-    args: [
-      fields.tgl_surat, fields.tujuan, fields.perihal, fields.sifat || 'biasa',
-      toIntOrNull(fields.klasifikasi_id), fields.status || 'draft', fields.penandatangan || '',
-      fields.html_content || null, fields.render_config || null,
-      fileDriveId, fileName, id
-    ]
+    sql: `UPDATE surat_keluar SET tgl_surat = ?, tujuan = ?, perihal = ?, sifat = ?, klasifikasi_kode = ?, status = ?, penandatangan = ?, html_content = ?, render_config = ?, file_drive_id = ?, file_name = ? WHERE id = ?`,
+    args: [ fields.tgl_surat, fields.tujuan, fields.perihal, fields.sifat || 'biasa', kode, fields.status || 'draft', fields.penandatangan || '', fields.html_content || null, fields.render_config || null, fileDriveId, fileName, id ]
   })
   await logActivity({ userId: auth.userId, action: 'UPDATE_SURAT_KELUAR', entity: 'surat_keluar', entityId: id, ip: getRequestIP(event, { xForwardedFor: true }) })
   return { ok: true }

@@ -5,7 +5,7 @@ const { user } = useAuth()
 const { confirm } = useConfirm()
 const toast = useToast()
 
-const { data, refresh } = await useFetch('/api/disposisi/me')
+const { data, refresh, pending } = await useFetch('/api/disposisi/me')
 const { data: users } = await useFetch('/api/users')
 const { data: stats } = await useFetch('/api/disposisi/stats')
 
@@ -240,6 +240,7 @@ function exportExcel() {
     </div>
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
+      <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
       <div v-if="view === 'table'" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>

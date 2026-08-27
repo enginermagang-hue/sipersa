@@ -6,8 +6,12 @@ import type { Row } from '@tanstack/vue-table'
 
 const { user } = useAuth()
 const page = ref(1)
-const { data, refresh } = await useFetch('/api/admin/users', {
-  query: { page }
+const search = ref('')
+const debouncedSearch = ref('')
+let debounceTimer: ReturnType<typeof setTimeout>
+watch(search, (v) => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { debouncedSearch.value = v; page.value = 1 }, 300) })
+const { data, refresh, pending } = await useFetch('/api/admin/users', {
+  query: { page, q: debouncedSearch }
 })
 
 const roleOptions = [
@@ -24,7 +28,7 @@ const statusOptions = [
 const roleColor: Record<string, string> = { admin: 'primary', staff_tu: 'neutral', pimpinan: 'warning' }
 
 const createOpen = ref(false)
-const form = reactive({ nama: '', username: '', email: '', password: '', role: 'staff_tu' })
+const form = reactive({ nama: '', username: '', email: '', password: '', role: 'staff_tu', nip: '', no_hp: '', jabatan: '' })
 const loading = ref(false)
 const error = ref('')
 
@@ -36,7 +40,10 @@ const editForm = reactive({
   email: '',
   role: 'staff_tu',
   status: 'active',
-  password: ''
+  password: '',
+  nip: '',
+  no_hp: '',
+  jabatan: ''
 })
 
 function validate(s: Partial<typeof form>): FormError[] {
@@ -61,7 +68,7 @@ async function simpan() {
   try {
     await $fetch('/api/admin/users', { method: 'POST', body: { ...form } })
     createOpen.value = false
-    Object.assign(form, { nama: '', username: '', email: '', password: '', role: 'staff_tu' })
+    Object.assign(form, { nama: '', username: '', email: '', password: '', role: 'staff_tu', nip: '', no_hp: '', jabatan: '' })
     await refresh()
   } catch (e: any) {
     error.value = e?.data?.statusMessage || 'Gagal'
@@ -78,7 +85,10 @@ function openEdit(u: any) {
     email: u.email || '',
     role: u.role,
     status: u.status,
-    password: ''
+    password: '',
+    nip: u.nip || '',
+    no_hp: u.no_hp || '',
+    jabatan: u.jabatan || ''
   })
   error.value = ''
   editOpen.value = true
@@ -88,7 +98,7 @@ async function simpanEdit() {
   loading.value = true
   error.value = ''
   try {
-    const body: any = { nama: editForm.nama, email: editForm.email, role: editForm.role, status: editForm.status }
+    const body: any = { nama: editForm.nama, email: editForm.email, role: editForm.role, status: editForm.status, nip: editForm.nip, no_hp: editForm.no_hp, jabatan: editForm.jabatan }
     if (editForm.password) body.password = editForm.password
     await $fetch(`/api/admin/users/${editForm.id}`, { method: 'PUT', body })
     editOpen.value = false
@@ -136,6 +146,9 @@ function getRowItems(row: Row<any>) {
 
 const columns: TableColumn<any>[] = [
   { accessorKey: 'nama', header: 'Nama' },
+  { accessorKey: 'nip', header: 'NIP', cell: ({ row }) => row.original.nip || '-' },
+  { accessorKey: 'jabatan', header: 'Jabatan', cell: ({ row }) => row.original.jabatan || '-' },
+  { accessorKey: 'no_hp', header: 'No HP', cell: ({ row }) => row.original.no_hp || '-' },
   { accessorKey: 'username', header: 'Username' },
   {
     accessorKey: 'role',
@@ -181,13 +194,19 @@ const columns: TableColumn<any>[] = [
       <UButton icon="i-lucide-plus" @click="createOpen = true">Tambah User</UButton>
     </div>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
+      <div class="p-3 border-b border-default">
+        <UInput v-model="search" placeholder="Cari nama, username, email, NIP, jabatan, no HP..." icon="i-lucide-search" class="max-w-sm" />
+      </div>
+      <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
       <UTable :data="data?.data || []" :columns="columns" empty="Belum ada data" />
-      <div class="p-4 border-t border-default">
+      <div class="p-4 border-t border-default flex items-center justify-between gap-4">
+        <p class="text-sm text-muted">
+          Menampilkan {{ data?.data?.length ? ((data!.page - 1) * data!.limit + 1).toLocaleString('id-ID') : 0 }}–{{ ((data!.page - 1) * (data?.limit || 20) + (data?.data || []).length).toLocaleString('id-ID') }} dari {{ (data?.total ?? 0).toLocaleString('id-ID') }} user
+        </p>
         <UPagination
           v-model:page="page"
           :items-per-page="data?.limit || 20"
           :total="data?.total || 0"
-          class="mt-0 justify-end"
         />
       </div>
     </UCard>
@@ -199,6 +218,9 @@ const columns: TableColumn<any>[] = [
           <UFormField label="Username" name="username"><UInput v-model="form.username" class="w-full" /></UFormField>
           <UFormField label="Email"><UInput v-model="form.email" class="w-full" /></UFormField>
           <UFormField label="Password" name="password"><UInput v-model="form.password" type="password" class="w-full" /></UFormField>
+          <UFormField label="NIP"><UInput v-model="form.nip" class="w-full" placeholder="Opsional" /></UFormField>
+          <UFormField label="Jabatan"><UInput v-model="form.jabatan" class="w-full" placeholder="Opsional" /></UFormField>
+          <UFormField label="No HP"><UInput v-model="form.no_hp" class="w-full" placeholder="Opsional" /></UFormField>
           <UFormField label="Role"><USelect v-model="form.role" :items="roleOptions" class="w-full" /></UFormField>
           <p v-if="error" class="text-sm text-error">{{ error }}</p>
           <div class="flex justify-end gap-2">
@@ -216,6 +238,9 @@ const columns: TableColumn<any>[] = [
           <UFormField label="Username" name="username"><UInput v-model="editForm.username" class="w-full" /></UFormField>
           <UFormField label="Email"><UInput v-model="editForm.email" class="w-full" /></UFormField>
           <UFormField label="Role"><USelect v-model="editForm.role" :items="roleOptions" class="w-full" /></UFormField>
+          <UFormField label="NIP"><UInput v-model="editForm.nip" class="w-full" /></UFormField>
+          <UFormField label="Jabatan"><UInput v-model="editForm.jabatan" class="w-full" /></UFormField>
+          <UFormField label="No HP"><UInput v-model="editForm.no_hp" class="w-full" /></UFormField>
           <UFormField label="Status"><USelect v-model="editForm.status" :items="statusOptions" class="w-full" /></UFormField>
           <UFormField label="Password Baru (kosongkan bila tidak diganti)" name="password">
             <UInput v-model="editForm.password" type="password" class="w-full" />

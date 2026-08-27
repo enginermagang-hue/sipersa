@@ -12,7 +12,9 @@ const props = defineProps<{
 }>()
 
 const editorInit = {
-  height: props.height ?? 600,
+  height: props.height ?? undefined,
+  min_height: 300,
+  resize: false,
   menubar: false,
   plugins: 'lists link image table charmap code wordcount advlist autolink',
   toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link table image | removeformat code',
@@ -79,9 +81,13 @@ function resizeSheet(ed?: any) {
   const target = ed || getEditor()
   const body = target?.getBody?.()
   const container = target?.getContentAreaContainer?.()
-  const iframe = container?.querySelector('iframe')
+  const iframe = container?.querySelector('iframe') as HTMLElement | null
   if (!body || !iframe) return
-  iframe.style.height = props.paper ? `${body.scrollHeight}px` : ''
+  if (props.paper) {
+    iframe.style.height = `${body.scrollHeight}px`
+  } else {
+    iframe.style.height = ''
+  }
 }
 
 watch(
@@ -101,7 +107,7 @@ defineExpose({ getEditor, setContent, getContent })
 </script>
 
 <template>
-  <div :class="{ 'is-paper': paper }">
+  <div :class="{ 'is-paper': paper }" class="h-full min-h-0 flex flex-col [&_.tox]:flex-1 [&_.tox]:flex [&_.tox]:flex-col [&_.tox]:min-h-0 [&_.tox_.tox-edit-area]:flex-1 [&_.tox_.tox-edit-area]:min-h-0">
     <Editor ref="editorRef" v-model="model" :init="editorInit" tinymce-script-src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js" />
   </div>
 </template>
@@ -110,12 +116,10 @@ defineExpose({ getEditor, setContent, getContent })
 .is-paper :deep(.tox .tox-edit-area) {
   background: #e2e8f0;
   padding: 32px;
-  overflow: auto;
+  overflow: auto !important;
   scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-.is-paper :deep(.tox .tox-edit-area:hover) {
   scrollbar-color: #94a3b8 transparent;
+  scrollbar-gutter: stable;
 }
 .is-paper :deep(.tox .tox-edit-area)::-webkit-scrollbar {
   width: 8px;
@@ -125,13 +129,8 @@ defineExpose({ getEditor, setContent, getContent })
   background: transparent;
 }
 .is-paper :deep(.tox .tox-edit-area)::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 4px;
-  transition: background 0.15s;
-}
-.is-paper :deep(.tox .tox-edit-area:hover)::-webkit-scrollbar-thumb,
-.is-paper :deep(.tox .tox-edit-area:active)::-webkit-scrollbar-thumb {
   background: #94a3b8;
+  border-radius: 4px;
 }
 
 .is-paper :deep(.tox .tox-edit-area__iframe) {

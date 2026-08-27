@@ -132,6 +132,7 @@ function exportExcel() {
     </div>
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
+      <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
       <div v-if="view === 'table'" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>

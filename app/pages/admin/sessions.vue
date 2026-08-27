@@ -7,9 +7,11 @@ const { data: users } = await useFetch('/api/admin/users', { query: { limit: 100
 
 const pageSize = ref(50)
 const page = ref(1)
-const filters = reactive({ user_id: '', revoked: '', q: '' })
+const filters = reactive({ user_id: '', revoked: '' })
 const qInput = ref('')
 const q = ref('')
+let searchTimer: ReturnType<typeof setTimeout>
+watch(qInput, (v) => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { q.value = v.trim() }, 300) })
 
 const pageSizeOptions = [25, 50, 100, 200].map(v => ({ label: `${v} / halaman`, value: v }))
 
@@ -40,14 +42,10 @@ const statusOptions = [
   { label: 'Revoked', value: '1' }
 ]
 
-function commitSearch() {
-  q.value = qInput.value.trim()
-}
-
 function resetFilters() {
   qInput.value = ''
   q.value = ''
-  Object.assign(filters, { user_id: '', revoked: '', q: '' })
+  Object.assign(filters, { user_id: '', revoked: '' })
   page.value = 1
 }
 
@@ -113,7 +111,6 @@ const columns: TableColumn<any>[] = [
             placeholder="Cari user / IP / user agent…"
             icon="i-lucide-search"
             class="w-full"
-            @keyup.enter="commitSearch"
           />
         </UFormField>
         <UFormField label="User">
@@ -126,7 +123,8 @@ const columns: TableColumn<any>[] = [
     </UCard>
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
-      <UTable :data="rows" :columns="columns" empty="Tidak ada sesi" :loading="pending" />
+      <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
+      <UTable :data="rows" :columns="columns" empty="Tidak ada sesi" />
       <template v-if="total > 0" #footer>
         <div class="flex flex-wrap items-center justify-between gap-2 px-2 py-1">
           <div class="flex items-center gap-2">

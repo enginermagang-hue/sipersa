@@ -26,6 +26,9 @@ export default defineEventHandler(async (event) => {
   }
   if (d.role) { sets.push('role = ?'); args.push(d.role) }
   if (d.status) { sets.push('status = ?'); args.push(d.status) }
+  if (d.nip !== undefined) { sets.push('nip = ?'); args.push(d.nip || null) }
+  if (d.no_hp !== undefined) { sets.push('no_hp = ?'); args.push(d.no_hp || null) }
+  if (d.jabatan !== undefined) { sets.push('jabatan = ?'); args.push(d.jabatan || null) }
   if (d.password) {
     const hash = await bcrypt.hash(d.password, 10)
     sets.push('password_hash = ?')

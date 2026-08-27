@@ -199,26 +199,31 @@ export async function laporanSummary(f: LaporanFilter) {
   }
 }
 
-export async function laporanTrend() {
+export async function laporanTrend(opts: { months?: number; klasifikasiId?: number | null } = {}) {
+  const months = [3,6,9,12].includes(opts.months as number) ? opts.months! : 6
+  const klasId = opts.klasifikasiId ?? null
   const db = useDb()
+  const filterKlas = klasId ? ' AND klasifikasi_id = ?' : ''
+  const klasArgs: any[] = klasId ? [klasId] : []
   const rows = await db.execute({
     sql: `SELECT strftime('%Y-%m', tgl_surat) AS ym,
             SUM(CASE WHEN t = 'm' THEN 1 ELSE 0 END) AS masuk,
             SUM(CASE WHEN t = 'k' THEN 1 ELSE 0 END) AS keluar
           FROM (
-            SELECT tgl_surat, 'm' AS t FROM surat_masuk WHERE deleted_at IS NULL AND tgl_surat <> ''
+            SELECT tgl_surat, 'm' AS t FROM surat_masuk WHERE deleted_at IS NULL AND tgl_surat <> ''${filterKlas}
             UNION ALL
-            SELECT tgl_surat, 'k' AS t FROM surat_keluar WHERE deleted_at IS NULL AND tgl_surat <> ''
+            SELECT tgl_surat, 'k' AS t FROM surat_keluar WHERE deleted_at IS NULL AND tgl_surat <> ''${filterKlas}
           )
-          WHERE tgl_surat >= strftime('%Y-%m-01', 'now', '-7 months')
-          GROUP BY ym ORDER BY ym`
+          WHERE tgl_surat >= strftime('%Y-%m-01', 'now', '-${months - 1} months')
+          GROUP BY ym ORDER BY ym`,
+    args: [...klasArgs, ...klasArgs]
   })
   const byMonth = new Map<string, { masuk: number; keluar: number }>()
   for (const r of rows.rows as any[]) {
     byMonth.set(r.ym, { masuk: Number(r.masuk) || 0, keluar: Number(r.keluar) || 0 })
   }
   const out: { month: string; masuk: number; keluar: number }[] = []
-  for (let i = 7; i >= 0; i--) {
+  for (let i = months - 1; i >= 0; i--) {
     const d = new Date()
     d.setDate(1)
     d.setMonth(d.getMonth() - i)

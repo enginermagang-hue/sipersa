@@ -45,7 +45,7 @@ const items = computed<NavigationMenuItem[][]>(() => {
       children: [
         { label: 'Users', icon: 'i-lucide-users', to: '/admin/users' },
         { label: 'Session', icon: 'i-lucide-monitor-dot', to: '/admin/sessions' },
-        { label: 'Klasifikasi', icon: 'i-lucide-tags', to: '/admin/klasifikasi' },
+
         { label: 'Log Aktivitas', icon: 'i-lucide-scroll-text', to: '/admin/activity' }
       ]
     })

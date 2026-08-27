@@ -38,11 +38,14 @@ export default defineNuxtConfig({
     sessionMaxAge: 86400,
     appName: process.env.NUXT_PUBLIC_APP_NAME || 'SIPERSA',
     public: {
+      klasifikasiGoogleUrl: process.env.NUXT_KLASIFIKASI_GOOGLE_URL || 'https://script.google.com/macros/s/AKfycby4RoU3dPXZWfkofZ5wVkNRKyG_V4x23ypfl-bRyrx7ahZ3i_NvFJ4lBntAANhiXjFyQQ/exec',
       instansiNama: process.env.NUXT_PUBLIC_INSTANSI_NAMA || '',
       instansiUnit: process.env.NUXT_PUBLIC_INSTANSI_UNIT || '',
       instansiSubUnit: process.env.NUXT_PUBLIC_INSTANSI_SUB_UNIT || '',
       instansiAlamat: process.env.NUXT_PUBLIC_INSTANSI_ALAMAT || '',
-      logoPath: process.env.NUXT_PUBLIC_LOGO_PATH || ''
+      logoPath: process.env.NUXT_PUBLIC_LOGO_PATH || '',
+      nomorTU: process.env.NUXT_PUBLIC_NOMOR_TU || 'TU',
+      nomorUnit: process.env.NUXT_PUBLIC_NOMOR_UNIT || 'tekkomdik'
     }
   },
   nitro: {

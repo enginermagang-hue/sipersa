@@ -189,6 +189,8 @@ export async function migrate() {
   await ensureColumn('users', 'email_notifikasi', 'email_notifikasi INTEGER NOT NULL DEFAULT 0')
   await ensureColumn('surat_masuk', 'status', "status TEXT NOT NULL DEFAULT 'diterima'")
   await ensureColumn('arsip', 'sifat', "sifat TEXT NOT NULL DEFAULT 'biasa'")
+  await ensureColumn('surat_keluar', 'klasifikasi_kode', 'klasifikasi_kode TEXT')
+  try { await db.execute(`UPDATE surat_keluar SET klasifikasi_kode = (SELECT kode FROM klasifikasi WHERE id = surat_keluar.klasifikasi_id) WHERE klasifikasi_kode IS NULL AND klasifikasi_id IS NOT NULL`) } catch {}
 
   // Normalisasi email existing ke lowercase trim untuk pencocokan Google login case-insensitive
   try {

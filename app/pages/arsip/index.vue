@@ -12,7 +12,7 @@ const refType = ref('')
 const deleted = ref(false)
 const page = ref(1)
 
-const { data, refresh } = await useFetch('/api/arsip', {
+const { data, refresh, pending } = await useFetch('/api/arsip', {
   query: { q, tahun, status, ref_type: refType, deleted, page }
 })
 
@@ -164,7 +164,8 @@ const columns: TableColumn<any>[] = [
       <UToggle v-model="deleted" label="Tampilkan terhapus" />
     </div>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
-      <UTable :data="data?.data || []" :columns="columns" empty="Belum ada data" />
+      <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
+      <UTable :data="data?.data || []" :columns="columns" :loading="pending" empty="Belum ada data" />
       <div class="p-4 border-t border-default">
         <UPagination
           v-model:page="page"

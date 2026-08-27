@@ -10,14 +10,18 @@ export default defineEventHandler(async (event) => {
   const offset = (page - 1) * limit
 
   const db = useDb()
+  const q = typeof query.q === 'string' ? query.q.trim() : ''
+  const where = q ? `WHERE deleted_at IS NULL AND (nama LIKE ? OR username LIKE ? OR email LIKE ? OR nip LIKE ? OR jabatan LIKE ? OR no_hp LIKE ?)` : `WHERE deleted_at IS NULL`
+  const likeArgs = q ? Array(6).fill(`%${q}%`) : []
   const countRes = await db.execute({
-    sql: `SELECT COUNT(*) as c FROM users WHERE deleted_at IS NULL`
+    sql: `SELECT COUNT(*) as c FROM users ${where}`,
+    args: likeArgs
   })
   const rows = await db.execute({
-    sql: `SELECT id, nama, username, email, role, status, last_login, created_at
-          FROM users WHERE deleted_at IS NULL ORDER BY nama ASC
+    sql: `SELECT id, nama, username, email, role, status, nip, no_hp, jabatan, last_login, created_at
+          FROM users ${where} ORDER BY nama ASC
           LIMIT ? OFFSET ?`,
-    args: [limit, offset]
+    args: [...likeArgs, limit, offset]
   })
   return { total: (countRes.rows[0] as any).c, page, limit, data: rows.rows }
 })

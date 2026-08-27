@@ -23,8 +23,8 @@ export default defineEventHandler(async (event) => {
 
   const hash = await bcrypt.hash(d.password, 10)
   const res = await db.execute({
-    sql: 'INSERT INTO users (nama, username, email, password_hash, role, status) VALUES (?, ?, ?, ?, ?, ?)',
-    args: [d.nama, d.username, emailNorm, hash, d.role, 'active']
+    sql: 'INSERT INTO users (nama, username, email, password_hash, role, status, nip, no_hp, jabatan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [d.nama, d.username, emailNorm, hash, d.role, 'active', d.nip || null, d.no_hp || null, d.jabatan || null]
   })
   await logActivity({ userId: auth.userId, action: 'CREATE_USER', entity: 'users', entityId: Number(res.lastInsertRowid), ip: getRequestIP(event, { xForwardedFor: true }) })
   return { id: Number(res.lastInsertRowid) }

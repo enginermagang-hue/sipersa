@@ -12,7 +12,7 @@ export const suratMasukSchema = z.object({
   perihal: z.string().min(1),
   sifat: z.enum(['biasa', 'segera', 'rahasia', 'penting']).default('biasa'),
   status: z.enum(['diterima', 'didisposisikan', 'selesai']).default('diterima'),
-  klasifikasi_id: z.number().int().positive().optional().nullable(),
+  klasifikasi_kode: z.string().optional().nullable(),
   no_agenda: z.string().optional().nullable()
 })
 
@@ -21,7 +21,7 @@ export const suratKeluarSchema = z.object({
   tujuan: z.string().min(1),
   perihal: z.string().min(1),
   sifat: z.enum(['biasa', 'segera', 'rahasia', 'penting']).default('biasa'),
-  klasifikasi_id: z.number().int().positive().optional().nullable(),
+  klasifikasi_kode: z.string().min(1, 'Kode klasifikasi wajib diisi'),
   status: z.enum(['draft', 'menunggu_persetujuan', 'ditolak', 'terkirim', 'selesai']).default('draft'),
   penandatangan: z.string().optional().default(''),
   html_content: z.string().optional().nullable(),
@@ -61,7 +61,7 @@ export const arsipSchema = z.object({
   lokasi: z.string().optional().default(''),
   tahun: z.number().int().optional().nullable(),
   sifat: z.enum(['biasa', 'segera', 'rahasia', 'penting']).default('biasa'),
-  klasifikasi_id: z.number().int().positive().optional().nullable(),
+  klasifikasi_kode: z.string().optional().nullable(),
   ref_masuk_id: z.number().int().positive().optional().nullable(),
   ref_keluar_id: z.number().int().positive().optional().nullable()
 })
@@ -78,7 +78,10 @@ export const userCreateSchema = z.object({
   username: z.string().min(1),
   email: z.string().email().optional().or(z.literal('')).nullable(),
   password: z.string().min(4),
-  role: z.enum(['admin', 'staff_tu', 'pimpinan']).default('staff_tu')
+  role: z.enum(['admin', 'staff_tu', 'pimpinan']).default('staff_tu'),
+  nip: z.string().optional().or(z.literal('')).nullable(),
+  no_hp: z.string().optional().or(z.literal('')).nullable(),
+  jabatan: z.string().optional().or(z.literal('')).nullable()
 })
 
 export const userUpdateSchema = z.object({
@@ -86,7 +89,10 @@ export const userUpdateSchema = z.object({
   email: z.string().email().optional().or(z.literal('')).nullable(),
   role: z.enum(['admin', 'staff_tu', 'pimpinan']).optional(),
   status: z.enum(['active', 'inactive']).optional(),
-  password: z.string().min(4).optional()
+  password: z.string().min(4).optional(),
+  nip: z.string().optional().or(z.literal('')).nullable(),
+  no_hp: z.string().optional().or(z.literal('')).nullable(),
+  jabatan: z.string().optional().or(z.literal('')).nullable()
 })
 
 export const profileUpdateSchema = z.object({
