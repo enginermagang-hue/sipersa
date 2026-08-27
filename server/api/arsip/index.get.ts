@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const refType = query.ref_type as string
   const deleted = query.deleted === '1' || query.deleted === 'true'
   const page = Math.max(1, Number(query.page) || 1)
-  const limit = 20
+  const limit = Math.min(100, Math.max(1, Number(query.limit) || 20))
   const offset = (page - 1) * limit
 
   const db = useDb()

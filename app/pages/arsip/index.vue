@@ -11,9 +11,10 @@ const status = ref('')
 const refType = ref('')
 const deleted = ref(false)
 const page = ref(1)
+const perPage = ref(20)
 
 const { data, refresh, pending } = await useFetch('/api/arsip', {
-  query: { q, tahun, status, ref_type: refType, deleted, page }
+  query: { q, tahun, status, ref_type: refType, deleted, page, limit: perPage }
 })
 
 const formOpen = ref(false)
@@ -166,13 +167,22 @@ const columns: TableColumn<any>[] = [
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
       <UTable :data="data?.data || []" :columns="columns" :loading="pending" empty="Belum ada data" />
-      <div class="p-4 border-t border-default">
-        <UPagination
-          v-model:page="page"
-          :items-per-page="data?.limit || 20"
-          :total="data?.total || 0"
-          class="mt-0 justify-end"
-        />
+      <div class="flex flex-wrap items-center justify-between gap-3 p-4 border-t border-default">
+        <div class="text-sm text-muted">
+          Menampilkan {{ data?.data?.length ? ((data!.page - 1) * (data!.limit) + 1).toLocaleString('id-ID') : 0 }}–{{ ((data!.page - 1) * data!.limit + (data?.data || []).length).toLocaleString('id-ID') }} dari {{ (data?.total ?? 0).toLocaleString('id-ID') }}
+        </div>
+        <div class="flex items-center gap-2">
+          <select v-model="perPage" class="h-8 w-20 rounded-md border border-default bg-default px-2 text-sm">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+          </select>
+          <UPagination
+            v-model:page="page"
+            :items-per-page="data?.limit || perPage"
+            :total="data?.total || 0"
+          />
+        </div>
       </div>
     </UCard>
 
