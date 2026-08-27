@@ -1,6 +1,6 @@
 <script setup lang="ts">
-defineProps<{ items: any[]; pending?: boolean }>()
-const max = computed((props: any) => Math.max(1, ...((props.items||[]).map((k:any)=>k.n))))
+const props = defineProps<{ items: any[]; pending?: boolean }>()
+const max = computed(() => Math.max(1, ...((props.items || []).map((k: any) => k.n))))
 </script>
 <template>
   <UCard :ui="{ body: 'p-0' }">

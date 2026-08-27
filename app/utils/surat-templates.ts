@@ -9,7 +9,7 @@ export interface TemplateCtx {
   tujuan: string
   perihal: string
   isi: string
-  penandatangan?: { nama: string; nip: string } | null
+  penandatangan?: { nama: string; nip: string; jabatan?: string } | null
   denganTembusan: boolean
   denganParaf: boolean
 }
@@ -119,6 +119,7 @@ export function tembusanBlock(): string {
 export function ttdBlock(ctx: TemplateCtx): string {
   const nama = ctx.penandatangan?.nama || '..........................................'
   const nip = ctx.penandatangan?.nip ? `NIP. ${ctx.penandatangan.nip}` : 'NIP. .............................'
+  const jabatan = ctx.penandatangan?.jabatan || ('Kepala ' + ctx.instansiUnit)
   return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
   <tr>
   <td width="30%"></td>
@@ -127,7 +128,7 @@ export function ttdBlock(ctx: TemplateCtx): string {
   <div id="blok-ttd" style="text-align:center;margin-top:26px;">
   <p style="margin:0;">${ctx.tglSurat}</p>
   <p style="margin:0;">Mengetahui,</p>
-  <p style="margin:0 0 4px;">Kepala ${ctx.instansiUnit}</p>
+  <p style="margin:0 0 4px;">${jabatan}</p>
   <div style="height:66px;">{{%ttd%}}</div>
   <p style="margin:0;font-weight:bold;text-decoration:underline;">${nama}</p>
   <p style="margin:0;">${nip}</p>

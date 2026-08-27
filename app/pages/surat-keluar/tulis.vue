@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { SURAT_TEMPLATES, assembleTemplate, tembusanBlock, ttdBlock, parafHirarkiBlock } from '~/utils/surat-templates'
 import TinyMceEditor from '~/components/TinyMceEditor.client.vue'
+import { useLocalStorage } from '@vueuse/core'
 
 const toast = useToast()
 const saving = ref(false)
 const config = useRuntimeConfig()
+const panelOpen = useLocalStorage('sk-tulis-panel-open', true)
 
 const { openPopup } = useKlasifikasiPopup()
 
@@ -123,7 +125,7 @@ function buildCtx() {
     perihal: state.perihal,
     isi: isi.value,
     penandatangan: penandatanganUser.value
-      ? { nama: penandatanganUser.value.nama, nip: penandatanganUser.value.nip }
+      ? { nama: penandatanganUser.value.nama, nip: penandatanganUser.value.nip, jabatan: penandatanganUser.value.jabatan || '' }
       : null,
     denganTembusan: denganTembusan.value,
     denganParaf: denganParaf.value
@@ -222,7 +224,7 @@ async function simpan() {
       <UButton icon="i-lucide-save" color="primary" :loading="saving" @click="simpan">Simpan Surat</UButton>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-[7fr_3fr] gap-5 flex-1 min-h-0 items-stretch">
+    <div class="grid gap-5 flex-1 min-h-0 items-stretch" :class="panelOpen ? 'grid-cols-1 lg:grid-cols-[7fr_3fr]' : 'grid-cols-1'">
       <UCard :ui="{ body: 'p-2 h-full flex flex-col min-h-0' }" class="min-w-0 flex-1 min-h-0 flex flex-col overflow-hidden">
         <div class="flex-1 min-h-0 flex flex-col">
           <TinyMceEditor
@@ -232,8 +234,8 @@ async function simpan() {
             paper
             :paper-width="PAPER[ukuranKertas][0]"
             :paper-height="PAPER[ukuranKertas][1]"
-            :orientation="orientasi"
             :margin-mm="marginMm"
+            :font-family="font"
           />
           <div v-if="logoLoading" class="flex items-center gap-2 mt-2 text-sm text-muted shrink-0">
             <UIcon name="i-lucide-loader-circle" class="animate-spin" />
@@ -242,7 +244,15 @@ async function simpan() {
         </div>
       </UCard>
 
-      <div class="lg:sticky lg:top-[80px] lg:max-h-[calc(100dvh-80px)] lg:overflow-auto min-w-0 self-start">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 translate-x-4"
+        enter-to-class="opacity-100 translate-x-0"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 translate-x-0"
+        leave-to-class="opacity-0 translate-x-4"
+      >
+      <div v-if="panelOpen" class="lg:sticky lg:top-[80px] min-w-0 self-start">
         <UCard :ui="{ body: 'p-0' }">
           <UTabs :items="tabItems" :default-value="'informasi'">
             <template #informasi>
@@ -307,6 +317,17 @@ async function simpan() {
           </UTabs>
         </UCard>
       </div>
+      </Transition>
+
+      <UButton
+        :icon="panelOpen ? 'i-lucide-panel-right-open' : 'i-lucide-panel-right-close'"
+        color="neutral"
+        variant="solid"
+        size="lg"
+        class="fixed bottom-6 right-6 z-40 shadow-lg rounded-full"
+        :aria-label="panelOpen ? 'Sembunyikan panel' : 'Tampilkan panel'"
+        @click="panelOpen = !panelOpen"
+      />
     </div>
   </div>
 </template>

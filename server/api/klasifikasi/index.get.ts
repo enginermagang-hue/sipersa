@@ -3,7 +3,7 @@ import { useDb } from '../../utils/db'
 export default defineEventHandler(async () => {
   const db = useDb()
   const rows = await db.execute({
-    sql: `SELECT id, nama, username, role, status, nip, jabatan FROM users WHERE status = 'active' AND deleted_at IS NULL ORDER BY nama ASC`
+    sql: 'SELECT * FROM klasifikasi WHERE deleted_at IS NULL ORDER BY kode ASC'
   })
   return rows.rows
 })

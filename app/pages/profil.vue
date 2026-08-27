@@ -10,55 +10,63 @@ const loading = ref(false)
 const savingPw = ref(false)
 const revoking = ref(false)
 
-const isPimpinan = computed(() => user.value?.role === 'pimpinan')
+const canUploadTtd = computed(() => user.value?.role === 'pimpinan' || user.value?.role === 'staff_tu')
 const ttdStatus = ref<{ exists: boolean; file_name: string | null } | null>(null)
-const ttdFile = ref<File | null>(null)
-const ttdUploading = ref(false)
+const ttdDeleting = ref(false)
 const ttdPreviewUrl = ref('')
 
 async function muatTtd() {
-  if (!isPimpinan.value) return
+  if (!canUploadTtd.value) return
   try {
-    ttdStatus.value = await $fetch('/api/users/ttd')
-    if (ttdStatus.value?.exists) {
-      const blob = await $fetch<Blob>('/api/users/ttd/file', { responseType: 'blob' })
-      ttdPreviewUrl.value = URL.createObjectURL(blob)
+    const status = await $fetch('/api/users/ttd')
+    ttdStatus.value = status
+    if (status?.exists) {
+      try {
+        const blob = await $fetch<Blob>('/api/users/ttd/file', { responseType: 'blob' })
+        ttdPreviewUrl.value = URL.createObjectURL(blob)
+      } catch {
+        // biarkan preview lokal (jika ada) tetap tampil
+      }
+    } else {
+      ttdPreviewUrl.value = ''
     }
   } catch {
-    ttdStatus.value = { exists: false, file_name: null }
+    // gagal mengambil status; jangan hapus preview lokal
   }
 }
 
-function onTtdPick(e: Event) {
-  const input = e.target as HTMLInputElement
-  const f = input.files?.[0] || null
-  if (f && !f.type.startsWith('image/')) {
-    toast.add({ title: 'File harus berupa gambar (PNG/JPG)', color: 'error' })
-    input.value = ''
-    return
-  }
-  if (f && f.size > 2 * 1024 * 1024) {
-    toast.add({ title: 'Ukuran gambar maksimal 2 MB', color: 'error' })
-    input.value = ''
-    return
-  }
-  ttdFile.value = f
+const uploaderRef = ref<any>(null)
+
+function onTtdError(msg: string) {
+  toast.add({ title: msg, color: 'error' })
 }
 
-async function uploadTtd() {
-  if (!ttdFile.value) return
-  ttdUploading.value = true
+function onTtdUploaded(payload: { blob: Blob | null; file_name: string | null }) {
+  toast.add({ title: 'Tanda tangan berhasil diunggah', color: 'success' })
+  if (payload?.blob) {
+    ttdPreviewUrl.value = URL.createObjectURL(payload.blob)
+    ttdStatus.value = {
+      exists: true,
+      file_name: payload.file_name || ttdStatus.value?.file_name || 'tanda-tangan',
+    }
+  }
+  uploaderRef.value?.clear()
+  muatTtd()
+}
+
+async function deleteTtd() {
+  if (!ttdStatus.value?.exists) return
+  ttdDeleting.value = true
   try {
-    const fd = new FormData()
-    fd.append('file', ttdFile.value)
-    await $fetch('/api/users/upload-ttd', { method: 'POST', body: fd })
-    toast.add({ title: 'Tanda tangan berhasil diunggah', color: 'success' })
-    ttdFile.value = null
-    await muatTtd()
+    await $fetch('/api/users/ttd', { method: 'DELETE' })
+    toast.add({ title: 'Tanda tangan berhasil dihapus', color: 'success' })
+    ttdStatus.value = { exists: false, file_name: null }
+    ttdPreviewUrl.value = ''
+    uploaderRef.value?.clear()
   } catch (e: any) {
-    toast.add({ title: e?.data?.statusMessage || 'Gagal mengunggah tanda tangan', color: 'error' })
+    toast.add({ title: e?.data?.statusMessage || 'Gagal menghapus tanda tangan', color: 'error' })
   } finally {
-    ttdUploading.value = false
+    ttdDeleting.value = false
   }
 }
 
@@ -379,24 +387,20 @@ onMounted(async () => {
           </div>
         </UCard>
 
-        <!-- Tanda Tangan Digital (pimpinan) -->
-        <UCard v-if="isPimpinan">
+        <!-- Tanda Tangan Digital -->
+        <UCard v-if="canUploadTtd">
           <h2 class="text-base font-semibold mb-1">Tanda Tangan Digital</h2>
-          <p class="text-xs text-muted mb-3">Dipakai otomatis saat Anda menyetujui surat keluar. Format PNG transparan, rasio 2:1, maks. 2 MB.</p>
+          <p class="text-xs text-muted mb-3">Tanda tangan digital Anda. Format PNG/JPG, rasio 2:1, maks. 2 MB.</p>
           <div v-if="ttdStatus?.exists && ttdPreviewUrl" class="space-y-3">
             <div class="inline-block rounded-lg border border-dashed border-slate-300 p-3 dark:border-slate-600">
               <img :src="ttdPreviewUrl" alt="Tanda tangan" class="h-16 object-contain" />
             </div>
             <p class="text-[11px] text-muted">{{ ttdStatus.file_name }}</p>
-            <label class="inline-flex">
-              <input type="file" accept="image/png,image/jpeg" class="hidden" @change="onTtdPick" />
-              <span class="cursor-pointer inline-flex items-center gap-1.5 rounded-md border border-default px-2.5 py-1 text-xs font-medium hover:bg-elevated">
+            <div class="flex flex-wrap items-center gap-2">
+              <UButton size="xs" variant="outline" :disabled="ttdDeleting" @click="uploaderRef?.open()">
                 <UIcon name="i-lucide-refresh-cw" class="w-3.5 h-3.5" /> Ganti Tanda Tangan
-              </span>
-            </label>
-            <div v-if="ttdFile" class="flex items-center gap-2 pt-1">
-              <span class="text-xs text-muted">{{ ttdFile.name }}</span>
-              <UButton size="xs" :loading="ttdUploading" @click="uploadTtd">Simpan</UButton>
+              </UButton>
+              <UButton size="xs" color="error" variant="soft" :loading="ttdDeleting" @click="deleteTtd">Hapus</UButton>
             </div>
           </div>
           <div v-else class="space-y-3">
@@ -404,17 +408,15 @@ onMounted(async () => {
               <UIcon name="i-lucide-signature" class="w-8 h-8 mx-auto text-muted mb-2" />
               <p class="text-sm text-muted">Belum ada tanda tangan</p>
             </div>
-            <label class="inline-flex">
-              <input type="file" accept="image/png,image/jpeg" class="hidden" @change="onTtdPick" />
-              <span class="cursor-pointer inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-inverted">
-                <UIcon name="i-lucide-upload" class="w-3.5 h-3.5" /> Pilih Gambar Tanda Tangan
-              </span>
-            </label>
-            <div v-if="ttdFile" class="flex items-center gap-2">
-              <span class="text-xs text-muted">{{ ttdFile.name }}</span>
-              <UButton size="xs" :loading="ttdUploading" @click="uploadTtd">Upload</UButton>
-            </div>
+            <UButton size="sm" class="mt-1" @click="uploaderRef?.open()">
+              <UIcon name="i-lucide-upload" class="w-3.5 h-3.5" /> Pilih Gambar Tanda Tangan
+            </UButton>
           </div>
+          <TtdUploader
+            ref="uploaderRef"
+            @uploaded="onTtdUploaded"
+            @error="onTtdError"
+          />
         </UCard>
       </div>
 

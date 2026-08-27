@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
       data.no_agenda ?? null,
       no_urut,
       no_surat,
-      data.klasifikasi_id ?? null,
+      toIntOrNull(fields.klasifikasi_id),
       data.tgl_surat,
       data.tgl_terima,
       data.pengirim,

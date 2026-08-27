@@ -7,8 +7,8 @@ const MAX_TTD_SIZE = 2 * 1024 * 1024
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
-  if (auth.role !== 'pimpinan') {
-    throw createError({ statusCode: 403, statusMessage: 'Hanya pimpinan yang dapat mengunggah tanda tangan' })
+  if (auth.role !== 'pimpinan' && auth.role !== 'staff_tu') {
+    throw createError({ statusCode: 403, statusMessage: 'Hanya pimpinan dan staff TU yang dapat mengunggah tanda tangan' })
   }
 
   const { file } = await readFormWithFile(event)

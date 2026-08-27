@@ -6,6 +6,9 @@ const emit = defineEmits<{ close: []; busy: [boolean] }>()
 
 const { openPopup } = useKlasifikasiPopup()
 
+const { data: klas } = await useFetch('/api/klasifikasi')
+const klasOptions = computed(() => (klas.value || []).map((k: any) => ({ label: `${k.kode} - ${k.nama}`, value: k.id })))
+
 const s = props.surat || {}
 const state = reactive({
   tgl_surat: s.tgl_surat || '',
@@ -17,6 +20,7 @@ const state = reactive({
   status: s.status || 'draft',
   penandatangan: s.penandatangan || '',
   klasifikasi_kode: s.klasifikasi_kode ?? s.klasifikasiKode ?? '',
+  klasifikasi_id: (s.klasifikasi_id ?? null) as number | null,
   no_agenda: s.no_agenda ?? null as string | null,
   ringkasan: s.ringkasan || ''
 })
@@ -113,7 +117,7 @@ async function submit() {
         <USelect v-model="state.sifat" class="w-full" :items="sifatOptions" />
       </UFormField>
       <UFormField v-if="type==='masuk'" label="Klasifikasi">
-        <UInput v-model="state.klasifikasi_kode" class="w-full" placeholder="Kode klasifikasi (opsional)" />
+        <USelect v-model="state.klasifikasi_id" :items="klasOptions" class="w-full" :placeholder="'(tanpa)'" />
       </UFormField>
       <UFormField v-else label="Klasifikasi" name="klasifikasi_kode">
         <UInput v-model="state.klasifikasi_kode" class="w-full" placeholder="mis. 800.1" />

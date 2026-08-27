@@ -7,9 +7,11 @@
 - `npm run dev` — dev server on `http://localhost:3000`
 - `npm run build` — production build; `npm run preview` — serve the build; `npm run generate` — static export
 - No lint/typecheck/test scripts exist. `npm run build` is the main sanity check.
-- **JANGAN jalankan `npm run build` untuk verifikasi perubahan kode.** Hanya jalankan jika user secara eksplisit meminta build.
 - Sebelum mulai mengubah kode, cek apakah dev server sudah berjalan (port 3000 via `curl -s -o NUL -w "%{http_code}" http://localhost:3000` atau `netstat -ano | findstr :3000`). Jika sudah jalan, JANGAN start ulang. Jika belum, tanyakan ke user.
 - `postinstall` runs `nuxt prepare` (regenerates `.nuxt` + tsconfig refs). Run `npx nuxi prepare` after changing `nuxt.config.ts` or deleting `.nuxt`.
+
+## ⚠️ Build Rule
+**JANGAN jalankan `npm run build` untuk verifikasi perubahan kode.** Hanya jalankan jika user secara eksplisit meminta build. Build memakan waktu ~40-60s dan tidak diperlukan selama dev server berjalan di port 3000.
 
 ## Database (Turso/SQLite)
 - `@libsql/client`; empty `NUXT_TURSO_URL` → local file DB `.data/local.db` (gitignored). All DB access is server-side only.

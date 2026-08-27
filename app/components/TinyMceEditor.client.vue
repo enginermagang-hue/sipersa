@@ -7,9 +7,14 @@ const props = defineProps<{
   paper?: boolean
   paperWidth?: number
   paperHeight?: number
-  orientation?: 'portrait' | 'landscape'
   marginMm?: number
+  fontFamily?: string
 }>()
+
+function buildContentStyle() {
+  const f = props.fontFamily || 'Inter'
+  return `body { font-family: ${f}, sans-serif; font-size: 14px; line-height: 1.6; }`
+}
 
 const editorInit = {
   height: props.height ?? undefined,
@@ -19,13 +24,19 @@ const editorInit = {
   plugins: 'lists link image table charmap code wordcount advlist autolink',
   toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link table image | removeformat code',
   font_formats: 'Inter=Inter, sans-serif; Times New Roman=Times New Roman, serif; Arial=Arial, Helvetica, sans-serif; Courier New=Courier New, monospace; Georgia=Georgia, serif',
-  content_style: 'body { font-family: Inter, sans-serif; font-size: 14px; line-height: 1.6; }',
+  content_style: buildContentStyle(),
   branding: false,
   license_key: 'gpl',
   init_instance_callback: (ed: any) => {
     applyPaper(ed)
     ed.on('input change setcontent NodeChange', () => resizeSheet(ed))
     resizeSheet(ed)
+    const ro = new ResizeObserver(() => {
+      applyPaper(ed)
+      resizeSheet(ed)
+    })
+    const area = ed.getContentAreaContainer()
+    if (area) ro.observe(area)
   }
 }
 
@@ -43,7 +54,8 @@ function applyPaper(ed?: any) {
 
   if (!props.paper) {
     target.dom.setStyles(body, {
-      margin: '0',
+      margin: '',
+      width: '',
       padding: '',
       boxSizing: '',
       background: '',
@@ -58,22 +70,29 @@ function applyPaper(ed?: any) {
 
   const PW = props.paperWidth ?? 210
   const PH = props.paperHeight ?? 297
-  const orient = props.orientation ?? 'portrait'
   const mm = Math.max(0, props.marginMm ?? 25)
-  const [sheetW, sheetH] = orient === 'landscape' ? [Math.max(PW, PH), Math.min(PW, PH)] : [PW, PH]
-  const horizMm = orient === 'landscape' ? PH : PW
-  const padPct = (mm / horizMm) * 100
+  const area = target.getContentAreaContainer()
+  const areaCs = area ? getComputedStyle(area) : null
+  const contentW =
+    area
+      ? area.clientWidth -
+        (parseFloat(areaCs?.paddingLeft || '') || 0) -
+        (parseFloat(areaCs?.paddingRight || '') || 0)
+      : body.clientWidth
+  const scale = contentW / Math.min(PW, PH)
+  const padPx = mm * scale
 
   target.dom.setStyles(body, {
-    margin: '0',
-    padding: `${padPct}%`,
+    margin: '0 auto',
+    width: `${contentW}px`,
+    padding: `${padPx}px`,
     boxSizing: 'border-box',
     background: '#ffffff',
-    aspectRatio: `${sheetW} / ${sheetH}`,
+    aspectRatio: '',
     color: '#1a1a1a',
-    overflow: 'hidden'
+    overflow: 'visible'
   })
-  if (doc) target.dom.setStyles(doc.documentElement, { overflow: 'hidden' })
+  if (doc) target.dom.setStyles(doc.documentElement, { overflow: '' })
   resizeSheet(target)
 }
 
@@ -91,9 +110,17 @@ function resizeSheet(ed?: any) {
 }
 
 watch(
-  () => [props.paper, props.paperWidth, props.paperHeight, props.orientation, props.marginMm],
+  () => [props.paper, props.paperWidth, props.paperHeight, props.marginMm, props.fontFamily],
   () => applyPaper()
 )
+
+function applyFont() {
+  const ed = getEditor()
+  if (!ed || !ed.initialized) return
+  ed.getBody().style.fontFamily = `${props.fontFamily || 'Inter'}, sans-serif`
+}
+
+watch(() => props.fontFamily, () => applyFont())
 
 function setContent(html: string) {
   getEditor()?.setContent(html)
