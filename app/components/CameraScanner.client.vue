@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { jsPDF } from 'jspdf'
-
 const emit = defineEmits<{
   close: []
   capture: [file: File]
@@ -70,7 +68,7 @@ function capture() {
   canvas.height = videoRef.value.videoHeight
   const ctx = canvas.getContext('2d')!
   ctx.drawImage(videoRef.value, 0, 0)
-  capturedImages.value.push(canvas.toDataURL('image/jpeg', 0.9))
+  capturedImages.value.push(canvas.toDataURL('image/jpeg', 0.95))
 }
 
 function removeCapture(index: number) {

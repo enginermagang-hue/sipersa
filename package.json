@@ -25,6 +25,7 @@
     "exceljs": "^3.4.0",
     "jspdf": "^4.2.1",
     "nuxt": "^4.5.2",
+    "opencv.js": "^1.2.1",
     "pdf-parse": "^2.4.5",
     "sweetalert2": "^11.26.25",
     "tailwindcss": "^4.3.3",
