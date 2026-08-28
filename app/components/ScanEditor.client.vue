@@ -22,8 +22,19 @@ const isProcessing = ref(false)
 const detecting = ref(false)
 const error = ref('')
 const detectError = ref('')
+const selectedEffect = ref<'original' | 'gray' | 'bw' | 'enhance'>('original')
+const detectedQuad = ref<{ x: number; y: number }[] | null>(null)
 
 let cropperInstance: any = null
+
+const previewFilter = computed(() => {
+  switch (selectedEffect.value) {
+    case 'gray': return 'grayscale(1)'
+    case 'bw': return 'grayscale(1) contrast(2) brightness(1.1)'
+    case 'enhance': return 'contrast(1.35) saturate(1.3) brightness(1.05)'
+    default: return 'none'
+  }
+})
 
 async function initCropper(imgSrc: string, autoCropRect?: { x: number; y: number; width: number; height: number }) {
   if (cropperInstance) {
@@ -116,6 +127,41 @@ function destroyCropper() {
   }
 }
 
+function convexHull(points: { x: number; y: number }[]): { x: number; y: number }[] {
+  if (points.length <= 1) return points
+  points.sort((a, b) => a.x === b.x ? a.y - b.y : a.x - b.x)
+  const cross = (o: any, a: any, b: any) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
+  const lower: any[] = []
+  for (const p of points) { while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop(); lower.push(p) }
+  const upper: any[] = []
+  for (let i = points.length - 1; i >= 0; i--) { const p = points[i]; while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop(); upper.push(p) }
+  upper.pop(); lower.pop()
+  return lower.concat(upper)
+}
+function approxQuad(hull: { x: number; y: number }[]): { x: number; y: number }[] | null {
+  if (hull.length < 4) return null
+  if (hull.length === 4) return hull
+  let pts = [...hull]
+  const area = (a: any, b: any, c: any) => Math.abs((a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y)) / 2)
+  while (pts.length > 4) {
+    let minA = Infinity, idx = -1
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[(i - 1 + pts.length) % pts.length], c = pts[i], n = pts[(i + 1) % pts.length]
+      const a = area(p, c, n)
+      if (a < minA) { minA = a; idx = i }
+    }
+    if (idx >= 0) pts.splice(idx, 1); else break
+  }
+  return pts.length === 4 ? pts : null
+}
+function orderQuad(pts: { x: number; y: number }[]): { x: number; y: number }[] {
+  const s = pts.map(p => ({ p, sum: p.x + p.y, diff: p.x - p.y }))
+  const tl = s.reduce((a, b) => a.sum < b.sum ? a : b).p
+  const br = s.reduce((a, b) => a.sum > b.sum ? a : b).p
+  const tr = s.reduce((a, b) => a.diff > b.diff ? a : b).p
+  const bl = s.reduce((a, b) => a.diff < b.diff ? a : b).p
+  return [tl, tr, br, bl]
+}
 async function detectPaperCorners(imgSrc: string): Promise<{ x: number; y: number; width: number; height: number } | null> {
   return new Promise((resolve) => {
     const img = new Image()
@@ -198,7 +244,8 @@ async function detectPaperCorners(imgSrc: string): Promise<{ x: number; y: numbe
           return pixels
         }
 
-        let bestRect = null
+        let bestRect: any = null
+        let bestQuad: any = null
         let bestScore = 0
 
         for (let i = 0; i < w * h; i++) {
@@ -214,6 +261,32 @@ async function detectPaperCorners(imgSrc: string): Promise<{ x: number; y: numbe
             const rectFit = region.length / area
             const aspect = (maxX - minX) / ((maxY - minY) || 1)
             if (rectFit > 0.5 && aspect > 0.3 && aspect < 3.0 && area > bestScore) {
+              // coba quad dari hull
+              const pts = region.map(idx => ({ x: idx % w, y: Math.floor(idx / w) }))
+              // sample untuk hull supaya cepat: ambil 1/4 points
+              const sample = pts.filter((_, k) => k % 4 === 0)
+              const hull = convexHull(sample)
+              let quad = approxQuad(hull)
+              let useRect = { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+              if (quad && quad.length === 4) {
+                const ordered = orderQuad(quad)
+                // validasi quad area
+                const qArea = Math.abs(ordered[0].x * ordered[1].y + ordered[1].x * ordered[2].y + ordered[2].x * ordered[3].y + ordered[3].x * ordered[0].y - ordered[1].x * ordered[0].y - ordered[2].x * ordered[1].y - ordered[3].x * ordered[2].y - ordered[0].x * ordered[3].y) / 2
+                if (qArea > area * 0.5 && qArea < area * 1.5) {
+                  bestQuad = ordered
+                  // pakai bounding rect dari quad sebagai crop box
+                  const qxs = ordered.map(p => p.x), qys = ordered.map(p => p.y)
+                  useRect = { x: Math.min(...qxs), y: Math.min(...qys), width: Math.max(...qxs) - Math.min(...qxs), height: Math.max(...qys) - Math.min(...qys) }
+                  bestScore = area
+                  bestRect = {
+                    x: Math.round(useRect.x / scale),
+                    y: Math.round(useRect.y / scale),
+                    width: Math.round(useRect.width / scale),
+                    height: Math.round(useRect.height / scale)
+                  }
+                  continue
+                }
+              }
               bestScore = area
               bestRect = {
                 x: Math.round(minX / scale),
@@ -221,17 +294,23 @@ async function detectPaperCorners(imgSrc: string): Promise<{ x: number; y: numbe
                 width: Math.round((maxX - minX) / scale),
                 height: Math.round((maxY - minY) / scale)
               }
+              bestQuad = null
             }
           }
         }
-
+        if (bestQuad) {
+          detectedQuad.value = bestQuad.map(p => ({ x: Math.round(p.x / scale), y: Math.round(p.y / scale) }))
+        } else {
+          detectedQuad.value = null
+        }
         resolve(bestRect)
       } catch (e) {
         console.error('Paper detection error:', e)
+        detectedQuad.value = null
         resolve(null)
       }
     }
-    img.onerror = () => resolve(null)
+    img.onerror = () => { detectedQuad.value = null; resolve(null) }
     img.src = imgSrc
   })
 }
@@ -417,24 +496,79 @@ function rotateCanvas(src: HTMLCanvasElement, angle: number): HTMLCanvasElement 
   return result
 }
 
+function applyColorEffect(canvas: HTMLCanvasElement, effect: string): void {
+  if (effect === 'original') return
+  const ctx = canvas.getContext('2d')!
+  const id = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const d = id.data
+  for (let i = 0; i < d.length; i += 4) {
+    let r = d[i], g = d[i + 1], b = d[i + 2]
+    if (effect === 'gray') {
+      const v = 0.299 * r + 0.587 * g + 0.114 * b
+      r = g = b = v
+    } else if (effect === 'bw') {
+      const v = 0.299 * r + 0.587 * g + 0.114 * b
+      // adaptive-ish threshold
+      const t = v > 135 ? 255 : 0
+      // sedikit contrast sebelum threshold biar teks tajam
+      r = g = b = t
+    } else if (effect === 'enhance') {
+      const c = 1.35, br = 6
+      r = (r - 128) * c + 128 + br
+      g = (g - 128) * c + 128 + br
+      b = (b - 128) * c + 128 + br
+      const gray = 0.299 * r + 0.587 * g + 0.114 * b
+      const s = 1.25
+      r = gray + (r - gray) * s
+      g = gray + (g - gray) * s
+      b = gray + (b - gray) * s
+      r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b))
+    }
+    d[i] = r; d[i + 1] = g; d[i + 2] = b
+  }
+  ctx.putImageData(id, 0, 0)
+}
+async function retryDetect() {
+  if (!currentImage.value) return
+  detecting.value = true
+  try {
+    const rect = await detectPaperCorners(currentImage.value)
+    if (rect && cropperInstance) {
+      try { cropperInstance.setCropBoxData({ left: rect.x, top: rect.y, width: rect.width, height: rect.height }) } catch {}
+    } else if (!rect) {
+      detectError.value = 'Border tidak terdeteksi. Coba atur manual.'
+      setTimeout(() => detectError.value = '', 2500)
+    }
+  } finally { detecting.value = false }
+}
 async function saveCurrentPage() {
   isProcessing.value = true
   error.value = ''
   try {
     if (cropperInstance && typeof cropperInstance.getCroppedCanvas === 'function') {
-      const canvas = cropperInstance.getCroppedCanvas({ imageSmoothingQuality: 'high' })
+      const canvas = cropperInstance.getCroppedCanvas({ imageSmoothingQuality: 'high', maxWidth: 2500, maxHeight: 3500 })
       if (!canvas) throw new Error('Canvas kosong')
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.95)
+      applyColorEffect(canvas, selectedEffect.value)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
       const newImages = [...props.images]
       newImages[currentIndex.value] = dataUrl
       emit('save', newImages)
       return
     }
-    // fallback: simpan gambar asli tanpa crop jika cropper belum siap
     if (currentImage.value) {
+      // fallback tanpa cropper: buat canvas dari image asli + effect
+      const img = new Image()
+      img.src = currentImage.value
+      await new Promise<void>(r => { if (img.complete) r(); else { img.onload = () => r(); img.onerror = () => r() } })
+      const c = document.createElement('canvas')
+      c.width = img.naturalWidth || 800
+      c.height = img.naturalHeight || 600
+      const cx = c.getContext('2d')!
+      cx.drawImage(img, 0, 0)
+      applyColorEffect(c, selectedEffect.value)
+      const dataUrl = c.toDataURL('image/jpeg', 0.92)
       const newImages = [...props.images]
-      // jika bukan dataURL cropped, tetap simpan asli
-      newImages[currentIndex.value] = currentImage.value
+      newImages[currentIndex.value] = dataUrl
       emit('save', newImages)
       return
     }
@@ -488,7 +622,7 @@ function nextPage() {
         <span class="text-white text-sm">Memproses...</span>
       </div>
 
-      <div class="flex-1 min-h-0 w-full cropper-host flex items-center justify-center bg-black overflow-hidden">
+      <div class="flex-1 min-h-0 w-full cropper-host flex items-center justify-center bg-black overflow-hidden" :style="{ filter: previewFilter }">
         <img
           ref="imageEl"
           :src="currentImage"
@@ -500,6 +634,13 @@ function nextPage() {
 
     <div class="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/80 to-transparent" :style="{ paddingBottom: 'env(safe-area-inset-bottom)' }">
       <div class="px-3 sm:px-4 pt-4 pb-3">
+        <div class="flex items-center justify-center gap-1 mb-2">
+          <span class="text-[11px] text-white/60 mr-1">Efek:</span>
+          <UButton size="xs" :color="selectedEffect==='original'?'primary':'gray'" :variant="selectedEffect==='original'?'solid':'outline'" @click="selectedEffect='original'">Original</UButton>
+          <UButton size="xs" :color="selectedEffect==='gray'?'primary':'gray'" :variant="selectedEffect==='gray'?'solid':'outline'" @click="selectedEffect='gray'">Abu</UButton>
+          <UButton size="xs" :color="selectedEffect==='bw'?'primary':'gray'" :variant="selectedEffect==='bw'?'solid':'outline'" @click="selectedEffect='bw'">B&W</UButton>
+          <UButton size="xs" :color="selectedEffect==='enhance'?'primary':'gray'" :variant="selectedEffect==='enhance'?'solid':'outline'" @click="selectedEffect='enhance'">Enhance</UButton>
+        </div>
         <div class="flex flex-wrap items-center justify-center gap-1 sm:gap-2 mb-2">
           <UButton color="gray" variant="outline" size="sm" @click="rotate90('left')" title="Putar kiri 90°">
             <UIcon name="i-lucide-rotate-ccw" class="w-4 h-4" />
@@ -515,6 +656,9 @@ function nextPage() {
           </UButton>
           <UButton color="yellow" variant="outline" size="sm" @click="autoStraighten" :disabled="isProcessing" title="Auto straighten">
             <UIcon name="i-lucide-move-diagonal" class="w-4 h-4" />
+          </UButton>
+          <UButton color="gray" variant="outline" size="sm" @click="retryDetect" :disabled="detecting" title="Deteksi border ulang">
+            <UIcon name="i-lucide-scan" class="w-4 h-4" />
           </UButton>
           <UButton color="gray" variant="outline" size="sm" @click="zoom(-0.1)" title="Zoom out">
             <UIcon name="i-lucide-zoom-out" class="w-4 h-4" />
