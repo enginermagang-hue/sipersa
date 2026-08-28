@@ -23,7 +23,7 @@ const items = computed<NavigationMenuItem[][]>(() => {
   const utama: NavigationMenuItem[] = [
     { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: '/' },
     { label: 'Surat Masuk', icon: 'i-lucide-inbox', to: '/surat-masuk' },
-    { label: 'Surat Keluar', icon: 'i-lucide-send', to: '/surat-keluar' },
+    { label: 'Surat Keluar', icon: 'i-lucide-send', to: '/surat-keluar', badge: (['pimpinan'].includes(user.value?.role) ? stats.value?.keluarMenungguPersetujuan : 0) || undefined },
     { label: 'Disposisi', icon: 'i-lucide-share-2', to: '/disposisi', badge: (stats.value?.disposisiSaya || 0) || undefined }
   ]
 
@@ -62,12 +62,17 @@ const appConfig = useAppConfig()
 const config = useRuntimeConfig()
 
 const avatarUrl = computed(() => user.value
-  ? `https://api.dicebear.com/10.x/initial-face/svg?seed=${encodeURIComponent(user.value.nama)}&radius=50`
+  ? `https://api.dicebear.com/10.x/initials/svg?seed=${encodeURIComponent(user.value.nama)}`
   : '')
 
 const userItems = computed(() => [[
-  { label: user.value?.nama ?? '', type: 'label', class: 'font-semibold' },
-  { label: user.value?.email || user.value?.role || '', type: 'label', class: 'text-xs text-muted' },
+  {
+    label: user.value?.nama ?? '',
+    description: user.value?.email,
+    type: 'label',
+    class: 'font-semibold',
+    avatar: { src: avatarUrl, alt: user.value?.nama, size: 'xl' },
+  },
   { type: 'separator' },
   { label: 'Profil', icon: 'i-lucide-user', to: '/profil' },
   { type: 'separator' },
@@ -94,13 +99,12 @@ function goSearch() {
       :ui="{ container: 'h-full', inner: 'bg-elevated/25 divide-transparent', body: 'py-0', header: 'px-0'}"
     >
       <template #header="{ close }">
-        <div class="flex flex-col gap-2 truncate border-b border-gray-200 dark:border-gray-800 py-4 px-4">
+        <div class="flex flex-col gap-2 truncate border-b-0 border-gray-200 dark:border-gray-800 py-4 px-4">
           <div class="flex flex-row items-center justify-between static">
             <div class="flex flex-row items-center justify-start">
               <img class="mr-4" src="/ntt.png" style="width: 32px;"/>
               <div>
                 <div class="font-bold text-lg" v-if="open" style="letter-spacing: 10px !important;">{{ config.public.appName || 'SIPERSA' }}</div>
-                <div class="text-xs text-wrap">SISTEM INFORMASI PERSURATAN DAN ARSIP</div>
               </div>
             </div>
             <UButton

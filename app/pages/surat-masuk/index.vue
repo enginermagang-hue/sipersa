@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
+import { h } from 'vue'
 
 const { user } = useAuth()
 const { confirm } = useConfirm()
@@ -88,6 +89,20 @@ function exportExcel() {
   if (bulan.value) p.set('bulan', bulan.value)
   window.open(`/api/surat-masuk/export?${p.toString()}`, '_blank')
 }
+
+function getAksiItems(row: any) {
+  const items = [
+    { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/surat-masuk/${row.id}`) }
+  ]
+  if (row.file_drive_id) {
+    items.push({ label: 'Unduh File', icon: 'i-lucide-download', onSelect: () => window.open(`/api/files/${row.file_drive_id}`) })
+  }
+  if (canManage(row)) {
+    items.push({ label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => { editSurat.value = row; editOpen.value = true } })
+    items.push({ label: 'Hapus', icon: 'i-lucide-trash', color: 'error' as const, onSelect: () => hapus(row) })
+  }
+  return items
+}
 </script>
 
 <template>
@@ -167,13 +182,10 @@ function exportExcel() {
                 <UBadge v-if="r.is_arsip" label="Diarsipkan" color="success" variant="subtle" />
                 <span v-else class="text-muted">—</span>
               </td>
-              <td class="px-4 py-3" @click.stop>
-                <div class="flex justify-end gap-1">
-                  <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" @click="navigateTo(`/surat-masuk/${r.id}`)" />
-                  <UButton v-if="r.file_drive_id" icon="i-lucide-download" color="neutral" variant="ghost" size="xs" aria-label="Unduh File" @click="window.open(`/api/files/${r.file_drive_id}`)" />
-                  <UButton v-if="canManage(r)" icon="i-lucide-pencil" color="neutral" variant="ghost" size="xs" aria-label="Edit" @click="editSurat = r; editOpen = true" />
-                  <UButton v-if="canManage(r)" icon="i-lucide-trash" color="error" variant="ghost" size="xs" aria-label="Hapus" @click="hapus(r)" />
-                </div>
+              <td class="px-4 py-3 text-right" @click.stop>
+                <UDropdownMenu :items="getAksiItems(r)">
+                  <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+                </UDropdownMenu>
               </td>
             </tr>
             <tr v-if="!pending && !(data?.data || []).length">
@@ -187,11 +199,10 @@ function exportExcel() {
         <div v-for="r in data?.data || []" :key="r.id" class="rounded-xl border border-default p-4 transition-colors hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.id}`)">
           <div class="flex items-start justify-between gap-2">
             <div class="font-medium text-sm leading-tight">{{ r.no_surat }}</div>
-            <div class="flex gap-1 -mr-1 -mt-1" @click.stop>
-              <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" @click="navigateTo(`/surat-masuk/${r.id}`)" />
-              <UButton v-if="r.file_drive_id" icon="i-lucide-download" color="neutral" variant="ghost" size="xs" aria-label="Unduh File" @click="window.open(`/api/files/${r.file_drive_id}`)" />
-              <UButton v-if="canManage(r)" icon="i-lucide-pencil" color="neutral" variant="ghost" size="xs" aria-label="Edit" @click="editSurat = r; editOpen = true" />
-              <UButton v-if="canManage(r)" icon="i-lucide-trash" color="error" variant="ghost" size="xs" aria-label="Hapus" @click="hapus(r)" />
+            <div @click.stop>
+              <UDropdownMenu :items="getAksiItems(r)">
+                <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+              </UDropdownMenu>
             </div>
           </div>
           <div class="mt-3 text-sm font-medium">{{ r.pengirim }}</div>
@@ -221,11 +232,10 @@ function exportExcel() {
           <span class="hidden text-xs text-muted whitespace-nowrap sm:inline">{{ fmtTgl(r.tgl_surat) }}</span>
           <UBadge v-if="r.disposisi_status" :label="statusMeta[r.disposisi_status]?.label || r.disposisi_status" :color="statusMeta[r.disposisi_status]?.color || 'neutral'" variant="subtle" />
           <UBadge v-if="r.is_arsip" label="Diarsipkan" color="success" variant="subtle" />
-          <div class="flex gap-1" @click.stop>
-            <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" @click="navigateTo(`/surat-masuk/${r.id}`)" />
-            <UButton v-if="r.file_drive_id" icon="i-lucide-download" color="neutral" variant="ghost" size="xs" aria-label="Unduh File" @click="window.open(`/api/files/${r.file_drive_id}`)" />
-            <UButton v-if="canManage(r)" icon="i-lucide-pencil" color="neutral" variant="ghost" size="xs" aria-label="Edit" @click="editSurat = r; editOpen = true" />
-            <UButton v-if="canManage(r)" icon="i-lucide-trash" color="error" variant="ghost" size="xs" aria-label="Hapus" @click="hapus(r)" />
+          <div @click.stop>
+            <UDropdownMenu :items="getAksiItems(r)">
+              <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+            </UDropdownMenu>
           </div>
         </div>
         <div v-if="!pending && !(data?.data || []).length" class="py-12 text-center text-muted">Belum ada data</div>

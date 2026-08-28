@@ -95,7 +95,7 @@ const activity = reactive({
 })
 
 const avatarUrl = computed(() => user.value
-  ? `https://api.dicebear.com/10.x/initial-face/svg?seed=${encodeURIComponent(user.value.nama)}&radius=50`
+  ? `https://api.dicebear.com/10.x/initials/svg?seed=${encodeURIComponent(user.value.nama)}`
   : '')
 
 const breadcrumbItems = computed(() => [
@@ -475,7 +475,7 @@ onMounted(async () => {
         <UCard class="rounded-xl">
           <h2 class="text-[14px] font-semibold tracking-tight mb-3">Pintasan</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <UButton to="/surat-keluar" variant="outline" class="justify-start h-auto py-2.5 px-3" icon="i-lucide-file-plus">
+            <UButton v-if="user?.role === 'staff_tu'" to="/surat-keluar" variant="outline" class="justify-start h-auto py-2.5 px-3" icon="i-lucide-file-plus">
               <div class="text-left">
                 <p class="text-sm font-medium leading-tight">Buat Surat Keluar</p>
                 <p class="text-[11px] text-muted leading-tight">Alur 1: Buat → Arsipkan</p>

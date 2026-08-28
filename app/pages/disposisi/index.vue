@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
+import { h } from 'vue'
 
 const { user } = useAuth()
 const { confirm } = useConfirm()
@@ -195,6 +196,16 @@ function exportExcel() {
   if (bulan.value) p.set('bulan', bulan.value)
   window.open(`/api/disposisi/export?${p.toString()}`, '_blank')
 }
+
+function getAksiItems(d: any) {
+  const items = [
+    { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/surat-masuk/${d.surat_masuk_id}`) }
+  ]
+  if (d.status !== 'selesai') {
+    items.push({ label: 'Tindak Lanjuti', icon: 'i-lucide-corner-up-right', onSelect: () => openForward(d) })
+  }
+  return items
+}
 </script>
 
 <template>
@@ -271,11 +282,10 @@ function exportExcel() {
               <td class="px-4 py-3 whitespace-nowrap" :class="isOverdue(d) ? 'text-error font-semibold' : ''">
                 {{ tglSingkat(d.batas_waktu) }}<span v-if="isOverdue(d)" class="text-xs text-error"> (lewat)</span>
               </td>
-              <td class="px-4 py-3" @click.stop>
-                <div class="flex justify-end gap-1">
-                  <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" :to="`/surat-masuk/${d.surat_masuk_id}`" />
-                  <UButton v-if="d.status !== 'selesai'" icon="i-lucide-corner-up-right" color="primary" variant="ghost" size="xs" aria-label="Tindak Lanjuti" @click="openForward(d)" />
-                </div>
+              <td class="px-4 py-3 text-right" @click.stop>
+                <UDropdownMenu :items="getAksiItems(d)">
+                  <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+                </UDropdownMenu>
               </td>
             </tr>
             <tr v-if="!filteredData.length">
@@ -289,9 +299,10 @@ function exportExcel() {
         <div v-for="d in paginatedData" :key="d.id" class="rounded-xl border border-default p-4 transition-colors hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${d.surat_masuk_id}`)">
           <div class="flex items-start justify-between gap-2">
             <div class="font-medium text-sm leading-tight">{{ d.no_surat }}</div>
-            <div class="flex gap-1 -mr-1 -mt-1" @click.stop>
-              <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" :to="`/surat-masuk/${d.surat_masuk_id}`" />
-              <UButton v-if="d.status !== 'selesai'" icon="i-lucide-corner-up-right" color="primary" variant="ghost" size="xs" aria-label="Tindak Lanjuti" @click="openForward(d)" />
+            <div @click.stop>
+              <UDropdownMenu :items="getAksiItems(d)">
+                <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+              </UDropdownMenu>
             </div>
           </div>
           <h3 class="mt-2 text-sm font-semibold leading-snug">{{ d.perihal }}</h3>
@@ -327,9 +338,10 @@ function exportExcel() {
           </div>
           <UBadge :label="statusMeta[d.status]?.label || d.status" :color="statusMeta[d.status]?.color || 'neutral'" variant="subtle" size="xs" />
           <span class="hidden text-xs text-muted whitespace-nowrap sm:inline">{{ tglSingkat(d.batas_waktu) }}</span>
-          <div class="flex gap-1" @click.stop>
-            <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" :to="`/surat-masuk/${d.surat_masuk_id}`" />
-            <UButton v-if="d.status !== 'selesai'" icon="i-lucide-corner-up-right" color="primary" variant="ghost" size="xs" aria-label="Tindak Lanjuti" @click="openForward(d)" />
+          <div @click.stop>
+            <UDropdownMenu :items="getAksiItems(d)">
+              <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+            </UDropdownMenu>
           </div>
         </div>
         <div v-if="!filteredData.length" class="py-12 text-center text-muted">Belum ada disposisi</div>

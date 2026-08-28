@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
+import { h } from 'vue'
 
 const { user } = useAuth()
 const { confirm } = useConfirm()
@@ -68,6 +69,12 @@ function exportExcel() {
   if (sifat.value) p.set('sifat', sifat.value)
   if (bulan.value) p.set('bulan', bulan.value)
   window.open(`/api/disposisi/export?${p.toString()}`, '_blank')
+}
+
+function getAksiItems(r: any) {
+  return [
+    { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/surat-masuk/${r.surat_masuk_id}`) }
+  ]
 }
 </script>
 
@@ -147,10 +154,10 @@ function exportExcel() {
                 <td class="px-4 py-3 whitespace-nowrap" :class="isOverdue(r) ? 'text-error font-semibold' : ''">
                   {{ fmtTgl(r.batas_waktu) }}<span v-if="isOverdue(r)" class="text-xs text-error"> (lewat)</span>
                 </td>
-                <td class="px-4 py-3" @click.stop>
-                  <div class="flex justify-end gap-1">
-                    <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" :to="`/surat-masuk/${r.surat_masuk_id}`" />
-                  </div>
+                <td class="px-4 py-3 text-right" @click.stop>
+                  <UDropdownMenu :items="getAksiItems(r)">
+                    <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+                  </UDropdownMenu>
                 </td>
               </tr>
               <tr v-if="!pending && !(data?.data || []).length">
@@ -164,8 +171,10 @@ function exportExcel() {
           <div v-for="r in data?.data || []" :key="r.id" class="rounded-xl border border-default p-4 transition-colors hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.surat_masuk_id}`)">
             <div class="flex items-start justify-between gap-2">
               <div class="font-medium text-sm leading-tight">{{ r.no_surat }}</div>
-              <div class="flex gap-1 -mr-1 -mt-1" @click.stop>
-                <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" :to="`/surat-masuk/${r.surat_masuk_id}`" />
+              <div @click.stop>
+                <UDropdownMenu :items="getAksiItems(r)">
+                  <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+                </UDropdownMenu>
               </div>
             </div>
             <h3 class="mt-2 text-sm font-semibold leading-snug">{{ r.perihal }}</h3>
@@ -201,8 +210,10 @@ function exportExcel() {
             </div>
             <UBadge :label="statusMeta[r.status]?.label || r.status" :color="statusMeta[r.status]?.color || 'neutral'" variant="subtle" size="xs" />
             <span class="hidden text-xs text-muted whitespace-nowrap sm:inline">{{ fmtTgl(r.batas_waktu) }}</span>
-            <div class="flex gap-1" @click.stop>
-              <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" :to="`/surat-masuk/${r.surat_masuk_id}`" />
+            <div @click.stop>
+              <UDropdownMenu :items="getAksiItems(r)">
+                <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+              </UDropdownMenu>
             </div>
           </div>
           <div v-if="!pending && !(data?.data || []).length" class="py-12 text-center text-muted">Belum ada disposisi</div>

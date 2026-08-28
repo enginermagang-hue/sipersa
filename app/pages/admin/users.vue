@@ -126,20 +126,24 @@ async function hapus(id: number) {
 
 function getRowItems(row: Row<any>) {
   const u = row.original
-  const items: any[] = [
-    { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => openEdit(u) },
-    {
+  const isAdmin = user.value?.role === 'admin'
+  const items: any[] = []
+  if (isAdmin) {
+    items.push({ label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => openEdit(u) })
+    items.push({
       label: 'Ubah Status',
       icon: u.status === 'active' ? 'i-lucide-power-off' : 'i-lucide-power',
       color: u.status === 'active' ? 'warning' : 'success',
       onSelect: () => toggleStatus(u)
+    })
+    if (u.id !== user.value?.id) {
+      items.push(
+        { type: 'separator' },
+        { label: 'Nonaktifkan', icon: 'i-lucide-trash', color: 'error', onSelect: () => hapus(u.id) }
+      )
     }
-  ]
-  if (u.id !== user.value?.id) {
-    items.push(
-      { type: 'separator' },
-      { label: 'Nonaktifkan', icon: 'i-lucide-trash', color: 'error', onSelect: () => hapus(u.id) }
-    )
+  } else {
+    items.push({ label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => openEdit(u) })
   }
   return items
 }

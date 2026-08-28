@@ -2,6 +2,7 @@ import { getQuery } from 'h3'
 import { useDb } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
+  const auth = (event.context as any).auth
   const query = getQuery(event)
   const q = (query.q as string) || ''
   const sifat = query.sifat as string
@@ -20,7 +21,17 @@ export default defineEventHandler(async (event) => {
     args.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
   }
   if (sifat) { wheres.push('sk.sifat = ?'); args.push(sifat) }
-  if (status) { wheres.push('sk.status = ?'); args.push(status) }
+  if (status === 'draft') {
+    if (auth.role === 'pimpinan') {
+      wheres.push('1 = 0')
+    } else if (auth.role === 'staff_tu') {
+      wheres.push('sk.created_by = ?')
+      args.push(auth.userId)
+    }
+  } else if (status) {
+    wheres.push('sk.status = ?')
+    args.push(status)
+  }
   if (tahun) { wheres.push('sk.tgl_surat LIKE ?'); args.push(`${tahun}%`) }
   if (bulan) { wheres.push('sk.tgl_surat LIKE ?'); args.push(`${bulan}%`) }
   const where = wheres.join(' AND ')

@@ -3,6 +3,7 @@ import { h, resolveComponent } from 'vue'
 import { UBadge, UButton, UDropdownMenu } from '#components'
 import type { TableColumn } from '@nuxt/ui'
 
+const { user } = useAuth()
 const { confirm } = useConfirm()
 
 const q = ref('')
@@ -51,6 +52,10 @@ async function hapus(row: any) {
 async function restore(row: any) {
   await $fetch(`/api/arsip/${row.id}/restore`, { method: 'POST' })
   await refresh()
+}
+
+function canManage(row: any) {
+  return user.value?.role === 'admin' || user.value?.id === row.created_by
 }
 
 async function musnahkan() {
@@ -122,9 +127,26 @@ const columns: TableColumn<any>[] = [
     cell: ({ row }) => {
       const r = row.original
       if (deleted.value) {
+        if (user.value?.role !== 'admin') return null
         return h(UButton, { size: 'xs', variant: 'soft', color: 'primary', icon: 'i-lucide-rotate-ccw', onClick: () => restore(r) }, () => 'Restore')
       }
+      if (!canManage(r)) {
+        return h(UDropdownMenu, {
+          content: { align: 'end' },
+          items: [
+            { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/arsip/${r.id}`) }
+          ],
+          'aria-label': 'Aksi'
+        }, () => h(UButton, {
+          icon: 'i-lucide-ellipsis-vertical',
+          color: 'neutral',
+          variant: 'ghost',
+          size: 'xs',
+          'aria-label': 'Aksi'
+        }))
+      }
       const items: any[] = [
+        { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/arsip/${r.id}`) },
         { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => { editTarget.value = r; editOpen.value = true } },
         { type: 'separator' },
         ...(r.status === 'kadaluarsa'
@@ -140,6 +162,7 @@ const columns: TableColumn<any>[] = [
         icon: 'i-lucide-ellipsis-vertical',
         color: 'neutral',
         variant: 'ghost',
+        size: 'xs',
         'aria-label': 'Aksi'
       }))
     }

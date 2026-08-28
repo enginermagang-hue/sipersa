@@ -116,7 +116,7 @@ function ssoLogin() {
       <span class="bubble" style="left:92%;width:18px;height:18px;--dur:11s;--delay:-10s;--drift:12px"></span>
       <span class="bubble" style="left:3%;width:30px;height:30px;--dur:15s;--delay:-12s;--drift:-16px"></span>
     </div>
-    <div class="relative z-10 w-full max-w-[520px] rounded-2xl border border-slate-200 bg-white shadow-sm p-6 lg:p-8 dark:border-slate-800 dark:bg-slate-900">
+    <div class="relative z-10 w-full max-w-[520px] rounded-2xl border border-slate-200 bg-white shadow-sm p-8 lg:p-10 dark:border-slate-800 dark:bg-slate-900">
       <div class="absolute top-4 right-4">
         <ClientOnly>
           <USwitch

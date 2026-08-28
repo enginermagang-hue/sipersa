@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
+import { h } from 'vue'
 
 const { user } = useAuth()
 const { confirm } = useConfirm()
@@ -47,12 +48,15 @@ const sifatOptions = [
   { label: 'Penting', value: 'penting' }
 ]
 
-const kpiCards = computed(() => [
-  { label: 'Total Surat Keluar', value: stats.value?.total ?? 0, sub: 'Sejak Januari 2026', icon: 'i-lucide-send', color: 'primary' },
-  { label: 'Draft & Ditolak', value: (stats.value?.draft ?? 0) + (stats.value?.ditolak ?? 0), sub: 'Perlu ditindaklanjuti', icon: 'i-lucide-file-text', color: 'neutral' },
-  { label: 'Menunggu Persetujuan', value: stats.value?.menunggu_persetujuan ?? 0, sub: 'Menunggu pimpinan', icon: 'i-lucide-pen-line', color: 'info' },
-  { label: 'Terkirim Bulan Ini', value: stats.value?.terkirim_bulan_ini ?? 0, sub: 'Bulan ini (WITA)', icon: 'i-lucide-check-circle', color: 'success' }
-])
+const kpiCards = computed(() => {
+  const isPimpinan = user.value?.role === 'pimpinan'
+  return [
+    { label: 'Total Surat Keluar', value: stats.value?.total ?? 0, sub: 'Sejak Januari 2026', icon: 'i-lucide-send', color: 'primary' },
+    { label: 'Draft & Ditolak', value: isPimpinan ? (stats.value?.ditolak ?? 0) : ((stats.value?.draft ?? 0) + (stats.value?.ditolak ?? 0)), sub: 'Perlu ditindaklanjuti', icon: 'i-lucide-file-text', color: 'neutral' },
+    { label: 'Menunggu Persetujuan', value: stats.value?.menunggu_persetujuan ?? 0, sub: 'Menunggu pimpinan', icon: 'i-lucide-pen-line', color: 'info' },
+    { label: 'Terkirim Bulan Ini', value: stats.value?.terkirim_bulan_ini ?? 0, sub: 'Bulan ini (WITA)', icon: 'i-lucide-check-circle', color: 'success' }
+  ]
+})
 
 function fmtTgl(s: string) {
   if (!s) return '—'
@@ -93,6 +97,20 @@ function exportExcel() {
   window.open(`/api/surat-keluar/export?${p.toString()}`, '_blank')
 }
 
+function getAksiItems(row: any) {
+  const items = [
+    { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/surat-keluar/${row.id}`) }
+  ]
+  if (row.file_drive_id) {
+    items.push({ label: 'Unduh File', icon: 'i-lucide-download', onSelect: () => window.open(`/api/files/${row.file_drive_id}`) })
+  }
+  if (canManage(row)) {
+    items.push({ label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => { editSurat.value = row; editOpen.value = true } })
+    items.push({ label: 'Hapus', icon: 'i-lucide-trash', color: 'error' as const, onSelect: () => hapus(row) })
+  }
+  return items
+}
+
 const buatMenu = [
   { label: 'Unggah Surat', icon: 'i-lucide-upload', onSelect: () => { addOpen.value = true } },
   { label: 'Tulis Surat', icon: 'i-lucide-pen-line', onSelect: () => navigateTo('/surat-keluar/tulis') }
@@ -106,7 +124,7 @@ const buatMenu = [
         <h1 class="text-2xl font-bold tracking-tight">Surat Keluar</h1>
         <p class="text-sm text-muted mt-1">Kelola dan pantau semua surat keluar instansi</p>
       </div>
-      <UDropdownMenu :items="buatMenu" :content="{ align: 'end' }">
+      <UDropdownMenu v-if="user?.role === 'staff_tu'" :items="buatMenu" :content="{ align: 'end' }">
         <UButton icon="i-lucide-plus">Buat Surat Keluar</UButton>
       </UDropdownMenu>
     </div>
@@ -172,13 +190,10 @@ const buatMenu = [
               <td class="px-4 py-3">
                 <UBadge :label="statusMeta[r.status]?.label || r.status" :color="statusMeta[r.status]?.color || 'neutral'" variant="subtle" />
               </td>
-              <td class="px-4 py-3" @click.stop>
-                <div class="flex justify-end gap-1">
-                  <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" @click="navigateTo(`/surat-keluar/${r.id}`)" />
-                  <UButton v-if="r.file_drive_id" icon="i-lucide-download" color="neutral" variant="ghost" size="xs" aria-label="Unduh File" @click="window.open(`/api/files/${r.file_drive_id}`)" />
-                  <UButton v-if="canManage(r)" icon="i-lucide-pencil" color="neutral" variant="ghost" size="xs" aria-label="Edit" @click="editSurat = r; editOpen = true" />
-                  <UButton v-if="canManage(r)" icon="i-lucide-trash" color="error" variant="ghost" size="xs" aria-label="Hapus" @click="hapus(r)" />
-                </div>
+              <td class="px-4 py-3 text-right" @click.stop>
+                <UDropdownMenu :items="getAksiItems(r)">
+                  <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+                </UDropdownMenu>
               </td>
             </tr>
             <tr v-if="!pending && !(data?.data || []).length">
@@ -192,11 +207,10 @@ const buatMenu = [
         <div v-for="r in data?.data || []" :key="r.id" class="rounded-xl border border-default p-4 transition-colors hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-keluar/${r.id}`)">
           <div class="flex items-start justify-between gap-2">
             <div class="font-medium text-sm leading-tight">{{ r.no_surat }}</div>
-            <div class="flex gap-1 -mr-1 -mt-1" @click.stop>
-              <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" @click="navigateTo(`/surat-keluar/${r.id}`)" />
-              <UButton v-if="r.file_drive_id" icon="i-lucide-download" color="neutral" variant="ghost" size="xs" aria-label="Unduh File" @click="window.open(`/api/files/${r.file_drive_id}`)" />
-              <UButton v-if="canManage(r)" icon="i-lucide-pencil" color="neutral" variant="ghost" size="xs" aria-label="Edit" @click="editSurat = r; editOpen = true" />
-              <UButton v-if="canManage(r)" icon="i-lucide-trash" color="error" variant="ghost" size="xs" aria-label="Hapus" @click="hapus(r)" />
+            <div @click.stop>
+              <UDropdownMenu :items="getAksiItems(r)">
+                <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+              </UDropdownMenu>
             </div>
           </div>
           <div class="mt-3 text-sm font-medium">{{ r.tujuan }}</div>
@@ -224,11 +238,10 @@ const buatMenu = [
           </div>
           <span class="hidden text-xs text-muted whitespace-nowrap sm:inline">{{ fmtTgl(r.tgl_surat) }}</span>
           <UBadge :label="statusMeta[r.status]?.label || r.status" :color="statusMeta[r.status]?.color || 'neutral'" variant="subtle" />
-          <div class="flex gap-1" @click.stop>
-            <UButton icon="i-lucide-eye" color="neutral" variant="ghost" size="xs" aria-label="Lihat Detail" @click="navigateTo(`/surat-keluar/${r.id}`)" />
-            <UButton v-if="r.file_drive_id" icon="i-lucide-download" color="neutral" variant="ghost" size="xs" aria-label="Unduh File" @click="window.open(`/api/files/${r.file_drive_id}`)" />
-            <UButton v-if="canManage(r)" icon="i-lucide-pencil" color="neutral" variant="ghost" size="xs" aria-label="Edit" @click="editSurat = r; editOpen = true" />
-            <UButton v-if="canManage(r)" icon="i-lucide-trash" color="error" variant="ghost" size="xs" aria-label="Hapus" @click="hapus(r)" />
+          <div @click.stop>
+            <UDropdownMenu :items="getAksiItems(r)">
+              <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+            </UDropdownMenu>
           </div>
         </div>
         <div v-if="!pending && !(data?.data || []).length" class="py-12 text-center text-muted">Belum ada data</div>

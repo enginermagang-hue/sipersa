@@ -25,6 +25,8 @@ const state = reactive({
   ringkasan: s.ringkasan || ''
 })
 const file = ref<File | null>(null)
+const showCamera = ref(false)
+const isFromCamera = ref(false)
 const error = ref('')
 
 const pihak = computed({
@@ -69,6 +71,11 @@ function validate(s: Partial<typeof state>): FormError[] {
   return errors
 }
 
+async function onCameraCapture(scannedFile: File) {
+  file.value = scannedFile
+  isFromCamera.value = true
+}
+
 async function submit() {
   emit('busy', true)
   error.value = ''
@@ -92,6 +99,11 @@ async function submit() {
 
 <template>
   <UForm id="surat-form" :state="state" :validate="validate" class="space-y-4" @submit="submit">
+    <CameraScanner
+      v-if="showCamera"
+      @close="showCamera = false"
+      @capture="onCameraCapture"
+    />
     
     <h3 class="font-semibold text-sm uppercase">Informasi Surat</h3>
     <div class="space-y-3">
@@ -136,15 +148,29 @@ async function submit() {
         <UInput v-model="state.no_agenda" />
       </UFormField>
       <UFormField v-if="type === 'masuk'" label="Ringkasan">
-        <UTextarea v-model="state.ringkasan" :rows="4" placeholder="Ringkasan isi surat (opsional)" />
+        <UTextarea v-model="state.ringkasan" class="w-full" :rows="4" placeholder="Ringkasan isi surat (opsional)" />
       </UFormField>
     </div>
 
-    <FileUpload
-      label="Unggah File Surat"
-      description="Format: PDF, JPG, PNG. Maks. 25 MB."
-      v-model:file="file"
-    />
+    <div class="space-y-2">
+      <FileUpload
+        label="Unggah File Surat"
+        description="Format: PDF, JPG, PNG. Maks. 25 MB."
+        v-model:file="file"
+      />
+      <UButton
+        v-if="type === 'masuk'"
+        variant="outline"
+        color="gray"
+        class="w-full"
+        @click="showCamera = true"
+      >
+        <UIcon name="i-lucide-camera" class="mr-1" /> Scan dari Kamera
+      </UButton>
+      <p v-if="isFromCamera && file" class="text-xs text-success flex items-center gap-1">
+        <UIcon name="i-lucide-check-circle" /> File dari scan kamera
+      </p>
+    </div>
 
     <p v-if="error" class="text-sm text-error">{{ error }}</p>
     <slot name="footer" :close="() => emit('close')" />

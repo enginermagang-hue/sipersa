@@ -20,5 +20,9 @@ export default defineEventHandler(async (event) => {
        AND batas_waktu IS NOT NULL AND batas_waktu < date('now')`,
     [auth.userId]
   )
-  return { masuk, keluar, arsip, disposisiSaya, disposisiOverdue }
+  const keluarMenungguPersetujuan = await count(
+    'SELECT COUNT(*) as c FROM surat_keluar WHERE deleted_at IS NULL AND status = \'menunggu_persetujuan\'',
+    []
+  )
+  return { masuk, keluar, arsip, disposisiSaya, disposisiOverdue, keluarMenungguPersetujuan }
 })

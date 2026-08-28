@@ -1,14 +1,22 @@
 import { useDb } from '../../utils/db'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  const auth = (event.context as any).auth
   const db = useDb()
   const now = new Date()
   const ym = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit' }).format(now).slice(0, 7)
 
+  let draftClause = ''
+  if (auth.role === 'staff_tu') {
+    draftClause = `AND created_by = ${auth.userId}`
+  } else if (auth.role === 'pimpinan') {
+    draftClause = 'AND 1 = 0'
+  }
+
   const res = await db.execute({
     sql: `SELECT
       COUNT(*) AS total,
-      SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) AS draft,
+      SUM(CASE WHEN status = 'draft' ${draftClause} THEN 1 ELSE 0 END) AS draft,
       SUM(CASE WHEN status = 'menunggu_persetujuan' THEN 1 ELSE 0 END) AS menunggu_persetujuan,
       SUM(CASE WHEN status = 'ditolak' THEN 1 ELSE 0 END) AS ditolak,
       SUM(CASE WHEN status = 'terkirim' AND substr(tgl_surat, 1, 7) = ? THEN 1 ELSE 0 END) AS terkirim_bulan_ini

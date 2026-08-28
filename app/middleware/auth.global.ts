@@ -15,4 +15,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (user.value && to.path.startsWith('/laporan') && !['admin', 'staff_tu'].includes(user.value.role)) {
     return navigateTo('/')
   }
+  if (user.value && to.path.startsWith('/surat-keluar/tulis') && user.value.role !== 'staff_tu') {
+    return navigateTo('/')
+  }
 })
