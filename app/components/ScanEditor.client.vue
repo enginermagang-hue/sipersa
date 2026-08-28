@@ -87,7 +87,6 @@ async function initCropper(imgSrc: string, autoCropRect?: { x: number; y: number
         }
       }
     })
-  })
 }
 
 function destroyCropper() {
