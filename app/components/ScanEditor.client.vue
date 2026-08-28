@@ -224,14 +224,23 @@ watch(currentImage, async (src) => {
   scaleY.value = 1
   error.value = ''
   detectError.value = ''
-
+  // tampilkan cropper segera dengan area penuh, deteksi jalan background
+  await initCropper(src)
   detecting.value = true
   try {
     const rect = await detectPaperCorners(src)
-    await initCropper(src, rect || undefined)
+    if (rect && cropperInstance) {
+      try {
+        cropperInstance.setCropBoxData({
+          left: rect.x,
+          top: rect.y,
+          width: rect.width,
+          height: rect.height
+        })
+      } catch {}
+    }
   } catch (e) {
-    detectError.value = 'Deteksi otomatis gagal. Silakan crop manual.'
-    await initCropper(src)
+    // deteksi gagal tidak block crop
   } finally {
     detecting.value = false
   }
@@ -389,19 +398,27 @@ function rotateCanvas(src: HTMLCanvasElement, angle: number): HTMLCanvasElement 
 }
 
 async function saveCurrentPage() {
-  if (!cropperInstance || typeof cropperInstance.getCroppedCanvas !== 'function') {
-    error.value = 'Crop belum siap'
-    return
-  }
   isProcessing.value = true
   error.value = ''
   try {
-    const canvas = cropperInstance.getCroppedCanvas({ imageSmoothingQuality: 'high' })
-    if (!canvas) throw new Error('Canvas kosong')
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.95)
-    const newImages = [...props.images]
-    newImages[currentIndex.value] = dataUrl
-    emit('save', newImages)
+    if (cropperInstance && typeof cropperInstance.getCroppedCanvas === 'function') {
+      const canvas = cropperInstance.getCroppedCanvas({ imageSmoothingQuality: 'high' })
+      if (!canvas) throw new Error('Canvas kosong')
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95)
+      const newImages = [...props.images]
+      newImages[currentIndex.value] = dataUrl
+      emit('save', newImages)
+      return
+    }
+    // fallback: simpan gambar asli tanpa crop jika cropper belum siap
+    if (currentImage.value) {
+      const newImages = [...props.images]
+      // jika bukan dataURL cropped, tetap simpan asli
+      newImages[currentIndex.value] = currentImage.value
+      emit('save', newImages)
+      return
+    }
+    throw new Error('Crop belum siap')
   } catch (e: any) {
     console.error(e)
     error.value = 'Gagal menyimpan halaman: ' + (e?.message || '')
@@ -420,8 +437,8 @@ function nextPage() {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex flex-col bg-black" :style="{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }">
-    <div class="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent" :style="{ paddingTop: 'env(safe-area-inset-top)' }">
+  <div class="fixed inset-0 z-50 flex flex-col bg-black">
+    <div class="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent" style="padding-top: calc(0.75rem + env(safe-area-inset-top));">
       <div class="flex items-center gap-2">
         <UButton color="gray" variant="ghost" icon="i-lucide-arrow-left" size="sm" @click="emit('close')" />
         <span class="text-white font-medium text-sm sm:text-base">Edit {{ currentIndex + 1 }}/{{ images.length }}</span>
@@ -430,13 +447,13 @@ function nextPage() {
         <UButton color="gray" variant="ghost" size="sm" @click="resetCrop" title="Reset crop">
           <UIcon name="i-lucide-rotate-cw" class="w-4 h-4" />
         </UButton>
-        <UButton color="primary" size="sm" @click="saveCurrentPage" :disabled="isProcessing || detecting">
+        <UButton color="primary" size="sm" @click="saveCurrentPage" :disabled="isProcessing">
           <UIcon name="i-lucide-check" class="mr-1" /> Simpan
         </UButton>
       </div>
     </div>
 
-    <div class="flex-1 min-h-0 relative overflow-hidden flex flex-col">
+    <div class="absolute inset-0 flex flex-col" style="padding-top: calc(3.5rem + env(safe-area-inset-top)); padding-bottom: calc(8.5rem + env(safe-area-inset-bottom));">
       <div v-if="detecting" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 gap-3">
         <UIcon name="i-lucide-loader-2" class="w-10 h-10 animate-spin text-white" />
         <span class="text-white text-sm">Mendeteksi tepi kertas...</span>
@@ -451,7 +468,7 @@ function nextPage() {
         <span class="text-white text-sm">Memproses...</span>
       </div>
 
-      <div class="flex-1 relative min-h-[50vh] w-full cropper-host flex items-center justify-center bg-black">
+      <div class="flex-1 min-h-0 w-full cropper-host flex items-center justify-center bg-black overflow-hidden">
         <img
           ref="imageEl"
           :src="currentImage"
