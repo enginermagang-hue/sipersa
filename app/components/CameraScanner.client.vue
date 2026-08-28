@@ -33,8 +33,9 @@ async function startCamera() {
     stream.value = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: currentFacing.value,
-        width: { ideal: 1280, max: 1920 },
-        height: { ideal: 1920, max: 2560 }
+        width: { ideal: 1920, min: 1280 },
+        height: { ideal: 2560, min: 720 },
+        advanced: [{ width: 1920 } as any]
       }
     })
     if (videoRef.value) {
@@ -63,12 +64,19 @@ function stopCamera() {
 
 function capture() {
   if (!videoRef.value) return
+  const dpr = Math.min(window.devicePixelRatio || 1, 2)
+  const vw = videoRef.value.videoWidth
+  const vh = videoRef.value.videoHeight
   const canvas = document.createElement('canvas')
-  canvas.width = videoRef.value.videoWidth
-  canvas.height = videoRef.value.videoHeight
+  canvas.width = Math.round(vw * dpr)
+  canvas.height = Math.round(vh * dpr)
   const ctx = canvas.getContext('2d')!
-  ctx.drawImage(videoRef.value, 0, 0)
-  capturedImages.value.push(canvas.toDataURL('image/jpeg', 0.95))
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high' as any
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.drawImage(videoRef.value, 0, 0, vw, vh)
+  // kualitas tinggi untuk cegah buram double-compress
+  capturedImages.value.push(canvas.toDataURL('image/jpeg', 0.98))
 }
 
 function removeCapture(index: number) {

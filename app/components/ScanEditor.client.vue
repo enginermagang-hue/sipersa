@@ -498,7 +498,28 @@ function rotateCanvas(src: HTMLCanvasElement, angle: number): HTMLCanvasElement 
 
 function applyColorEffect(canvas: HTMLCanvasElement, effect: string): void {
   if (effect === 'original') return
-  const ctx = canvas.getContext('2d')!
+  const ctx = canvas.getContext('2d', { willReadFrequently: true } as any)!
+  // untuk B&W, sharpen ringan dulu biar teks tidak buram
+  if (effect === 'bw') {
+    // unsharp mask 3x3 sederhana
+    const w = canvas.width, h = canvas.height
+    const src = ctx.getImageData(0, 0, w, h)
+    const d = src.data
+    const out = new Uint8ClampedArray(d)
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const idx = (y * w + x) * 4
+        for (let c = 0; c < 3; c++) {
+          const v = d[idx + c]
+          const n = d[idx - w * 4 + c], s = d[idx + w * 4 + c], e = d[idx + 4 + c], west = d[idx - 4 + c]
+          const sharpened = Math.max(0, Math.min(255, 5 * v - n - s - e - west))
+          out[idx + c] = sharpened
+        }
+      }
+    }
+    for (let i = 0; i < d.length; i++) d[i] = out[i]
+    ctx.putImageData(src, 0, 0)
+  }
   const id = ctx.getImageData(0, 0, canvas.width, canvas.height)
   const d = id.data
   for (let i = 0; i < d.length; i += 4) {
@@ -508,17 +529,15 @@ function applyColorEffect(canvas: HTMLCanvasElement, effect: string): void {
       r = g = b = v
     } else if (effect === 'bw') {
       const v = 0.299 * r + 0.587 * g + 0.114 * b
-      // adaptive-ish threshold
-      const t = v > 135 ? 255 : 0
-      // sedikit contrast sebelum threshold biar teks tajam
+      const t = v > 138 ? 255 : 0
       r = g = b = t
     } else if (effect === 'enhance') {
-      const c = 1.35, br = 6
+      const c = 1.2, br = 4
       r = (r - 128) * c + 128 + br
       g = (g - 128) * c + 128 + br
       b = (b - 128) * c + 128 + br
       const gray = 0.299 * r + 0.587 * g + 0.114 * b
-      const s = 1.25
+      const s = 1.15
       r = gray + (r - gray) * s
       g = gray + (g - gray) * s
       b = gray + (b - gray) * s
@@ -546,27 +565,33 @@ async function saveCurrentPage() {
   error.value = ''
   try {
     if (cropperInstance && typeof cropperInstance.getCroppedCanvas === 'function') {
-      const canvas = cropperInstance.getCroppedCanvas({ imageSmoothingQuality: 'high', maxWidth: 2500, maxHeight: 3500 })
+      // pakai DPR untuk tajam, fillColor putih biar tidak transparan buram
+      const canvas = cropperInstance.getCroppedCanvas({
+        fillColor: '#ffffff',
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high' as any
+      })
       if (!canvas) throw new Error('Canvas kosong')
       applyColorEffect(canvas, selectedEffect.value)
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95)
       const newImages = [...props.images]
       newImages[currentIndex.value] = dataUrl
       emit('save', newImages)
       return
     }
     if (currentImage.value) {
-      // fallback tanpa cropper: buat canvas dari image asli + effect
       const img = new Image()
       img.src = currentImage.value
       await new Promise<void>(r => { if (img.complete) r(); else { img.onload = () => r(); img.onerror = () => r() } })
       const c = document.createElement('canvas')
       c.width = img.naturalWidth || 800
       c.height = img.naturalHeight || 600
-      const cx = c.getContext('2d')!
+      const cx = c.getContext('2d', { willReadFrequently: true } as any)!
+      cx.imageSmoothingEnabled = true
+      ;(cx as any).imageSmoothingQuality = 'high'
       cx.drawImage(img, 0, 0)
       applyColorEffect(c, selectedEffect.value)
-      const dataUrl = c.toDataURL('image/jpeg', 0.92)
+      const dataUrl = c.toDataURL('image/jpeg', 0.95)
       const newImages = [...props.images]
       newImages[currentIndex.value] = dataUrl
       emit('save', newImages)
