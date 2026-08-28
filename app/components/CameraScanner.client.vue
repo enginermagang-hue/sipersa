@@ -35,8 +35,8 @@ async function startCamera() {
     stream.value = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: currentFacing.value,
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 1920, max: 2560 }
       }
     })
     if (videoRef.value) {
@@ -111,54 +111,56 @@ async function onEditorSave(images: string[]) {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex flex-col bg-black">
-    <div v-if="step === 'camera'" class="flex-1 flex flex-col">
-      <div class="flex items-center justify-between px-4 py-3 bg-black/60 backdrop-blur-sm">
+  <div class="fixed inset-0 z-50 flex flex-col bg-black" :style="{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }">
+    <div v-if="step === 'camera'" class="flex-1 flex flex-col min-h-0">
+      <div class="flex items-center justify-between px-4 py-3 bg-black/60 backdrop-blur-sm shrink-0">
         <UButton color="gray" variant="ghost" icon="i-lucide-x" @click="emit('close')" />
-        <span class="text-white font-medium">Scan Dokumen</span>
+        <span class="text-white font-medium text-sm sm:text-base">Scan Dokumen</span>
         <div class="w-10"></div>
       </div>
 
-      <div class="flex-1 flex flex-col items-center justify-center p-4 relative">
-        <div v-if="error" class="mb-4 px-4 py-3 bg-error/90 text-white rounded-lg text-sm max-w-md text-center">
+      <div class="flex-1 min-h-0 flex flex-col items-center justify-center p-2 sm:p-4 relative">
+        <div v-if="error" class="mb-3 px-4 py-2 bg-error/90 text-white rounded-lg text-xs sm:text-sm max-w-md text-center z-10">
           {{ error }}
         </div>
 
-        <div class="relative w-full max-w-4xl bg-neutral-900 rounded-lg overflow-hidden" style="aspect-ratio: 4/3;">
-          <video
-            v-show="!error"
-            ref="videoRef"
-            autoplay
-            playsinline
-            muted
-            class="w-full h-full object-contain"
-          />
-          <div v-if="isLoading && !error" class="absolute inset-0 flex items-center justify-center bg-black/50">
+        <div class="relative w-full max-w-2xl mx-auto flex-1 min-h-0 flex items-stretch sm:items-center sm:justify-center">
+          <div class="absolute inset-0 flex items-center justify-center">
             <UIcon name="i-lucide-loader-2" class="w-10 h-10 animate-spin text-white" />
+          </div>
+          <div class="relative w-full bg-neutral-900 overflow-hidden flex items-center justify-center" style="aspect-ratio: 3/4; max-height: 55dvh;">
+            <video
+              v-show="!error && !isLoading"
+              ref="videoRef"
+              autoplay
+              playsinline
+              muted
+              class="w-full h-full object-cover"
+            />
           </div>
         </div>
       </div>
 
-      <div class="p-4 bg-black/60 backdrop-blur-sm">
-        <div v-if="capturedImages.length > 0" class="mb-4">
+      <div class="p-3 sm:p-4 bg-black/60 backdrop-blur-sm shrink-0">
+        <div v-if="capturedImages.length > 0" class="mb-3">
           <div class="flex items-center justify-between mb-2">
-            <p class="text-white/70 text-sm">Halaman ({{ capturedImages.length }})</p>
+            <p class="text-white/70 text-xs sm:text-sm">Halaman ({{ capturedImages.length }})</p>
             <UButton color="red" variant="ghost" size="xs" @click="capturedImages = []">
               Hapus Semua
             </UButton>
           </div>
-          <div class="flex gap-2 overflow-x-auto pb-2">
+          <div class="flex gap-2 overflow-x-auto pb-2 snap-x -mx-1 px-1" style="-webkit-overflow-scrolling: touch;">
             <div
               v-for="(img, i) in capturedImages"
               :key="i"
-              class="relative flex-shrink-0 w-16 h-20 bg-neutral-800 rounded overflow-hidden border border-white/20"
+              class="relative flex-shrink-0 w-14 h-18 sm:w-16 sm:h-20 bg-neutral-800 rounded overflow-hidden border border-white/20 snap-center"
             >
               <img :src="img" class="w-full h-full object-cover" />
               <UButton
                 color="red"
                 variant="solid"
                 size="xs"
-                class="absolute top-0.5 right-0.5 w-5 h-5 p-0"
+                class="absolute top-0.5 right-0.5 min-w-7 min-h-7 p-0 flex items-center justify-center"
                 @click="removeCapture(i)"
               >
                 <UIcon name="i-lucide-x" class="w-3 h-3" />
@@ -170,21 +172,21 @@ async function onEditorSave(images: string[]) {
           </div>
         </div>
 
-        <div class="flex gap-3 justify-center">
+        <div class="flex gap-2 sm:gap-3 justify-center">
           <UButton
             color="gray"
             variant="outline"
             @click="switchCamera"
             :disabled="isLoading"
-            class="px-6"
+            class="flex-1 sm:flex-none min-h-11 sm:min-h-10 text-sm"
           >
-            <UIcon name="i-lucide-switch-camera" class="mr-1" /> Flip
+            <UIcon name="i-lucide-switch-camera" class="mr-1" /> <span class="hidden sm:inline">Flip</span>
           </UButton>
           <UButton
             color="primary"
             @click="capture"
             :disabled="isLoading || !!error"
-            class="px-8"
+            class="flex-1 sm:flex-none min-h-11 sm:min-h-10 text-sm px-4 sm:px-8"
           >
             <UIcon name="i-lucide-camera" class="mr-1" /> Capture
           </UButton>
@@ -192,9 +194,9 @@ async function onEditorSave(images: string[]) {
             v-if="capturedImages.length > 0"
             color="success"
             @click="goToReview"
-            class="px-6"
+            class="flex-1 sm:flex-none min-h-11 sm:min-h-10 text-sm"
           >
-            <UIcon name="i-lucide-file-check" class="mr-1" /> Selesai
+            <UIcon name="i-lucide-file-check" class="mr-1" /> <span class="hidden sm:inline">Selesai</span><span class="sm:hidden">({{ capturedImages.length }})</span>
           </UButton>
         </div>
       </div>

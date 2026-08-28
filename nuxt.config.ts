@@ -14,7 +14,7 @@ export default defineNuxtConfig({
       title: process.env.NUXT_PUBLIC_APP_NAME || 'SIPERSA',
       meta: [
         { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5' },
         { name: 'description', content: 'Aplikasi Surat Masuk/Keluar, Disposisi & Arsip' }
       ],
       link: [

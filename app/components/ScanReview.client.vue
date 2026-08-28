@@ -77,56 +77,59 @@ function editPage(index: number) {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex flex-col bg-black">
-    <div class="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-sm border-b border-white/10">
+  <div class="fixed inset-0 z-50 flex flex-col bg-black" :style="{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }">
+    <div class="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-sm border-b border-white/10 shrink-0">
       <UButton color="gray" variant="ghost" icon="i-lucide-arrow-left" @click="emit('close')" />
-      <span class="text-white font-medium">Review ({{ images.length }} halaman)</span>
-      <div class="w-20"></div>
+      <span class="text-white font-medium text-sm sm:text-base">Review ({{ images.length }} halaman)</span>
+      <div class="w-10 sm:w-20"></div>
     </div>
 
-    <div class="flex-1 overflow-auto p-4">
-      <div v-if="error" class="mb-4 px-4 py-2 bg-error/90 text-white rounded-lg text-sm text-center">
+    <div class="flex-1 overflow-auto p-3 sm:p-4">
+      <div v-if="error" class="mb-3 sm:mb-4 px-4 py-2 bg-error/90 text-white rounded-lg text-xs sm:text-sm text-center">
         {{ error }}
       </div>
 
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 sm:gap-4">
         <div
           v-for="(img, i) in images"
           :key="i"
-          class="relative group aspect-[3/4] bg-neutral-900 rounded-lg overflow-hidden border-2 border-white/10 hover:border-primary transition-colors cursor-pointer"
-          @click="editPage(i)"
+          class="relative group aspect-[3/4] bg-neutral-900 rounded-lg overflow-hidden border-2 border-white/10 hover:border-primary active:border-primary transition-colors cursor-pointer"
         >
           <img :src="img" class="w-full h-full object-contain" />
 
-          <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-            <UButton color="primary" variant="solid" size="xs" @click.stop="editPage(i)">
-              <UIcon name="i-lucide-edit" class="w-3 h-3 mr-1" /> Edit
+          <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 sm:opacity-0 group-active:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+            <UButton color="primary" variant="solid" size="sm" class="w-full min-h-9" @click.stop="editPage(i)">
+              <UIcon name="i-lucide-edit" class="w-4 h-4 mr-1" /> Edit
             </UButton>
-            <UButton color="error" variant="solid" size="xs" @click.stop="removePage(i)">
-              <UIcon name="i-lucide-trash-2" class="w-3 h-3" />
+            <UButton color="error" variant="solid" size="sm" class="w-full min-h-9" @click.stop="removePage(i)">
+              <UIcon name="i-lucide-trash-2" class="w-4 h-4 mr-1" /> Hapus
             </UButton>
           </div>
 
           <span class="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs text-center py-1">
-            Halaman {{ i + 1 }}
+            {{ i + 1 }}
           </span>
         </div>
       </div>
     </div>
 
-    <div class="p-4 bg-black/80 backdrop-blur-sm border-t border-white/10 flex justify-end gap-3">
-      <UButton color="gray" variant="outline" @click="emit('close')">
-        Batal
-      </UButton>
-      <UButton
-        color="primary"
-        @click="generatePDF"
-        :disabled="isProcessing || images.length === 0"
-      >
-        <UIcon v-if="isProcessing" name="i-lucide-loader-2" class="w-4 h-4 animate-spin mr-1" />
-        <UIcon v-else name="i-lucide-file-check" class="w-4 h-4 mr-1" />
-        Simpan PDF ({{ images.length }} halaman)
-      </UButton>
+    <div class="p-3 sm:p-4 bg-black/80 backdrop-blur-sm border-t border-white/10 shrink-0">
+      <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-3">
+        <UButton color="gray" variant="outline" size="sm" class="min-h-10 sm:min-h-9" @click="emit('close')">
+          Batal
+        </UButton>
+        <UButton
+          color="primary"
+          size="sm"
+          class="min-h-10 sm:min-h-9"
+          @click="generatePDF"
+          :disabled="isProcessing || images.length === 0"
+        >
+          <UIcon v-if="isProcessing" name="i-lucide-loader-2" class="w-4 h-4 animate-spin mr-1" />
+          <UIcon v-else name="i-lucide-file-check" class="w-4 h-4 mr-1" />
+          Simpan PDF ({{ images.length }})
+        </UButton>
+      </div>
     </div>
   </div>
 </template>

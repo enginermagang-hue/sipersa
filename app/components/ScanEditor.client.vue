@@ -247,19 +247,19 @@ function getCroppedCanvas(): HTMLCanvasElement | null {
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex flex-col bg-black">
-    <div class="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-sm border-b border-white/10">
+  <div class="fixed inset-0 z-50 flex flex-col bg-black" :style="{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }">
+    <div class="flex items-center justify-between px-4 py-3 bg-black/80 backdrop-blur-sm border-b border-white/10 shrink-0">
       <div class="flex items-center gap-3">
-        <UButton color="gray" variant="ghost" icon="i-lucide-arrow-left" @click="emit('close')" />
-        <span class="text-white font-medium">Edit Halaman {{ currentIndex + 1 }} / {{ images.length }}</span>
+        <UButton color="gray" variant="ghost" icon="i-lucide-arrow-left" size="sm" @click="emit('close')" />
+        <span class="text-white font-medium text-sm sm:text-base">Edit Halaman {{ currentIndex + 1 }} / {{ images.length }}</span>
       </div>
-      <UButton color="primary" @click="saveCurrentPage" :disabled="isProcessing">
+      <UButton color="primary" size="sm" @click="saveCurrentPage" :disabled="isProcessing">
         <UIcon name="i-lucide-check" class="mr-1" /> Simpan
       </UButton>
     </div>
 
-    <div class="flex-1 overflow-hidden relative">
-      <div v-if="error" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-2 bg-error/90 text-white rounded-lg text-sm">
+    <div class="flex-1 min-h-0 overflow-hidden relative">
+      <div v-if="error" class="absolute top-3 sm:top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-2 bg-error/90 text-white rounded-lg text-xs sm:text-sm">
         {{ error }}
       </div>
 
@@ -270,18 +270,18 @@ function getCroppedCanvas(): HTMLCanvasElement | null {
         </div>
       </div>
 
-      <div class="w-full h-full flex items-center justify-center p-4">
+      <div class="w-full h-full flex items-center justify-center p-2 sm:p-4">
         <img
           ref="imageEl"
           :src="currentImage"
           class="max-w-full max-h-full object-contain"
-          style="max-height: calc(100vh - 200px);"
+          style="max-height: calc(100dvh - 11rem);"
         />
       </div>
     </div>
 
-    <div class="px-4 py-3 bg-black/80 backdrop-blur-sm border-t border-white/10">
-      <div class="flex flex-wrap items-center justify-center gap-2 mb-3">
+    <div class="px-3 sm:px-4 py-3 bg-black/80 backdrop-blur-sm border-t border-white/10 shrink-0">
+      <div class="flex flex-wrap items-center justify-center gap-1 sm:gap-2 mb-2 sm:mb-3">
         <UButton color="gray" variant="outline" size="sm" @click="rotate90('left')" title="Putar kiri 90°">
           <UIcon name="i-lucide-rotate-ccw" class="w-4 h-4" />
         </UButton>
@@ -294,11 +294,9 @@ function getCroppedCanvas(): HTMLCanvasElement | null {
         <UButton color="gray" variant="outline" size="sm" @click="flipVertical" title="Balik vertical">
           <UIcon name="i-lucide-flip-vertical" class="w-4 h-4" />
         </UButton>
-        <UDivider orientation="vertical" class="mx-1" />
         <UButton color="yellow" variant="outline" size="sm" @click="autoStraighten" :disabled="isProcessing" title="Auto straighten">
-          <UIcon name="i-lucide-straighten" class="w-4 h-4 mr-1" /> Auto Straighten
+          <UIcon name="i-lucide-straighten" class="w-4 h-4" />
         </UButton>
-        <UDivider orientation="vertical" class="mx-1" />
         <UButton color="gray" variant="outline" size="sm" @click="zoom(-0.1)" title="Zoom out">
           <UIcon name="i-lucide-zoom-out" class="w-4 h-4" />
         </UButton>
@@ -307,22 +305,22 @@ function getCroppedCanvas(): HTMLCanvasElement | null {
         </UButton>
       </div>
 
-      <div class="flex items-center justify-center gap-4">
-        <UButton color="gray" variant="ghost" size="sm" :disabled="currentIndex === 0" @click="prevPage">
+      <div class="flex items-center justify-center gap-2 sm:gap-3">
+        <UButton color="gray" variant="ghost" size="sm" :disabled="currentIndex === 0" @click="prevPage" class="min-h-9 min-w-9">
           <UIcon name="i-lucide-chevron-left" />
         </UButton>
-        <div class="flex gap-1">
+        <div class="flex gap-1 overflow-x-auto snap-x max-w-[60vw]" style="-webkit-overflow-scrolling: touch;">
           <div
             v-for="(img, i) in images"
             :key="i"
-            class="w-8 h-10 rounded border-2 cursor-pointer overflow-hidden transition-all"
+            class="flex-shrink-0 w-10 h-12 sm:w-8 sm:h-10 rounded border-2 cursor-pointer overflow-hidden transition-all snap-center"
             :class="i === currentIndex ? 'border-primary' : 'border-transparent opacity-60 hover:opacity-100'"
             @click="currentIndex = i"
           >
             <img :src="img" class="w-full h-full object-cover" />
           </div>
         </div>
-        <UButton color="gray" variant="ghost" size="sm" :disabled="currentIndex === images.length - 1" @click="nextPage">
+        <UButton color="gray" variant="ghost" size="sm" :disabled="currentIndex === images.length - 1" @click="nextPage" class="min-h-9 min-w-9">
           <UIcon name="i-lucide-chevron-right" />
         </UButton>
       </div>
