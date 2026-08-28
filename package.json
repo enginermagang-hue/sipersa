@@ -21,6 +21,7 @@
     "@uppy/xhr-upload": "^5.2.0",
     "bcryptjs": "^3.0.3",
     "chart.js": "^4.5.1",
+    "cropperjs": "^2.2.0",
     "exceljs": "^3.4.0",
     "jspdf": "^4.2.1",
     "nuxt": "^4.5.2",
