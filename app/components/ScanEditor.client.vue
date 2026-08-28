@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import Cropper from 'cropperjs'
-import 'cropperjs/dist/cropper.css'
 
 const props = defineProps<{
   images: string[]
@@ -28,30 +27,37 @@ let cropperInstance: any = null
 
 async function initCropper(imgSrc: string, autoCropRect?: { x: number; y: number; width: number; height: number }) {
   if (cropperInstance) {
-    cropperInstance.destroy()
+    try { cropperInstance.destroy() } catch {}
     cropperInstance = null
   }
   await nextTick()
   if (!imageEl.value) return
+  // pastikan image visible sebelum Cropper ukur (Cropper akan hide + clone)
+  imageEl.value.style.display = 'block'
+  imageEl.value.style.visibility = 'visible'
+  imageEl.value.style.opacity = '1'
   // tunggu image benar-benar loaded sebelum Cropper ukur
   if (!imageEl.value.complete || imageEl.value.naturalWidth === 0) {
     await new Promise<void>((resolve) => {
       const el = imageEl.value!
+      if (!el) return resolve()
       const onLoad = () => { el.removeEventListener('load', onLoad); el.removeEventListener('error', onErr); resolve() }
       const onErr = () => { el.removeEventListener('load', onLoad); el.removeEventListener('error', onErr); resolve() }
       el.addEventListener('load', onLoad)
       el.addEventListener('error', onErr)
-      // jika sudah complete dalam waktu 300ms
       setTimeout(resolve, 800)
     })
   }
   if (!imageEl.value) return
   await nextTick()
-  cropperInstance = new Cropper(imageEl.value, {
+  // pastikan host punya ukuran sebelum init
+  await new Promise<void>(r => requestAnimationFrame(() => r()))
+  try {
+    cropperInstance = new Cropper(imageEl.value, {
       viewMode: 1,
       dragMode: 'crop',
       autoCrop: true,
-      autoCropArea: 0.92,
+      autoCropArea: 0.98,
       guides: true,
       center: true,
       highlight: false,
@@ -87,12 +93,26 @@ async function initCropper(imgSrc: string, autoCropRect?: { x: number; y: number
         }
       }
     })
+  } catch (e: any) {
+    console.error('Cropper init failed', e)
+    if (imageEl.value) {
+      imageEl.value.style.display = 'block'
+      imageEl.value.style.visibility = 'visible'
+      imageEl.value.style.opacity = '1'
+    }
+    error.value = 'Gagal init cropper: ' + (e?.message || '')
+  }
 }
 
 function destroyCropper() {
   if (cropperInstance) {
-    cropperInstance.destroy()
+    try { cropperInstance.destroy() } catch {}
     cropperInstance = null
+  }
+  if (imageEl.value) {
+    imageEl.value.style.display = 'block'
+    imageEl.value.style.visibility = 'visible'
+    imageEl.value.style.opacity = '1'
   }
 }
 
