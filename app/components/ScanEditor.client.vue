@@ -21,41 +21,9 @@ const scaleY = ref(1)
 const isProcessing = ref(false)
 const detecting = ref(false)
 const error = ref('')
-const cvLoaded = ref(false)
 const detectError = ref('')
 
 let cropperInstance: any = null
-
-async function loadOpenCV(): Promise<any> {
-  if ((window as any).cv) {
-    const cv = (window as any).cv
-    if (cv.RuntimeStatus && cv.RuntimeStatus !== 'ready') {
-      await new Promise<void>((resolve) => {
-        cv.onRuntimeInitialized = () => resolve()
-      })
-    }
-    return cv
-  }
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = 'https://docs.opencv.org/4.8.0/opencv.js'
-    script.async = true
-    script.onload = async () => {
-      const cv = (window as any).cv
-      if (cv && cv.RuntimeStatus === 'ready') {
-        resolve(cv)
-      } else if (cv && cv.onRuntimeInitialized) {
-        cv.onRuntimeInitialized = () => resolve(cv)
-      } else {
-        try { await new Promise<void>((r) => { cv.onRuntimeInitialized = () => r() }) }
-        catch { reject(new Error('OpenCV init failed')) }
-        resolve(cv)
-      }
-    }
-    script.onerror = () => reject(new Error('Failed to load OpenCV'))
-    document.head.appendChild(script)
-  })
-}
 
 function initCropper(imgSrc: string, autoCropRect?: { x: number; y: number; width: number; height: number }) {
   if (cropperInstance) {
@@ -105,71 +73,117 @@ function destroyCropper() {
 }
 
 async function detectPaperCorners(imgSrc: string): Promise<{ x: number; y: number; width: number; height: number } | null> {
-  const cv = await loadOpenCV()
-  cvLoaded.value = true
-
   return new Promise((resolve) => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
       try {
+        const scanSize = 600
+        const scale = Math.min(1, scanSize / Math.max(img.width, img.height))
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
+
         const canvas = document.createElement('canvas')
-        canvas.width = img.width
-        canvas.height = img.height
+        canvas.width = w
+        canvas.height = h
         const ctx = canvas.getContext('2d')!
-        ctx.drawImage(img, 0, 0)
-        const src = cv.imread(canvas)
-        const gray = new cv.Mat()
-        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY)
-        const blurred = new cv.Mat()
-        cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0)
-        const edges = new cv.Mat()
-        cv.Canny(blurred, edges, 75, 200)
-        const contours = new cv.MatVector()
-        const hierarchy = new cv.Mat()
-        cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        ctx.drawImage(img, 0, 0, w, h)
+
+        const imageData = ctx.getImageData(0, 0, w, h)
+        const data = imageData.data
+
+        const gray: number[] = []
+        for (let i = 0; i < data.length; i += 4) {
+          gray.push(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2])
+        }
+
+        const blurSize = 5
+        const blurred: number[] = new Array(w * h).fill(0)
+        for (let y = blurSize; y < h - blurSize; y++) {
+          for (let x = blurSize; x < w - blurSize; x++) {
+            let sum = 0
+            for (let dy = -blurSize; dy <= blurSize; dy++) {
+              for (let dx = -blurSize; dx <= blurSize; dx++) {
+                sum += gray[(y + dy) * w + (x + dx)]
+              }
+            }
+            blurred[y * w + x] = sum / ((blurSize * 2 + 1) ** 2)
+          }
+        }
+
+        const sobelX: number[] = new Array(w * h).fill(0)
+        const sobelY: number[] = new Array(w * h).fill(0)
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const idx = y * w + x
+            const tl = blurred[idx - w - 1], tc = blurred[idx - w], tr = blurred[idx - w + 1]
+            const ml = blurred[idx - 1], mr = blurred[idx + 1]
+            const bl = blurred[idx + w - 1], bc = blurred[idx + w], br = blurred[idx + w + 1]
+            sobelX[idx] = -tl - 2 * ml - bl + tr + 2 * mr + br
+            sobelY[idx] = -tl - 2 * tc - tr + bl + 2 * bc + br
+          }
+        }
+
+        const magnitude: number[] = new Array(w * h).fill(0)
+        for (let i = 0; i < w * h; i++) {
+          magnitude[i] = Math.sqrt(sobelX[i] * sobelX[i] + sobelY[i] * sobelY[i])
+        }
+
+        const threshold = 60
+        const edges: boolean[] = new Array(w * h).fill(false)
+        for (let i = 0; i < w * h; i++) {
+          edges[i] = magnitude[i] > threshold
+        }
+
+        const minArea = (w * h) * 0.08
+        const visited: boolean[] = new Array(w * h).fill(false)
+        function floodFill(startIdx: number): number[] {
+          const pixels: number[] = []
+          const stack = [startIdx]
+          while (stack.length > 0) {
+            const idx = stack.pop()!
+            if (idx < 0 || idx >= w * h || visited[idx] || !edges[idx]) continue
+            visited[idx] = true
+            pixels.push(idx)
+            const nx = idx % w, ny = Math.floor(idx / w)
+            if (nx > 0) stack.push(idx - 1)
+            if (nx < w - 1) stack.push(idx + 1)
+            if (ny > 0) stack.push(idx - w)
+            if (ny < h - 1) stack.push(idx + w)
+          }
+          return pixels
+        }
 
         let bestRect = null
-        let maxArea = 0
+        let bestScore = 0
 
-        for (let i = 0; i < contours.size(); i++) {
-          const contour = contours.get(i)
-          const peri = cv.arcLength(contour, true)
-          const approx = new cv.Mat()
-          cv.approxPolyDP(contour, approx, 0.02 * peri, true)
+        for (let i = 0; i < w * h; i++) {
+          if (edges[i] && !visited[i]) {
+            const region = floodFill(i)
+            if (region.length < minArea) continue
 
-          if (approx.rows === 4) {
-            const area = cv.contourArea(approx)
-            const imgArea = img.width * img.height
-            if (area > imgArea * 0.05 && area > maxArea) {
-              const pts = approx.data32S
-              const xs = [pts[0], pts[2], pts[4], pts[6]]
-              const ys = [pts[1], pts[3], pts[5], pts[7]]
-              const x = Math.min(...xs)
-              const y = Math.min(...ys)
-              const w = Math.max(...xs) - x
-              const h = Math.max(...ys) - y
-              const rectArea = w * h
-              if (rectArea / imgArea > 0.1 && w > 50 && h > 50) {
-                maxArea = rectArea
-                bestRect = { x, y, width: w, height: h }
+            const xs = region.map(idx => idx % w)
+            const ys = region.map(idx => Math.floor(idx / w))
+            const minX = Math.min(...xs), maxX = Math.max(...xs)
+            const minY = Math.min(...ys), maxY = Math.max(...ys)
+            const area = (maxX - minX) * (maxY - minY)
+            const rectFit = region.length / area
+            const aspect = (maxX - minX) / ((maxY - minY) || 1)
+            if (rectFit > 0.5 && aspect > 0.3 && aspect < 3.0 && area > bestScore) {
+              bestScore = area
+              bestRect = {
+                x: Math.round(minX / scale),
+                y: Math.round(minY / scale),
+                width: Math.round((maxX - minX) / scale),
+                height: Math.round((maxY - minY) / scale)
               }
             }
           }
-          approx.delete()
-          contour.delete()
         }
-
-        src.delete()
-        gray.delete()
-        blurred.delete()
-        edges.delete()
-        contours.delete()
-        hierarchy.delete()
 
         resolve(bestRect)
       } catch (e) {
-        console.error('OpenCV detection error:', e)
+        console.error('Paper detection error:', e)
         resolve(null)
       }
     }
