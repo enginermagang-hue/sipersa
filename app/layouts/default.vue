@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { NavigationMenuItem } from '@nuxt/ui'
+
 const { user, logout, fetchMe } = useAuth()
 
 const open = ref(true)
@@ -52,9 +54,15 @@ const items = computed<NavigationMenuItem[][]>(() => {
     })
   }
 
+  const otherMenu: NavigationMenuItem[] = [
+    { label: 'Tentang', icon: 'i-lucide-info', to: '/tentang' }
+  ]
+
+
   const groups: NavigationMenuItem[][] = [utama, manajemen]
   if (operasional.length) groups.push(operasional)
   if (adminMenu.length) groups.push(adminMenu)
+  groups.push(otherMenu)
   return groups
 })
 
@@ -68,13 +76,15 @@ const avatarUrl = computed(() => user.value
 const userItems = computed(() => [[
   {
     label: user.value?.nama ?? '',
-    description: user.value?.email,
+    description: user.value?.email ?? user.value?.jabatan,
     type: 'label',
     class: 'font-semibold',
     avatar: { src: avatarUrl, alt: user.value?.nama, size: 'xl' },
   },
   { type: 'separator' },
   { label: 'Profil', icon: 'i-lucide-user', to: '/profil' },
+  { type: 'separator' },
+  { label: 'Tentang', icon: 'i-lucide-info', to: '/tentang'},
   { type: 'separator' },
   { label: 'Keluar', icon: 'i-lucide-log-out', onSelect: () => logout() }
 ]])

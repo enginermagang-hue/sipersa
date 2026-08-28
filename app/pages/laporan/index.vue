@@ -65,10 +65,10 @@ function onEndChange(v: string) {
 }
 
 const kpiCards = computed(() => [
-  { label: 'Surat Masuk', value: overview.value?.kpi?.surat_masuk ?? 0, icon: 'i-lucide-inbox', bg: 'bg-primary-50', color: 'text-primary-600' },
-  { label: 'Surat Keluar', value: overview.value?.kpi?.surat_keluar ?? 0, icon: 'i-lucide-send', bg: 'bg-emerald-50', color: 'text-emerald-600' },
-  { label: 'Total Diarsipkan', value: overview.value?.kpi?.diarsipkan ?? 0, icon: 'i-lucide-archive', bg: 'bg-green-50', color: 'text-green-600' },
-  { label: 'Perlu Tindak Lanjut', value: overview.value?.kpi?.perlu_tindak_lanjut ?? 0, icon: 'i-lucide-triangle-alert', bg: 'bg-amber-50', color: 'text-amber-600' }
+  { label: 'Surat Masuk', value: overview.value?.kpi?.surat_masuk ?? 0, icon: 'i-lucide-inbox', bg: 'bg-violet-50 dark:bg-violet-950/50', color: 'text-violet-600 dark:text-violet-400' },
+  { label: 'Surat Keluar', value: overview.value?.kpi?.surat_keluar ?? 0, icon: 'i-lucide-send', bg: 'bg-emerald-50 dark:bg-emerald-950/50', color: 'text-emerald-600 dark:text-emerald-400' },
+  { label: 'Total Diarsipkan', value: overview.value?.kpi?.diarsipkan ?? 0, icon: 'i-lucide-archive', bg: 'bg-sky-50 dark:bg-sky-950/50', color: 'text-sky-600 dark:text-sky-400' },
+  { label: 'Perlu Tindak Lanjut', value: overview.value?.kpi?.perlu_tindak_lanjut ?? 0, icon: 'i-lucide-triangle-alert', bg: 'bg-amber-50 dark:bg-amber-950/50', color: 'text-amber-600 dark:text-amber-400' }
 ])
 
 const trend = computed(() => overview.value?.trend || [])
@@ -217,13 +217,13 @@ function cetak() {
       <USkeleton v-for="i in 4" :key="i" class="h-24 rounded-xl" />
     </div>
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <UCard v-for="c in kpiCards" :key="c.label" :ui="{ body: 'p-4' }">
-        <div class="flex items-start justify-between">
-          <div>
+      <UCard v-for="c in kpiCards" :key="c.label" :ui="{ body: 'p-4' }" class="hover:shadow-sm transition-shadow">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
             <p class="text-[11px] font-semibold uppercase tracking-wide text-muted">{{ c.label }}</p>
             <p class="text-3xl font-bold mt-1">{{ c.value }}</p>
           </div>
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center" :class="[c.bg, c.color]">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :class="[c.bg, c.color]">
             <UIcon :name="c.icon" class="w-5 h-5" />
           </div>
         </div>

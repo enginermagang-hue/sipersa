@@ -70,10 +70,10 @@ function isOverdue(d: any) {
 }
 
 const kpiCards = computed(() => [
-  { label: 'Total Disposisi', value: stats.value?.total ?? 0, sub: 'Semua yang ditujukan', icon: 'i-lucide-share-2', color: 'primary' },
-  { label: 'Baru', value: stats.value?.baru ?? 0, sub: 'Perlu tindak lanjut', icon: 'i-lucide-inbox', color: 'warning' },
-  { label: 'Diproses', value: stats.value?.diproses ?? 0, sub: 'Sedang dikerjakan', icon: 'i-lucide-hourglass', color: 'primary' },
-  { label: 'Selesai', value: stats.value?.selesai ?? 0, sub: 'Selesai', icon: 'i-lucide-check-check', color: 'success' }
+  { label: 'Total Disposisi', value: stats.value?.total ?? 0, sub: 'Semua yang ditujukan', icon: 'i-lucide-share-2', bg: 'bg-violet-50 dark:bg-violet-950/50', color: 'text-violet-600 dark:text-violet-400' },
+  { label: 'Baru', value: stats.value?.baru ?? 0, sub: 'Perlu tindak lanjut', icon: 'i-lucide-inbox', bg: 'bg-amber-50 dark:bg-amber-950/50', color: 'text-amber-600 dark:text-amber-400' },
+  { label: 'Diproses', value: stats.value?.diproses ?? 0, sub: 'Sedang dikerjakan', icon: 'i-lucide-hourglass', bg: 'bg-sky-50 dark:bg-sky-950/50', color: 'text-sky-600 dark:text-sky-400' },
+  { label: 'Selesai', value: stats.value?.selesai ?? 0, sub: 'Selesai', icon: 'i-lucide-check-check', bg: 'bg-emerald-50 dark:bg-emerald-950/50', color: 'text-emerald-600 dark:text-emerald-400' }
 ])
 
 const filteredData = computed(() => {
@@ -219,14 +219,16 @@ function getAksiItems(d: any) {
     </div>
 
     <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <UCard v-for="k in kpiCards" :key="k.label" :ui="{ body: 'p-4' }">
-        <div class="flex items-start justify-between">
-          <div>
-            <div class="text-xs font-medium text-muted uppercase">{{ k.label }}</div>
-            <div class="text-2xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
+      <UCard v-for="k in kpiCards" :key="k.label" :ui="{ body: 'p-4' }" class="hover:shadow-sm transition-shadow">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-muted">{{ k.label }}</div>
+            <div class="text-3xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
             <div class="text-xs text-muted mt-1">{{ k.sub }}</div>
           </div>
-          <UIcon :name="k.icon" class="w-5 h-5 text-muted" />
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :class="[k.bg, k.color]">
+            <UIcon :name="k.icon" class="w-5 h-5" />
+          </div>
         </div>
         <UBadge v-if="k.label === 'Baru' && (stats?.lewat_batas ?? 0) > 0" :label="`${stats?.lewat_batas} lewat batas`" color="error" variant="subtle" class="mt-2" size="xs" />
       </UCard>

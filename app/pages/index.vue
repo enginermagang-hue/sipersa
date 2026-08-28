@@ -18,16 +18,16 @@ const klasOptions = computed(() => [{ label:'Semua Klasifikasi', value:null }, .
     <div v-if="isInitialLoading" class="grid grid-cols-2 lg:grid-cols-4 gap-4"><USkeleton v-for="i in 8" :key="i" class="h-24" /></div>
     <div v-else class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <UCard v-for="c in [
-        {label:'Surat Masuk', value:data?.kpi.masuk, icon:'i-lucide-inbox', color:'text-sky-500', to:'/surat-masuk'},
-        {label:'Surat Keluar', value:data?.kpi.keluar, icon:'i-lucide-send', color:'text-emerald-500', to:'/surat-keluar'},
-        {label:'Arsip', value:data?.kpi.arsip, icon:'i-lucide-archive', color:'text-amber-500', to:'/arsip'},
-        {label:'Disposisi Saya', value:data?.kpi.disposisiSaya, icon:'i-lucide-share-2', color:'text-rose-500', to:'/disposisi'},
-        {label:'Disposisi Lewat', value:data?.kpi.disposisiOverdue, icon:'i-lucide-alarm-clock-off', color:'text-red-500', to:'/disposisi'},
-        {label:'Masuk Hari Ini', value:data?.kpi.masukHariIni, icon:'i-lucide-calendar', color:'text-blue-500', to:'/surat-masuk'},
-        {label:'Keluar Pending', value:data?.kpi.keluarPending, icon:'i-lucide-clock', color:'text-orange-500', to:'/surat-keluar'},
-        {label:'Arsip Bulan Ini', value:data?.kpi.arsipBulan, icon:'i-lucide-folder', color:'text-violet-500', to:'/arsip'},
-      ]" :key="c.label">
-        <NuxtLink :to="c.to" class="flex justify-between items-center"><div><div class="text-sm text-muted">{{ c.label }}</div><div class="text-2xl font-bold">{{ c.value ?? 0 }}</div></div><UIcon :name="c.icon" :class="c.color" class="text-3xl" /></NuxtLink>
+        {label:'Surat Masuk', value:data?.kpi.masuk, icon:'i-lucide-inbox', bg:'bg-sky-50 dark:bg-sky-950/50', color:'text-sky-600 dark:text-sky-400', to:'/surat-masuk'},
+        {label:'Surat Keluar', value:data?.kpi.keluar, icon:'i-lucide-send', bg:'bg-emerald-50 dark:bg-emerald-950/50', color:'text-emerald-600 dark:text-emerald-400', to:'/surat-keluar'},
+        {label:'Arsip', value:data?.kpi.arsip, icon:'i-lucide-archive', bg:'bg-amber-50 dark:bg-amber-950/50', color:'text-amber-600 dark:text-amber-400', to:'/arsip'},
+        {label:'Disposisi Saya', value:data?.kpi.disposisiSaya, icon:'i-lucide-share-2', bg:'bg-violet-50 dark:bg-violet-950/50', color:'text-violet-600 dark:text-violet-400', to:'/disposisi'},
+        {label:'Disposisi Lewat', value:data?.kpi.disposisiOverdue, icon:'i-lucide-alarm-clock-off', bg:'bg-red-50 dark:bg-red-950/50', color:'text-red-600 dark:text-red-400', to:'/disposisi'},
+        {label:'Masuk Hari Ini', value:data?.kpi.masukHariIni, icon:'i-lucide-calendar', bg:'bg-blue-50 dark:bg-blue-950/50', color:'text-blue-600 dark:text-blue-400', to:'/surat-masuk'},
+        {label:'Keluar Pending', value:data?.kpi.keluarPending, icon:'i-lucide-clock', bg:'bg-orange-50 dark:bg-orange-950/50', color:'text-orange-600 dark:text-orange-400', to:'/surat-keluar'},
+        {label:'Arsip Bulan Ini', value:data?.kpi.arsipBulan, icon:'i-lucide-folder', bg:'bg-slate-100 dark:bg-slate-800', color:'text-slate-600 dark:text-slate-300', to:'/arsip'},
+      ]" :key="c.label" :ui="{ body: 'p-4' }" class="hover:shadow-sm transition-shadow">
+        <NuxtLink :to="c.to" class="flex items-start justify-between gap-3"><div class="min-w-0"><div class="text-[11px] font-semibold uppercase tracking-wide text-muted">{{ c.label }}</div><div class="text-3xl font-bold mt-1">{{ c.value ?? 0 }}</div></div><div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :class="[c.bg, c.color]"><UIcon :name="c.icon" class="w-5 h-5" /></div></NuxtLink>
       </UCard>
     </div>
 

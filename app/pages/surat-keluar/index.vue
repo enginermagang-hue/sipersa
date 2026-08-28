@@ -51,10 +51,10 @@ const sifatOptions = [
 const kpiCards = computed(() => {
   const isPimpinan = user.value?.role === 'pimpinan'
   return [
-    { label: 'Total Surat Keluar', value: stats.value?.total ?? 0, sub: 'Sejak Januari 2026', icon: 'i-lucide-send', color: 'primary' },
-    { label: 'Draft & Ditolak', value: isPimpinan ? (stats.value?.ditolak ?? 0) : ((stats.value?.draft ?? 0) + (stats.value?.ditolak ?? 0)), sub: 'Perlu ditindaklanjuti', icon: 'i-lucide-file-text', color: 'neutral' },
-    { label: 'Menunggu Persetujuan', value: stats.value?.menunggu_persetujuan ?? 0, sub: 'Menunggu pimpinan', icon: 'i-lucide-pen-line', color: 'info' },
-    { label: 'Terkirim Bulan Ini', value: stats.value?.terkirim_bulan_ini ?? 0, sub: 'Bulan ini (WITA)', icon: 'i-lucide-check-circle', color: 'success' }
+    { label: 'Total Surat Keluar', value: stats.value?.total ?? 0, sub: 'Sejak Januari 2026', icon: 'i-lucide-send', bg: 'bg-violet-50 dark:bg-violet-950/50', color: 'text-violet-600 dark:text-violet-400' },
+    { label: 'Draft & Ditolak', value: isPimpinan ? (stats.value?.ditolak ?? 0) : ((stats.value?.draft ?? 0) + (stats.value?.ditolak ?? 0)), sub: 'Perlu ditindaklanjuti', icon: 'i-lucide-file-text', bg: 'bg-slate-100 dark:bg-slate-800', color: 'text-slate-600 dark:text-slate-300' },
+    { label: 'Menunggu Persetujuan', value: stats.value?.menunggu_persetujuan ?? 0, sub: 'Menunggu pimpinan', icon: 'i-lucide-pen-line', bg: 'bg-sky-50 dark:bg-sky-950/50', color: 'text-sky-600 dark:text-sky-400' },
+    { label: 'Terkirim Bulan Ini', value: stats.value?.terkirim_bulan_ini ?? 0, sub: 'Bulan ini (WITA)', icon: 'i-lucide-check-circle', bg: 'bg-emerald-50 dark:bg-emerald-950/50', color: 'text-emerald-600 dark:text-emerald-400' }
   ]
 })
 
@@ -130,14 +130,16 @@ const buatMenu = [
     </div>
 
     <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <UCard v-for="k in kpiCards" :key="k.label" :ui="{ body: 'p-4' }">
-        <div class="flex items-start justify-between">
-          <div>
-            <div class="text-xs font-medium text-muted uppercase">{{ k.label }}</div>
-            <div class="text-2xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
+      <UCard v-for="k in kpiCards" :key="k.label" :ui="{ body: 'p-4' }" class="hover:shadow-sm transition-shadow">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-muted">{{ k.label }}</div>
+            <div class="text-3xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
             <div class="text-xs text-muted mt-1">{{ k.sub }}</div>
           </div>
-          <UIcon :name="k.icon" class="w-5 h-5 text-muted" />
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :class="[k.bg, k.color]">
+            <UIcon :name="k.icon" class="w-5 h-5" />
+          </div>
         </div>
       </UCard>
     </div>
