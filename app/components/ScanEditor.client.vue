@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Cropper from 'cropperjs'
+import 'cropperjs/dist/cropper.css'
 
 const props = defineProps<{
   images: string[]
@@ -33,31 +34,41 @@ function initCropper(imgSrc: string, autoCropRect?: { x: number; y: number; widt
   nextTick(() => {
     if (!imageEl.value) return
     cropperInstance = new Cropper(imageEl.value, {
-      viewMode: 0,
+      viewMode: 1,
       dragMode: 'crop',
-      autoCrop: false,
-      autoCropArea: autoCropRect ? 0.99 : 0.95,
+      autoCrop: true,
+      autoCropArea: 0.92,
       guides: true,
       center: true,
       highlight: false,
       background: false,
       responsive: true,
+      restore: true,
       rotatable: true,
       scalable: true,
       zoomable: true,
       zoomOnTouch: true,
       zoomOnWheel: true,
+      wheelZoomRatio: 0.1,
       toggleDragModeOnDblclick: false,
       aspectRatio: NaN,
-      minCropBoxWidth: 20,
-      minCropBoxHeight: 20,
+      minContainerWidth: 200,
+      minContainerHeight: 200,
+      minCropBoxWidth: 40,
+      minCropBoxHeight: 40,
+      minCanvasWidth: 0,
+      minCanvasHeight: 0,
       ready() {
-        if (autoCropRect) {
-          cropperInstance.setCropBoxData({
-            left: autoCropRect.x,
-            top: autoCropRect.y,
-            width: autoCropRect.width,
-            height: autoCropRect.height
+        if (autoCropRect && cropperInstance) {
+          nextTick(() => {
+            try {
+              cropperInstance.setCropBoxData({
+                left: autoCropRect.x,
+                top: autoCropRect.y,
+                width: autoCropRect.width,
+                height: autoCropRect.height
+              })
+            } catch {}
           })
         }
       }
@@ -237,7 +248,7 @@ function flipVertical() {
 }
 
 function zoom(delta: number) {
-  if (!cropperInstance) return
+  if (!cropperInstance || typeof cropperInstance.zoom !== 'function') return
   cropperInstance.zoom(delta)
 }
 
@@ -407,7 +418,7 @@ function nextPage() {
       </div>
     </div>
 
-    <div class="flex-1 min-h-0 relative" :class="detecting ? 'flex items-center justify-center' : ''">
+    <div class="flex-1 min-h-0 relative overflow-hidden">
       <div v-if="detecting" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 gap-3">
         <UIcon name="i-lucide-loader-2" class="w-10 h-10 animate-spin text-white" />
         <span class="text-white text-sm">Mendeteksi tepi kertas...</span>
@@ -422,12 +433,13 @@ function nextPage() {
         <span class="text-white text-sm">Memproses...</span>
       </div>
 
-      <div class="w-full h-full flex items-center justify-center p-1 sm:p-2">
+      <div class="absolute inset-0">
         <img
           ref="imageEl"
           :src="currentImage"
-          class="max-w-full max-h-full object-contain"
+          class="block max-w-none"
           :class="{ 'opacity-50': detecting }"
+          style="display:block; max-width:100%;"
         />
       </div>
     </div>
@@ -486,6 +498,14 @@ function nextPage() {
 :deep(.cropper-container) {
   direction: ltr !important;
   touch-action: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100dvh !important;
+}
+:deep(.cropper-wrap-box),
+:deep(.cropper-canvas) {
+  width: 100% !important;
+  height: 100% !important;
 }
 :deep(.cropper-point) {
   width: 18px !important;
