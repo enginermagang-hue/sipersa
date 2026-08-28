@@ -26,14 +26,28 @@ const detectError = ref('')
 
 let cropperInstance: any = null
 
-function initCropper(imgSrc: string, autoCropRect?: { x: number; y: number; width: number; height: number }) {
+async function initCropper(imgSrc: string, autoCropRect?: { x: number; y: number; width: number; height: number }) {
   if (cropperInstance) {
     cropperInstance.destroy()
     cropperInstance = null
   }
-  nextTick(() => {
-    if (!imageEl.value) return
-    cropperInstance = new Cropper(imageEl.value, {
+  await nextTick()
+  if (!imageEl.value) return
+  // tunggu image benar-benar loaded sebelum Cropper ukur
+  if (!imageEl.value.complete || imageEl.value.naturalWidth === 0) {
+    await new Promise<void>((resolve) => {
+      const el = imageEl.value!
+      const onLoad = () => { el.removeEventListener('load', onLoad); el.removeEventListener('error', onErr); resolve() }
+      const onErr = () => { el.removeEventListener('load', onLoad); el.removeEventListener('error', onErr); resolve() }
+      el.addEventListener('load', onLoad)
+      el.addEventListener('error', onErr)
+      // jika sudah complete dalam waktu 300ms
+      setTimeout(resolve, 800)
+    })
+  }
+  if (!imageEl.value) return
+  await nextTick()
+  cropperInstance = new Cropper(imageEl.value, {
       viewMode: 1,
       dragMode: 'crop',
       autoCrop: true,
@@ -215,10 +229,10 @@ watch(currentImage, async (src) => {
   detecting.value = true
   try {
     const rect = await detectPaperCorners(src)
-    initCropper(src, rect || undefined)
+    await initCropper(src, rect || undefined)
   } catch (e) {
     detectError.value = 'Deteksi otomatis gagal. Silakan crop manual.'
-    initCropper(src)
+    await initCropper(src)
   } finally {
     detecting.value = false
   }
@@ -423,7 +437,7 @@ function nextPage() {
       </div>
     </div>
 
-    <div class="flex-1 min-h-0 relative flex flex-col overflow-hidden" style="height: calc(100dvh - 112px); min-height: 320px;">
+    <div class="flex-1 min-h-0 relative overflow-hidden flex flex-col">
       <div v-if="detecting" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 gap-3">
         <UIcon name="i-lucide-loader-2" class="w-10 h-10 animate-spin text-white" />
         <span class="text-white text-sm">Mendeteksi tepi kertas...</span>
@@ -438,13 +452,12 @@ function nextPage() {
         <span class="text-white text-sm">Memproses...</span>
       </div>
 
-      <div class="flex-1 relative min-h-0 w-full h-full cropper-host">
+      <div class="flex-1 relative min-h-[50vh] w-full cropper-host flex items-center justify-center bg-black">
         <img
           ref="imageEl"
           :src="currentImage"
-          class="block"
-          :class="{ 'opacity-0': !detecting, 'opacity-50': detecting }"
-          style="display:block; max-width:100%; max-height:100%;"
+          class="block max-w-full max-h-full object-contain"
+          style="display:block;"
         />
       </div>
     </div>
@@ -465,7 +478,7 @@ function nextPage() {
             <UIcon name="i-lucide-flip-vertical" class="w-4 h-4" />
           </UButton>
           <UButton color="yellow" variant="outline" size="sm" @click="autoStraighten" :disabled="isProcessing" title="Auto straighten">
-            <UIcon name="i-lucide-straighten" class="w-4 h-4" />
+            <UIcon name="i-lucide-move-diagonal" class="w-4 h-4" />
           </UButton>
           <UButton color="gray" variant="outline" size="sm" @click="zoom(-0.1)" title="Zoom out">
             <UIcon name="i-lucide-zoom-out" class="w-4 h-4" />
@@ -503,14 +516,17 @@ function nextPage() {
 .cropper-host {
   width: 100%;
   height: 100%;
-  min-height: 320px;
+  min-height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 :deep(.cropper-container) {
   direction: ltr !important;
   touch-action: none !important;
   width: 100% !important;
   height: 100% !important;
-  min-height: 320px !important;
+  min-height: 50vh !important;
 }
 :deep(.cropper-wrap-box),
 :deep(.cropper-canvas) {
