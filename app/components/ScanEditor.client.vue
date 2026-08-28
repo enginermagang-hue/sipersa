@@ -253,8 +253,8 @@ function zoom(delta: number) {
 }
 
 function resetCrop() {
-  if (!cropperInstance) return
-  cropperInstance.reset()
+  if (!cropperInstance || typeof cropperInstance.reset !== 'function') return
+  try { cropperInstance.reset() } catch {}
   rotation.value = 0
   scaleX.value = 1
   scaleY.value = 1
@@ -376,17 +376,22 @@ function rotateCanvas(src: HTMLCanvasElement, angle: number): HTMLCanvasElement 
 }
 
 async function saveCurrentPage() {
-  if (!cropperInstance) return
+  if (!cropperInstance || typeof cropperInstance.getCroppedCanvas !== 'function') {
+    error.value = 'Crop belum siap'
+    return
+  }
   isProcessing.value = true
   error.value = ''
   try {
-    const canvas = cropperInstance.getCroppedCanvas()
+    const canvas = cropperInstance.getCroppedCanvas({ imageSmoothingQuality: 'high' })
+    if (!canvas) throw new Error('Canvas kosong')
     const dataUrl = canvas.toDataURL('image/jpeg', 0.95)
     const newImages = [...props.images]
     newImages[currentIndex.value] = dataUrl
     emit('save', newImages)
   } catch (e: any) {
-    error.value = 'Gagal menyimpan halaman'
+    console.error(e)
+    error.value = 'Gagal menyimpan halaman: ' + (e?.message || '')
   } finally {
     isProcessing.value = false
   }
@@ -418,7 +423,7 @@ function nextPage() {
       </div>
     </div>
 
-    <div class="flex-1 min-h-0 relative overflow-hidden">
+    <div class="flex-1 min-h-0 relative flex flex-col overflow-hidden" style="height: calc(100dvh - 112px); min-height: 320px;">
       <div v-if="detecting" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 gap-3">
         <UIcon name="i-lucide-loader-2" class="w-10 h-10 animate-spin text-white" />
         <span class="text-white text-sm">Mendeteksi tepi kertas...</span>
@@ -433,13 +438,13 @@ function nextPage() {
         <span class="text-white text-sm">Memproses...</span>
       </div>
 
-      <div class="absolute inset-0">
+      <div class="flex-1 relative min-h-0 w-full h-full cropper-host">
         <img
           ref="imageEl"
           :src="currentImage"
-          class="block max-w-none"
-          :class="{ 'opacity-50': detecting }"
-          style="display:block; max-width:100%;"
+          class="block"
+          :class="{ 'opacity-0': !detecting, 'opacity-50': detecting }"
+          style="display:block; max-width:100%; max-height:100%;"
         />
       </div>
     </div>
@@ -495,12 +500,17 @@ function nextPage() {
 </template>
 
 <style>
+.cropper-host {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+}
 :deep(.cropper-container) {
   direction: ltr !important;
   touch-action: none !important;
   width: 100% !important;
   height: 100% !important;
-  max-height: 100dvh !important;
+  min-height: 320px !important;
 }
 :deep(.cropper-wrap-box),
 :deep(.cropper-canvas) {
