@@ -7,34 +7,40 @@ const { confirm } = useConfirm()
 const toast = useToast()
 
 const { data, refresh, pending } = await useFetch('/api/disposisi/me')
-const { data: users } = await useFetch('/api/users')
 const { data: stats } = await useFetch('/api/disposisi/stats')
 
 const searchQuery = ref('')
-const activeStatus = ref('')
-const activeSifat = ref('')
+const qDebounced = ref('')
+let qTimer: ReturnType<typeof setTimeout> | null = null
+watch(searchQuery, (v) => { if (qTimer) clearTimeout(qTimer); qTimer = setTimeout(() => { qDebounced.value = v; page.value = 1 }, 300) })
+const activeStatus = ref<string | undefined>(undefined)
+const activeSifat = ref<string | undefined>(undefined)
 const bulan = ref('')
 const sortBy = ref('terbaru')
 type ViewMode = 'table' | 'grid' | 'compact'
 const view = useLocalStorage<ViewMode>('sipersa.disposisi.view', 'table')
+const filterOpen = ref(false)
+const activeFilterCount = computed(() => [activeSifat.value, activeStatus.value, bulan.value].filter(Boolean).length)
+function resetFilters() { activeSifat.value = undefined; activeStatus.value = undefined; bulan.value = ''; page.value = 1 }
+const sifatLabel = computed(() => sifatOptions.find(o => o.value === activeSifat.value)?.label ?? activeSifat.value ?? '')
+const statusLabel = computed(() => statusOptions.find(o => o.value === activeStatus.value)?.label ?? activeStatus.value ?? '')
+function fmtBulan(v: string) {
+  if (!v) return ''
+  const [y, m] = v.split('-').map(Number)
+  if (!y || !m) return v
+  return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })
+}
+const kpiExpanded = ref(false)
 
 const statusOptions = [
-  { label: 'Semua Status', value: '' },
+  { label: 'Semua Status', value: undefined },
   { label: 'Baru', value: 'baru' },
   { label: 'Diproses', value: 'diproses' },
   { label: 'Selesai', value: 'selesai' }
 ]
 
 const sifatOptions = [
-  { label: 'Semua Sifat', value: '' },
-  { label: 'Biasa', value: 'biasa' },
-  { label: 'Segera', value: 'segera' },
-  { label: 'Sangat Segera', value: 'sangat_segera' },
-  { label: 'Rahasia', value: 'rahasia' }
-]
-
-// Opsi sifat untuk form "teruskan/tindak lanjuti" — tanpa opsi filter "Semua Sifat".
-const forwardSifatOptions = [
+  { label: 'Semua Sifat', value: undefined },
   { label: 'Biasa', value: 'biasa' },
   { label: 'Segera', value: 'segera' },
   { label: 'Sangat Segera', value: 'sangat_segera' },
@@ -78,7 +84,7 @@ const kpiCards = computed(() => [
 
 const filteredData = computed(() => {
   let list = [...(data.value || [])]
-  const q = searchQuery.value.trim().toLowerCase()
+  const q = qDebounced.value.trim().toLowerCase()
   if (q) {
     list = list.filter((d: any) =>
       d.perihal?.toLowerCase().includes(q) ||
@@ -104,7 +110,7 @@ const filteredData = computed(() => {
 const perPage = ref(12)
 const page = ref(1)
 const paginatedData = computed(() => filteredData.value.slice((page.value - 1) * perPage.value, page.value * perPage.value))
-watch([searchQuery, activeStatus, activeSifat, bulan, sortBy], () => { page.value = 1 })
+watch([activeStatus, activeSifat, bulan, sortBy], () => { page.value = 1 })
 
 function tglWaktu(iso?: string) {
   if (!iso) return ''
@@ -121,71 +127,14 @@ function tglSingkat(iso?: string) {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
 }
 
-async function updateStatus(id: number, status: string) {
-  await $fetch(`/api/disposisi/${id}`, { method: 'PUT', body: { status } })
-  await refresh()
-  toast.add({ title: 'Berhasil', description: 'Status disposisi diperbarui', color: 'success' })
-}
 
-const userOptions = computed(() =>
-  (users.value || []).map((u: any) => ({ label: u.nama, value: u.id }))
-)
 
-const fwdOpen = ref(false)
-const fwdTarget = ref<any>(null)
-const fwdModalKey = ref(0)
-const fwdForm = reactive({
-  kepada_user_id: null as number | null,
-  instruksi: '',
-  catatan: '',
-  sifat_disposisi: 'biasa',
-  batas_waktu: ''
-})
-const fwdLoading = ref(false)
-const fwdError = ref('')
-
-function openForward(d: any) {
-  fwdTarget.value = d
-  fwdOpen.value = true
-  fwdModalKey.value++
-  fwdForm.kepada_user_id = null
-  fwdForm.instruksi = ''
-  fwdForm.catatan = ''
-  fwdForm.sifat_disposisi = 'biasa'
-  fwdForm.batas_waktu = ''
-  fwdError.value = ''
-}
-
-async function forward() {
-  if (!fwdTarget.value) return
-  if (!fwdForm.kepada_user_id) {
-    fwdError.value = 'Pilih penerima terlebih dahulu'
-    return
-  }
-  fwdLoading.value = true
-  fwdError.value = ''
-  try {
-    await $fetch(`/api/disposisi/${fwdTarget.value.id}/teruskan`, {
-      method: 'POST',
-      body: {
-        kepada_user_ids: [fwdForm.kepada_user_id],
-        instruksi_list: [],
-        instruksi: fwdForm.instruksi,
-        catatan: fwdForm.catatan,
-        sifat_disposisi: fwdForm.sifat_disposisi,
-        batas_waktu: fwdForm.batas_waktu || null,
-        notify: false
-      }
-    })
-    fwdOpen.value = false
-    fwdTarget.value = null
+async function selesaikan(d: any) {
+  await confirm({ title: 'Selesaikan Disposisi', message: `Selesaikan disposisi ${d.no_surat}?`, okLabel: 'Selesaikan', loadingTitle: 'Menyelesaikan...' }, async () => {
+    await $fetch(`/api/disposisi/${d.id}`, { method: 'PUT', body: { status: 'selesai' } })
     await refresh()
-    toast.add({ title: 'Berhasil', description: 'Disposisi diteruskan', color: 'success' })
-  } catch (e: any) {
-    fwdError.value = e?.data?.statusMessage || 'Gagal meneruskan'
-  } finally {
-    fwdLoading.value = false
-  }
+    toast.add({ title: 'Berhasil', description: 'Disposisi diselesaikan', color: 'success' })
+  })
 }
 
 function exportExcel() {
@@ -198,11 +147,12 @@ function exportExcel() {
 }
 
 function getAksiItems(d: any) {
-  const items = [
-    { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/surat-masuk/${d.surat_masuk_id}`) }
+  const items: any[] = [
+    { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/surat-masuk/${d.surat_masuk_id}`) },
+    { label: 'Tindak Lanjuti', icon: 'i-lucide-corner-up-right', onSelect: () => navigateTo(`/surat-masuk/${d.surat_masuk_id}`) }
   ]
   if (d.status !== 'selesai') {
-    items.push({ label: 'Tindak Lanjuti', icon: 'i-lucide-corner-up-right', onSelect: () => openForward(d) })
+    items.push({ label: 'Selesaikan', icon: 'i-lucide-check', onSelect: () => selesaikan(d) })
   }
   return items
 }
@@ -218,39 +168,88 @@ function getAksiItems(d: any) {
       <UButton variant="soft" icon="i-lucide-file-spreadsheet" @click="exportExcel">Export Excel</UButton>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <UCard v-for="k in kpiCards" :key="k.label" :ui="{ body: 'p-4' }" class="hover:shadow-sm transition-shadow">
-        <div class="flex items-start justify-between gap-3">
+    <div class="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+      <UCard v-for="(k, i) in kpiCards.slice(0, 2)" :key="k.label" :ui="{ body: 'p-3 sm:p-4' }" class="hover:shadow-sm">
+        <div class="flex items-start justify-between gap-2 sm:gap-3">
           <div class="min-w-0">
-            <div class="text-[11px] font-semibold uppercase tracking-wide text-muted">{{ k.label }}</div>
-            <div class="text-3xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
-            <div class="text-xs text-muted mt-1">{{ k.sub }}</div>
+            <div class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-muted truncate">{{ k.label }}</div>
+            <div class="text-xl sm:text-3xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
+            <div class="hidden sm:block text-xs text-muted mt-1 truncate">{{ k.sub }}</div>
           </div>
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :class="[k.bg, k.color]">
-            <UIcon :name="k.icon" class="w-5 h-5" />
+          <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" :class="[k.bg, k.color]">
+            <UIcon :name="k.icon" class="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+        </div>
+        <UBadge v-if="k.label === 'Baru' && (stats?.lewat_batas ?? 0) > 0" :label="`${stats?.lewat_batas} lewat batas`" color="error" variant="subtle" class="mt-2" size="xs" />
+      </UCard>
+      <UCard v-for="k in kpiCards.slice(2)" :key="k.label" :ui="{ body: 'p-3 sm:p-4' }" :class="['hover:shadow-sm', kpiExpanded ? '' : 'hidden lg:block']">
+        <div class="flex items-start justify-between gap-2 sm:gap-3">
+          <div class="min-w-0">
+            <div class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-muted truncate">{{ k.label }}</div>
+            <div class="text-xl sm:text-3xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
+            <div class="hidden sm:block text-xs text-muted mt-1 truncate">{{ k.sub }}</div>
+          </div>
+          <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" :class="[k.bg, k.color]">
+            <UIcon :name="k.icon" class="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         </div>
         <UBadge v-if="k.label === 'Baru' && (stats?.lewat_batas ?? 0) > 0" :label="`${stats?.lewat_batas} lewat batas`" color="error" variant="subtle" class="mt-2" size="xs" />
       </UCard>
     </div>
+    <div class="flex justify-center lg:hidden">
+      <UButton variant="ghost" size="xs" :trailing-icon="kpiExpanded ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" @click="kpiExpanded = !kpiExpanded">
+        {{ kpiExpanded ? 'Sembunyikan' : `Lihat semua (${kpiCards.length})` }}
+      </UButton>
+    </div>
 
-    <div class="flex flex-wrap items-center gap-2">
-      <UInput v-model="searchQuery" placeholder="Cari no. surat, perihal, pengirim..." icon="i-lucide-search" class="max-w-xs" />
-      <select v-model="activeStatus" class="h-9 w-40 rounded-md border border-default bg-default px-2.5 text-sm">
-        <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-      </select>
-      <select v-model="activeSifat" class="h-9 w-44 rounded-md border border-default bg-default px-2.5 text-sm">
-        <option v-for="o in sifatOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-      </select>
-      <UInput v-model="bulan" type="month" class="w-40" />
-      <USelect v-model="sortBy" :items="sortOptions" size="sm" class="w-52" />
-      <div class="flex-1" />
-      <div role="group" aria-label="Mode tampilan" class="inline-flex rounded-md border border-default bg-default p-0.5">
+    <div class="flex gap-2 items-center">
+      <UInput v-model="searchQuery" placeholder="Cari no. surat, perihal, pengirim..." icon="i-lucide-search" class="flex-1 min-w-0" :ui="{ trailing: 'pr-8' }">
+        <template v-if="searchQuery" #trailing>
+          <UButton variant="ghost" size="xs" color="neutral" icon="i-lucide-x" aria-label="Hapus pencarian" @click="searchQuery = ''" />
+        </template>
+      </UInput>
+      <UButton class="lg:hidden shrink-0" icon="i-lucide-sliders-horizontal" variant="outline" aria-label="Buka filter" @click="filterOpen = true">
+        Filter
+        <UBadge v-if="activeFilterCount" :label="activeFilterCount" color="primary" variant="solid" size="xs" class="ml-1" />
+      </UButton>
+      <UFieldGroup class="border border-default p-1 rounded-lg shrink-0" size="sm">
         <UButton icon="i-lucide-rows-3" :color="view === 'table' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan tabel" :ui="{ base: 'px-2' }" @click="view = 'table'" />
         <UButton icon="i-lucide-layout-grid" :color="view === 'grid' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan grid" :ui="{ base: 'px-2' }" @click="view = 'grid'" />
         <UButton icon="i-lucide-list" :color="view === 'compact' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan ringkas" :ui="{ base: 'px-2' }" @click="view = 'compact'" />
-      </div>
+      </UFieldGroup>
     </div>
+
+    <div v-if="activeFilterCount" class="flex flex-wrap items-center gap-1.5 lg:hidden">
+      <span class="text-xs text-muted mr-1">Filter aktif:</span>
+      <UBadge v-if="activeStatus" :label="statusLabel" variant="subtle" color="primary" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="activeStatus = undefined" />
+      <UBadge v-if="activeSifat" :label="sifatLabel" variant="subtle" color="neutral" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="activeSifat = undefined" />
+      <UBadge v-if="bulan" :label="fmtBulan(bulan)" variant="subtle" color="neutral" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="bulan = ''" />
+      <UButton v-if="activeFilterCount > 1" variant="link" size="xs" color="neutral" class="px-1" @click="resetFilters">Hapus semua</UButton>
+    </div>
+
+    <div class="hidden lg:grid lg:grid-cols-12 gap-2">
+      <USelect v-model="activeStatus" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="lg:col-span-3 w-full min-w-0" />
+      <USelect v-model="activeSifat" :items="sifatOptions" value-key="value" label-key="label" placeholder="Sifat" class="lg:col-span-3 w-full min-w-0" />
+      <UInput v-model="bulan" type="month" class="lg:col-span-3 w-full min-w-0" />
+      <USelect v-model="sortBy" :items="sortOptions" value-key="value" label-key="label" placeholder="Urutkan" class="lg:col-span-3 w-full min-w-0" />
+    </div>
+
+    <USlideover v-model:open="filterOpen" title="Filter" description="Saring disposisi" side="right" :ui="{ content: 'max-w-sm' }">
+      <template #body>
+        <div class="space-y-4">
+          <USelect v-model="activeStatus" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="w-full" />
+          <USelect v-model="activeSifat" :items="sifatOptions" value-key="value" label-key="label" placeholder="Sifat" class="w-full" />
+          <UInput v-model="bulan" type="month" class="w-full" />
+          <USelect v-model="sortBy" :items="sortOptions" value-key="value" label-key="label" placeholder="Urutkan" class="w-full" />
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex gap-2 w-full">
+          <UButton variant="ghost" block @click="resetFilters">Reset</UButton>
+          <UButton block @click="filterOpen = false">Terapkan</UButton>
+        </div>
+      </template>
+    </USlideover>
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
@@ -349,38 +348,19 @@ function getAksiItems(d: any) {
         <div v-if="!filteredData.length" class="py-12 text-center text-muted">Belum ada disposisi</div>
       </div>
 
-      <div class="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div class="text-sm text-muted">
+      <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="text-sm text-muted min-w-0 truncate text-center sm:text-left">
           Menampilkan {{ filteredData.length ? (page - 1) * perPage + 1 : 0 }}–{{ Math.min(page * perPage, filteredData.length) }} dari {{ filteredData.length }} disposisi
         </div>
-        <div class="flex items-center gap-2">
-          <select v-model="perPage" class="h-8 w-20 rounded-md border border-default bg-default px-2 text-sm">
-            <option :value="12">12</option>
-            <option :value="24">24</option>
-            <option :value="48">48</option>
-          </select>
-          <UPagination v-if="filteredData.length" v-model:page="page" :items-per-page="perPage" :total="filteredData.length" />
+        <div class="flex flex-wrap items-center justify-center gap-2 sm:justify-end w-full sm:w-auto">
+          <USelect v-model="perPage" :items="[12,24,48]" class="w-24 shrink-0" />
+          <div class="overflow-x-auto max-w-full -mx-1 px-1">
+            <UPagination v-if="filteredData.length" v-model:page="page" :items-per-page="perPage" :total="filteredData.length" :sibling-count="1" size="sm" />
+          </div>
         </div>
       </div>
     </UCard>
 
-    <UModal v-model:open="fwdOpen" title="Tindak Lanjuti Disposisi" :ui="{ footer: 'justify-end' }">
-      <template #body>
-        <DisposisiForwardForm
-          :target="fwdTarget"
-          :form="fwdForm"
-          :user-options="userOptions"
-          :sifat-options="forwardSifatOptions"
-          :loading="fwdLoading"
-          :error="fwdError"
-          @submit="forward"
-          @cancel="fwdOpen = false"
-        />
-      </template>
-      <template #footer>
-        <UButton variant="ghost" @click="fwdOpen = false">Batal</UButton>
-        <UButton type="submit" form="fwd-form" :loading="fwdLoading">Kirim</UButton>
-      </template>
-    </UModal>
+
   </div>
 </template>

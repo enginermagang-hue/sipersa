@@ -33,9 +33,9 @@ export function useLogoUrl() {
 
   const logoHtml = computed(() =>
     logoDataUrl.value
-      ? `<img src="${logoDataUrl.value}" width="75" style="object-fit:contain;"/>`
+      ? `<img src="${logoDataUrl.value}" width="64" style="object-fit:contain;"/>`
       : logoSrc.value
-        ? `<img src="${logoSrc.value}" width="75" style="object-fit:contain;"/>`
+        ? `<img src="${logoSrc.value}" width="64" style="object-fit:contain;"/>`
         : ''
   )
 

@@ -56,6 +56,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  if (status === 'selesai') {
+    const sisa = await db.execute({ sql: `SELECT COUNT(*) as c FROM disposisi WHERE surat_masuk_id=? AND status!='selesai' AND deleted_at IS NULL`, args: [cur.surat_masuk_id] })
+    if ((sisa.rows[0] as any).c === 0) {
+      await db.execute({ sql: `UPDATE surat_masuk SET status='selesai' WHERE id=?`, args: [cur.surat_masuk_id] })
+    }
+  }
+
   await logActivity({ userId: auth.userId, action: 'UPDATE_DISPOSISI', entity: 'disposisi', entityId: id, detail: { status, dari_status: cur.status }, ip: getRequestIP(event, { xForwardedFor: true }) })
   return { ok: true }
 })

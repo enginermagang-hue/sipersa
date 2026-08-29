@@ -5,6 +5,7 @@ const route = useRoute()
 const config = useRuntimeConfig()
 const instansiNama = config.public.instansiNama || 'Pemerintah Provinsi Nusa Tenggara Timur'
 const instansiUnit = config.public.instansiUnit || 'Dinas Pendidikan dan Kebudayaan'
+const instansiSubUnit = config.public.instansiSubUnit || ''
 const instansiAlamat = config.public.instansiAlamat || ''
 
 const { logoSrc } = useLogoUrl()
@@ -64,29 +65,14 @@ onMounted(() => {
       <div class="kop-text">
         <h1>{{ instansiNama }}</h1>
         <h2>{{ instansiUnit }}</h2>
+        <h2 v-if="instansiSubUnit" class="kop-subunit">{{ instansiSubUnit }}</h2>
         <div v-if="instansiAlamat" class="kop-alamat">{{ instansiAlamat }}</div>
-        <div class="kop-judul">LAPORAN PERSURATAN & ARSIP</div>
-        <p>Periode: {{ periodeLabel }} | Jenis: {{ jenisLabel }} | Dicetak: {{ tglIndo(new Date().toISOString()) }}</p>
       </div>
     </div>
 
-    <div class="ringkasan">
-      <div class="rk-box">
-        <p class="rk-label">Surat Masuk</p>
-        <p class="rk-value">{{ summary?.kpi?.surat_masuk ?? 0 }}</p>
-      </div>
-      <div class="rk-box">
-        <p class="rk-label">Surat Keluar</p>
-        <p class="rk-value">{{ summary?.kpi?.surat_keluar ?? 0 }}</p>
-      </div>
-      <div class="rk-box">
-        <p class="rk-label">Diarsipkan</p>
-        <p class="rk-value">{{ summary?.kpi?.diarsipkan ?? 0 }}</p>
-      </div>
-      <div class="rk-box rk-alert">
-        <p class="rk-label">Perlu Tindak Lanjut</p>
-        <p class="rk-value">{{ summary?.kpi?.perlu_tindak_lanjut ?? 0 }}</p>
-      </div>
+    <div class="judul-laporan">
+      <div class="kop-judul">LAPORAN PERSURATAN & ARSIP</div>
+      <p class="judul-meta">Periode: {{ periodeLabel }} | Jenis: {{ jenisLabel }} | Dicetak: {{ tglIndo(new Date().toISOString()) }}</p>
     </div>
 
     <table class="laporan-table">
@@ -172,8 +158,16 @@ onMounted(() => {
   gap: 14px;
   border-bottom: 3px double #000;
   padding-bottom: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
   position: relative;
+}
+.judul-laporan {
+  text-align: center;
+  margin: 14px 0 16px;
+}
+.judul-meta {
+  margin: 4px 0 0;
+  font-size: 10px;
 }
 .kop-logo {
   width: 60px;
@@ -197,8 +191,14 @@ onMounted(() => {
   font-weight: 600;
   text-transform: uppercase;
 }
+.kop-subunit {
+  margin: 2px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
 .kop-judul {
-  margin-top: 10px;
+  margin: 0;
   font-size: 13px;
   font-weight: 700;
   text-decoration: underline;
@@ -210,42 +210,7 @@ onMounted(() => {
   font-weight: 400;
   text-transform: none;
 }
-.kop p {
-  margin: 4px 0 0;
-  font-size: 10px;
-}
 
-.ringkasan {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.rk-box {
-  flex: 1;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 8px;
-  text-align: center;
-}
-.rk-alert {
-  border-color: #fde68a;
-  background: #fffbeb;
-}
-.rk-alert .rk-value,
-.rk-alert .rk-label {
-  color: #b45309;
-}
-.rk-label {
-  margin: 0;
-  font-size: 9px;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-.rk-value {
-  margin: 2px 0 0;
-  font-size: 18px;
-  font-weight: 700;
-}
 
 .laporan-table {
   width: 100%;

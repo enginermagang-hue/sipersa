@@ -7,16 +7,27 @@ const { user } = useAuth()
 const { confirm } = useConfirm()
 
 const q = ref('')
+const qDebounced = ref('')
+let qTimer: ReturnType<typeof setTimeout> | null = null
+watch(q, (v) => { if (qTimer) clearTimeout(qTimer); qTimer = setTimeout(() => { qDebounced.value = v; page.value = 1 }, 300) })
 const tahun = ref('')
-const status = ref('')
-const refType = ref('')
+const status = ref<string | undefined>(undefined)
+const refType = ref<string | undefined>(undefined)
 const deleted = ref(false)
 const page = ref(1)
 const perPage = ref(20)
+const filterOpen = ref(false)
+const activeFilterCount = computed(() => [status.value, refType.value, tahun.value].filter(Boolean).length)
+function resetFilters() { status.value = undefined; refType.value = undefined; tahun.value = ''; page.value = 1 }
+watch([status, refType, tahun], () => { page.value = 1 })
+const statusLabel = computed(() => statusOptions.find(o => o.value === status.value)?.label ?? status.value ?? '')
+const refTypeLabel = computed(() => refTypeOptions.find(o => o.value === refType.value)?.label ?? refType.value ?? '')
+const kpiExpanded = ref(false)
 
 const { data, refresh, pending } = await useFetch('/api/arsip', {
-  query: { q, tahun, status, ref_type: refType, deleted, page, limit: perPage }
+  query: { q: qDebounced, tahun, status: computed(() => status.value ?? ''), ref_type: computed(() => refType.value ?? ''), deleted, page, limit: perPage }
 })
+const { data: stats } = await useFetch('/api/arsip/stats')
 
 const formOpen = ref(false)
 const editOpen = ref(false)
@@ -27,17 +38,33 @@ const destroyReason = ref('')
 const destroyLoading = ref(false)
 
 const statusOptions = [
-  { label: 'Semua Status', value: '' },
+  { label: 'Semua Status', value: undefined },
   { label: 'Aktif', value: 'aktif' },
   { label: 'Menjelang', value: 'menjelang' },
   { label: 'Kadaluarsa', value: 'kadaluarsa' }
 ]
 const refTypeOptions = [
-  { label: 'Semua Sumber', value: '' },
+  { label: 'Semua Sumber', value: undefined },
   { label: 'Dari Surat Masuk', value: 'masuk' },
   { label: 'Dari Surat Keluar', value: 'keluar' },
   { label: 'Mandiri (upload)', value: 'manual' }
 ]
+
+const kpiCards = computed(() => [
+  { label: 'Total Arsip', value: (stats as any)?.value?.total ?? 0, sub: 'Semua dokumen', icon: 'i-lucide-archive', bg: 'bg-violet-50 dark:bg-violet-950/50', color: 'text-violet-600 dark:text-violet-400' },
+  { label: 'Aktif', value: (stats as any)?.value?.aktif ?? 0, sub: 'Masih berlaku', icon: 'i-lucide-check-circle', bg: 'bg-emerald-50 dark:bg-emerald-950/50', color: 'text-emerald-600 dark:text-emerald-400' },
+  { label: 'Menjelang', value: (stats as any)?.value?.menjelang ?? 0, sub: 'Segera kadaluarsa', icon: 'i-lucide-clock', bg: 'bg-amber-50 dark:bg-amber-950/50', color: 'text-amber-600 dark:text-amber-400' },
+  { label: 'Kadaluarsa', value: (stats as any)?.value?.kadaluarsa ?? 0, sub: 'Perlu pemusnahan', icon: 'i-lucide-flame', bg: 'bg-red-50 dark:bg-red-950/50', color: 'text-red-600 dark:text-red-400' }
+])
+
+function exportExcel() {
+  const p = new URLSearchParams()
+  if (q.value) p.set('q', q.value)
+  if (tahun.value) p.set('tahun', tahun.value)
+  if (status.value) p.set('status', status.value)
+  if (refType.value) p.set('ref_type', refType.value)
+  window.open(`/api/arsip/export?${p.toString()}`, '_blank')
+}
 
 const retensiColor: Record<string, string> = { aktif: 'success', menjelang: 'warning', kadaluarsa: 'error' }
 const retensiLabel: Record<string, string> = { aktif: 'Aktif', menjelang: 'Menjelang', kadaluarsa: 'Kadaluarsa' }
@@ -171,40 +198,109 @@ const columns: TableColumn<any>[] = [
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center justify-between mb-4">
-      <h1 class="text-xl font-bold">Arsip</h1>
-      <UButton v-if="!deleted" icon="i-lucide-plus" @click="formOpen = true">Tambah</UButton>
+  <div class="space-y-5">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Arsip</h1>
+        <p class="text-sm text-muted mt-1">Kelola arsip dan retensi dokumen</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <UButton variant="soft" icon="i-lucide-file-spreadsheet" @click="exportExcel">Export Excel</UButton>
+        <UButton v-if="!deleted" icon="i-lucide-plus" @click="formOpen = true">Tambah</UButton>
+      </div>
     </div>
-    <div class="flex flex-wrap gap-2 mb-4 items-center">
-      <UInput v-model="q" placeholder="Cari dokumen/lokasi" icon="i-lucide-search" class="max-w-xs" />
-      <UInput v-model="tahun" placeholder="Tahun" type="number" class="w-28" />
-      <select v-model="status" class="w-40 rounded-md border border-default bg-default px-2.5 py-1.5 text-sm">
-        <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-      </select>
-      <select v-model="refType" class="w-48 rounded-md border border-default bg-default px-2.5 py-1.5 text-sm">
-        <option v-for="o in refTypeOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-      </select>
+
+    <div class="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+      <UCard v-for="(k, i) in kpiCards.slice(0, 2)" :key="k.label" :ui="{ body: 'p-3 sm:p-4' }" class="hover:shadow-sm">
+        <div class="flex items-start justify-between gap-2 sm:gap-3">
+          <div class="min-w-0">
+            <div class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-muted truncate">{{ k.label }}</div>
+            <div class="text-xl sm:text-3xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
+            <div class="hidden sm:block text-xs text-muted mt-1 truncate">{{ k.sub }}</div>
+          </div>
+          <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" :class="[k.bg, k.color]">
+            <UIcon :name="k.icon" class="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+        </div>
+      </UCard>
+      <UCard v-for="k in kpiCards.slice(2)" :key="k.label" :ui="{ body: 'p-3 sm:p-4' }" :class="['hover:shadow-sm', kpiExpanded ? '' : 'hidden lg:block']">
+        <div class="flex items-start justify-between gap-2 sm:gap-3">
+          <div class="min-w-0">
+            <div class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-muted truncate">{{ k.label }}</div>
+            <div class="text-xl sm:text-3xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
+            <div class="hidden sm:block text-xs text-muted mt-1 truncate">{{ k.sub }}</div>
+          </div>
+          <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" :class="[k.bg, k.color]">
+            <UIcon :name="k.icon" class="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+        </div>
+      </UCard>
+    </div>
+    <div class="flex justify-center lg:hidden">
+      <UButton variant="ghost" size="xs" :trailing-icon="kpiExpanded ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" @click="kpiExpanded = !kpiExpanded">
+        {{ kpiExpanded ? 'Sembunyikan' : `Lihat semua (${kpiCards.length})` }}
+      </UButton>
+    </div>
+
+    <div class="flex gap-2 items-center">
+      <UInput v-model="q" placeholder="Cari dokumen/lokasi" icon="i-lucide-search" class="flex-1 min-w-0" :ui="{ trailing: 'pr-8' }">
+        <template v-if="q" #trailing>
+          <UButton variant="ghost" size="xs" color="neutral" icon="i-lucide-x" aria-label="Hapus pencarian" @click="q = ''" />
+        </template>
+      </UInput>
+      <UButton class="lg:hidden shrink-0" icon="i-lucide-sliders-horizontal" variant="outline" aria-label="Buka filter" @click="filterOpen = true">
+        Filter
+        <UBadge v-if="activeFilterCount" :label="activeFilterCount" color="primary" variant="solid" size="xs" class="ml-1" />
+      </UButton>
+      <UToggle v-model="deleted" label="Terhapus" class="shrink-0 hidden sm:flex" />
+      <UToggle v-model="deleted" class="shrink-0 sm:hidden" />
+    </div>
+
+    <div v-if="activeFilterCount" class="flex flex-wrap items-center gap-1.5 lg:hidden">
+      <span class="text-xs text-muted mr-1">Filter aktif:</span>
+      <UBadge v-if="status" :label="statusLabel" variant="subtle" color="primary" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="status = undefined" />
+      <UBadge v-if="refType" :label="refTypeLabel" variant="subtle" color="neutral" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="refType = undefined" />
+      <UBadge v-if="tahun" :label="tahun" variant="subtle" color="neutral" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="tahun = ''" />
+      <UButton v-if="activeFilterCount > 1" variant="link" size="xs" color="neutral" class="px-1" @click="resetFilters">Hapus semua</UButton>
+    </div>
+    <div class="flex lg:hidden items-center gap-2">
       <UToggle v-model="deleted" label="Tampilkan terhapus" />
     </div>
+
+    <div class="hidden lg:grid lg:grid-cols-12 gap-2 items-center">
+      <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="lg:col-span-3 w-full min-w-0" />
+      <USelect v-model="refType" :items="refTypeOptions" value-key="value" label-key="label" placeholder="Sumber" class="lg:col-span-5 w-full min-w-0" />
+      <UInput v-model="tahun" placeholder="Tahun" type="number" class="lg:col-span-4 w-full min-w-0" />
+    </div>
+
+    <USlideover v-model:open="filterOpen" title="Filter" description="Saring arsip" side="right" :ui="{ content: 'max-w-sm' }">
+      <template #body>
+        <div class="space-y-4">
+          <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="w-full" />
+          <USelect v-model="refType" :items="refTypeOptions" value-key="value" label-key="label" placeholder="Sumber" class="w-full" />
+          <UInput v-model="tahun" placeholder="Tahun" type="number" class="w-full" />
+          <UToggle v-model="deleted" label="Tampilkan terhapus" />
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex gap-2 w-full">
+          <UButton variant="ghost" block @click="resetFilters">Reset</UButton>
+          <UButton block @click="filterOpen = false">Terapkan</UButton>
+        </div>
+      </template>
+    </USlideover>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
       <UTable :data="data?.data || []" :columns="columns" :loading="pending" empty="Belum ada data" />
-      <div class="flex flex-wrap items-center justify-between gap-3 p-4 border-t border-default">
-        <div class="text-sm text-muted">
+      <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between border-t border-default">
+        <div class="text-sm text-muted min-w-0 truncate text-center sm:text-left">
           Menampilkan {{ data?.data?.length ? ((data!.page - 1) * (data!.limit) + 1).toLocaleString('id-ID') : 0 }}–{{ ((data!.page - 1) * data!.limit + (data?.data || []).length).toLocaleString('id-ID') }} dari {{ (data?.total ?? 0).toLocaleString('id-ID') }}
         </div>
-        <div class="flex items-center gap-2">
-          <select v-model="perPage" class="h-8 w-20 rounded-md border border-default bg-default px-2 text-sm">
-            <option :value="10">10</option>
-            <option :value="20">20</option>
-            <option :value="50">50</option>
-          </select>
-          <UPagination
-            v-model:page="page"
-            :items-per-page="data?.limit || perPage"
-            :total="data?.total || 0"
-          />
+        <div class="flex flex-wrap items-center justify-center gap-2 sm:justify-end w-full sm:w-auto">
+          <USelect v-model="perPage" :items="[10,20,50]" class="w-24 shrink-0" />
+          <div class="overflow-x-auto max-w-full -mx-1 px-1">
+            <UPagination v-model:page="page" :items-per-page="data?.limit || perPage" :total="data?.total || 0" :sibling-count="1" size="sm" />
+          </div>
         </div>
       </div>
     </UCard>

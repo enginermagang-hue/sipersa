@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
+import type { DropdownMenuItem, NavigationMenuItem } from '@nuxt/ui'
 
-const { user, logout, fetchMe } = useAuth()
+const { user, logout, loggingOut, fetchMe } = useAuth()
 
 const open = ref(true)
-onMounted(() => {
-  const stored = localStorage.getItem('sidebar-open')
-  if (stored !== null) open.value = stored === 'true'
-  watch(open, value => localStorage.setItem('sidebar-open', String(value)))
-})
+const collapsed = ref(false)
 
 const { data: stats, refresh: refreshStats } = await useFetch('/api/stats', {
   headers: useRequestHeaders(['cookie']) as Record<string, string>
@@ -16,7 +12,6 @@ const { data: stats, refresh: refreshStats } = await useFetch('/api/stats', {
 onMounted(() => {
   setInterval(() => refreshStats(), 30000)
 })
-
 onMounted(() => {
   if (!user.value) fetchMe()
 })
@@ -28,37 +23,31 @@ const items = computed<NavigationMenuItem[][]>(() => {
     { label: 'Surat Keluar', icon: 'i-lucide-send', to: '/surat-keluar', badge: (['pimpinan'].includes(user.value?.role) ? stats.value?.keluarMenungguPersetujuan : 0) || undefined },
     { label: 'Disposisi', icon: 'i-lucide-share-2', to: '/disposisi', badge: (stats.value?.disposisiSaya || 0) || undefined }
   ]
-
   const manajemen: NavigationMenuItem[] = [
     { label: 'Arsip', icon: 'i-lucide-archive', to: '/arsip' },
     { label: 'Laporan', icon: 'i-lucide-file-bar-chart', to: '/laporan' }
   ]
-
   const operasional: NavigationMenuItem[] = []
   if (['pimpinan', 'admin'].includes(user.value?.role)) {
     operasional.push({ label: 'Kelola Disposisi', icon: 'i-lucide-list-checks', to: '/disposisi/kelola' })
   }
-
   const adminMenu: NavigationMenuItem[] = []
   if (user.value?.role === 'admin') {
     adminMenu.push({
       label: 'Admin',
       icon: 'i-lucide-settings',
+      defaultOpen: true,
       children: [
         { label: 'Users', icon: 'i-lucide-users', to: '/admin/users' },
         { label: 'Session', icon: 'i-lucide-monitor-dot', to: '/admin/sessions' },
-
         { label: 'Log Aktivitas', icon: 'i-lucide-scroll-text', to: '/admin/activity' },
         { label: 'Klasifikasi', icon: 'i-lucide-tags', to: '/admin/klasifikasi' }
       ]
     })
   }
-
   const otherMenu: NavigationMenuItem[] = [
     { label: 'Tentang', icon: 'i-lucide-info', to: '/tentang' }
   ]
-
-
   const groups: NavigationMenuItem[][] = [utama, manajemen]
   if (operasional.length) groups.push(operasional)
   if (adminMenu.length) groups.push(adminMenu)
@@ -68,146 +57,137 @@ const items = computed<NavigationMenuItem[][]>(() => {
 
 const appConfig = useAppConfig()
 const config = useRuntimeConfig()
+const route = useRoute()
 
 const avatarUrl = computed(() => user.value
   ? `https://api.dicebear.com/10.x/initials/svg?seed=${encodeURIComponent(user.value.nama)}`
   : '')
 
 const userItems = computed(() => [[
-  {
-    label: user.value?.nama ?? '',
-    description: user.value?.email ?? user.value?.jabatan,
-    type: 'label',
-    class: 'font-semibold',
-    avatar: { src: avatarUrl, alt: user.value?.nama, size: 'xl' },
-  },
-  { type: 'separator' },
+  { label: user.value?.nama ?? '', description: user.value?.email ?? user.value?.jabatan, type: 'label' as const, class: 'font-semibold', avatar: { src: avatarUrl.value, alt: user.value?.nama } },
+  { type: 'separator' as const },
   { label: 'Profil', icon: 'i-lucide-user', to: '/profil' },
-  { type: 'separator' },
-  { label: 'Tentang', icon: 'i-lucide-info', to: '/tentang'},
-  { type: 'separator' },
+  { type: 'separator' as const },
+  { label: 'Tentang', icon: 'i-lucide-info', to: '/tentang' },
+  { type: 'separator' as const },
   { label: 'Keluar', icon: 'i-lucide-log-out', onSelect: () => logout() }
 ]])
 
 const currentYear = new Date().getFullYear()
 
+// Search palette
+const showSearch = ref(false)
 const topSearch = ref('')
 function goSearch() {
   const q = topSearch.value.trim()
   if (!q) return
+  showSearch.value = false
   navigateTo(`/search?q=${encodeURIComponent(q)}`)
 }
+defineShortcuts({
+  meta_k: () => { showSearch.value = !showSearch.value },
+  ctrl_k: () => { showSearch.value = !showSearch.value }
+})
+
+const quickActions = computed<DropdownMenuItem[][]>(() => [[
+  { label: 'Surat Masuk Baru', icon: 'i-lucide-inbox', to: '/surat-masuk' },
+  { label: 'Surat Keluar Baru', icon: 'i-lucide-send', to: '/surat-keluar/tulis' },
+  { label: 'Arsip Baru', icon: 'i-lucide-archive', to: '/arsip' }
+]])
 </script>
 
 <template>
-  <div class="flex min-h-screen">
-    <USidebar
+  <UDashboardGroup storage storage-key="sipersa-sidebar" unit="rem">
+    <UDashboardSidebar
       v-model:open="open"
-      collapsible="icon"
-      rail
-      class="responsive-sidebar"
-      :ui="{ container: 'h-full', inner: 'bg-elevated/25 divide-transparent', body: 'py-0', header: 'px-0'}"
+      v-model:collapsed="collapsed"
+      collapsible resizable
+      :min-size="14" :default-size="16" :max-size="22"
+      :ui="{ footer: 'border-t border-default' }"
     >
-      <template #header="{ close }">
-        <div class="flex flex-col gap-2 truncate border-b-0 border-gray-200 dark:border-gray-800 py-4 px-4">
-          <div class="flex flex-row items-center justify-between static">
-            <div class="flex flex-row items-center justify-start">
-              <img class="mr-4" src="/ntt.png" style="width: 32px;"/>
-              <div>
-                <div class="font-bold text-lg" v-if="open" style="letter-spacing: 10px !important;">{{ config.public.appName || 'SIPERSA' }}</div>
-              </div>
-            </div>
-            <UButton
-              icon="i-lucide-x"
-              color="neutral"
-              variant="ghost"
-              aria-label="Tutup menu"
-              class="lg:hidden absolute"
-              style="right: 5px; top: 5px"
-              @click="close"
-            />
-          </div>
+      <template #header="{ collapsed: c }">
+        <div class="flex items-center gap-3 w-full">
+          <img src="/ntt.png" alt="logo" class="size-8 shrink-0">
+          <span v-if="!c" class="font-bold text-sm tracking-[0.3em] truncate">{{ config.public.appName || 'SIPERSA' }}</span>
         </div>
       </template>
 
-      <template #default="{ state }">
-        <div class="py-6">
-          <UNavigationMenu
-            :key="state"
-            :items="items"
-            orientation="vertical"
-            :ui="{ link: 'p-2 overflow-hidden' }"
-          />
-          </div>
-      </template>
-
-      <template #footer>
-        <div class="flex items-center gap-2 px-2 py-1 overflow-hidden">
-          <UIcon name="i-lucide-mail" class="text-primary size-5 shrink-0" />
-          <div v-if="open" class="min-w-0 space-y-0.5">
-            <div class="font-semibold text-sm truncate">{{ config.public.appName || 'SIPERSA' }}</div>
-            <div class="text-xs text-muted truncate">Aplikasi Surat Masuk/Keluar, Disposisi &amp; Arsip</div>
-            <div class="text-xs text-dimmed">v{{ appConfig.app.version }}</div>
-          </div>
-        </div>
-      </template>
-    </USidebar>
-
-    <div class="flex-1 flex flex-col min-h-screen min-w-0">
-      <header class="sticky top-0 z-30 h-14 border-b border-default bg-default shrink-0 flex items-center justify-between px-4">
+      <template #default="{ collapsed: c }">
         <UButton
-          icon="i-lucide-panel-left"
-          color="neutral"
-          variant="ghost"
-          aria-label="Toggle sidebar"
-          @click="open = !open"
-        />
-        <div class="flex-1" />
-        <form class="w-36 md:w-64" @submit.prevent="goSearch">
-          <UInput
-            v-model="topSearch"
-            icon="i-lucide-search"
-            placeholder="Cari surat / arsip…"
-            type="search"
-            enterkeyhint="search"
-          />
-        </form>
-        <UColorModeButton  class="ml-2"/>
-        <NotificationBell />
-        <UDropdownMenu
-          v-if="user"
-          :items="userItems"
-          :content="{ align: 'end', collisionPadding: 12 }"
-          :ui="{ content: 'min-w-52' }"
+          :label="c ? undefined : 'Cari...'"
+          icon="i-lucide-search"
+          color="neutral" variant="outline" block :square="c"
+          @click="showSearch = true"
         >
-          <UButton
-            color="neutral"
-            variant="ghost"
-            class="data-[state=open]:bg-elevated"
-            aria-label="Menu pengguna"
-          >
-            <template #leading>
-              <UAvatar :src="avatarUrl" :alt="user.nama" size="sm" />
-            </template>
-            <span class="hidden sm:inline max-w-32 truncate">{{ user.nama }}</span>
-            <template #trailing>
-              <UIcon name="i-lucide-chevrons-up-down" class="text-muted" />
-            </template>
+          <template v-if="!c" #trailing>
+            <div class="flex items-center gap-0.5 ms-auto">
+              <UKbd value="meta" variant="subtle" />
+              <UKbd value="K" variant="subtle" />
+            </div>
+          </template>
+        </UButton>
+
+        <UNavigationMenu :collapsed="c" :items="items" orientation="vertical" class="flex-1" />
+      </template>
+
+      <template #footer="{ collapsed: c }">
+        <UDropdownMenu v-if="user" :items="userItems" :content="{ align: c ? 'center' : 'end', side: 'top', collisionPadding: 12 }" :ui="{ content: 'min-w-52' }">
+          <UButton color="neutral" variant="ghost" block :square="c" class="data-[state=open]:bg-elevated justify-start" aria-label="Menu pengguna">
+            <template #leading><UAvatar :src="avatarUrl" :alt="user.nama" size="xs" /></template>
+            <span v-if="!c" class="truncate text-left flex-1">{{ user.nama }}</span>
+            <template v-if="!c" #trailing><UIcon name="i-lucide-chevrons-up-down" class="text-muted ms-auto" /></template>
           </UButton>
         </UDropdownMenu>
-      </header>
+      </template>
+    </UDashboardSidebar>
 
-      <main class="flex-1 p-4 min-w-0">
-        <slot />
-      </main>
-      <footer class="shrink-0 border-t border-default px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted">
-        <div>© {{ currentYear }} {{ config.public.appName || 'SIPERSA' }}</div>
-        <div class="flex items-center gap-2">
-          <span>v{{ appConfig.app.version }}</span>
-          <span class="hidden sm:inline">•</span>
-          <span>Sistem Informasi Persuratan dan Arsip</span>
+    <UDashboardPanel id="main">
+      <template #header>
+        <UDashboardNavbar :title="String(route.meta.title || 'Dashboard')" :ui="{ right: 'gap-3' }">
+          <template #leading>
+            <UDashboardSidebarCollapse />
+          </template>
+          <template #right>
+            <UColorModeButton />
+            <NotificationBell />
+            <UDropdownMenu :items="quickActions" :content="{ align: 'end' }" :ui="{ content: 'min-w-48' }">
+              <UButton icon="i-lucide-plus" size="md" class="rounded-full" aria-label="Aksi cepat" />
+            </UDropdownMenu>
+          </template>
+        </UDashboardNavbar>
+      </template>
+
+      <template #body>
+        <div class="p-4">
+          <slot />
         </div>
-      </footer>
-    </div>
-  </div>
+        <footer class="shrink-0 border-t border-default px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted mt-4">
+          <div>© {{ currentYear }} {{ config.public.appName || 'SIPERSA' }}</div>
+          <div class="flex items-center gap-2">
+            <span>v{{ appConfig.app.version }}</span>
+            <span class="hidden sm:inline">•</span>
+            <span>Sistem Informasi Persuratan dan Arsip</span>
+          </div>
+        </footer>
+      </template>
+    </UDashboardPanel>
+  </UDashboardGroup>
+
+  <UModal v-model:open="showSearch" title="Pencarian">
+    <template #body>
+      <form @submit.prevent="goSearch" class="flex gap-2">
+        <UInput v-model="topSearch" icon="i-lucide-search" placeholder="Cari surat / arsip…" autofocus class="flex-1" />
+        <UButton type="submit" icon="i-lucide-search">Cari</UButton>
+      </form>
+    </template>
+  </UModal>
+
+  <UModal v-model:open="loggingOut" :dismissible="false" :close="false" title="Keluar">
+    <template #body>
+      <div class="flex flex-col items-center gap-4 py-6">
+        <UIcon name="i-lucide-loader-circle" class="animate-spin size-10 text-primary" />
+        <div class="text-center"><p class="font-semibold">Sedang keluar...</p><p class="text-sm text-muted">Mohon tunggu sebentar</p></div>
+      </div>
+    </template>
+  </UModal>
 </template>

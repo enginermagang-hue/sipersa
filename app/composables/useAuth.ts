@@ -1,6 +1,7 @@
 export const useAuth = () => {
   const user = useState<any>('auth-user', () => null)
   const loaded = useState('auth-loaded', () => false)
+  const loggingOut = useState<boolean>('auth-logging-out', () => false)
 
   async function fetchMe() {
     try {
@@ -22,9 +23,18 @@ export const useAuth = () => {
   }
 
   async function logout() {
-    await $fetch('/api/auth/logout', { method: 'POST' })
-    user.value = null
-    await navigateTo('/login')
+    if (loggingOut.value) return
+    loggingOut.value = true
+    try {
+      await $fetch('/api/auth/logout', { method: 'POST' })
+      user.value = null
+      await navigateTo('/login')
+    } catch {
+      const toast = useToast()
+      toast.add({ color: 'error', title: 'Gagal keluar', description: 'Terjadi kesalahan, coba lagi.' })
+    } finally {
+      loggingOut.value = false
+    }
   }
 
   function googleLogin() {
@@ -45,5 +55,5 @@ export const useAuth = () => {
     popup.focus()
   }
 
-  return { user, loaded, fetchMe, login, logout, googleLogin }
+  return { user, loaded, loggingOut, fetchMe, login, logout, googleLogin }
 }

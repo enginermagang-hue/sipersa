@@ -2,6 +2,7 @@ import { useDb } from '../../utils/db'
 import { readFormWithFile } from '../../utils/body'
 import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { logActivity } from '../../utils/logger'
+import { notifyPimpinanSuratKeluar } from '../../utils/notify'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
@@ -28,9 +29,12 @@ export default defineEventHandler(async (event) => {
   if (!kode) throw createError({ statusCode: 422, statusMessage: 'Kode klasifikasi wajib diisi' })
 
   await db.execute({
-    sql: `UPDATE surat_keluar SET tgl_surat = ?, tujuan = ?, perihal = ?, sifat = ?, klasifikasi_kode = ?, status = ?, penandatangan = ?, html_content = ?, render_config = ?, file_drive_id = ?, file_name = ? WHERE id = ?`,
-    args: [ fields.tgl_surat, fields.tujuan, fields.perihal, fields.sifat || 'biasa', kode, fields.status || 'draft', fields.penandatangan || '', fields.html_content || null, fields.render_config || null, fileDriveId, fileName, id ]
+    sql: `UPDATE surat_keluar SET tgl_surat = ?, tujuan = ?, perihal = ?, sifat = ?, klasifikasi_kode = ?, status = ?, penandatangan = ?, penandatangan_id = ?, html_content = ?, render_config = ?, file_drive_id = ?, file_name = ? WHERE id = ?`,
+    args: [ fields.tgl_surat, fields.tujuan, fields.perihal, fields.sifat || 'biasa', kode, fields.status || 'draft', fields.penandatangan || '', fields.penandatangan_id ? Number(fields.penandatangan_id) : null, fields.html_content || null, fields.render_config || null, fileDriveId, fileName, id ]
   })
+  if (surat.status !== 'menunggu_persetujuan' && (fields.status === 'menunggu_persetujuan')) {
+    await notifyPimpinanSuratKeluar(db, { id, no_surat: (surat as any).no_surat, tujuan: fields.tujuan as string, perihal: fields.perihal as string })
+  }
   await logActivity({ userId: auth.userId, action: 'UPDATE_SURAT_KELUAR', entity: 'surat_keluar', entityId: id, ip: getRequestIP(event, { xForwardedFor: true }) })
   return { ok: true }
 })

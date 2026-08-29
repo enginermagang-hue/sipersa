@@ -21,6 +21,7 @@ export interface Tpl {
   bodyBefore?: string
   opening?: string
   closing: string
+  hideYth?: boolean
 }
 
 export const SURAT_TEMPLATES: Tpl[] = [
@@ -35,7 +36,7 @@ export const SURAT_TEMPLATES: Tpl[] = [
     label: 'Undangan Resmi',
     title: 'UNDANGAN',
     opening: 'Dengan hormat,',
-    bodyBefore: '<p>Dalam rangka {perihal}, kami mengundang Bapak/Ibu/Saudara(i) untuk hadir pada:</p><p>Hari/Tanggal : ..........................................<br/>Waktu&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ..........................................<br/>Tempat&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ..........................................<br/>Acara&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {perihal}</p>',
+    bodyBefore: '<p>Dalam rangka {perihal}, kami mengundang Bapak/Ibu/Saudara(i) untuk hadir pada:</p>{{undangan_kv}}',
     closing: 'Demikian undangan ini kami sampaikan. Atas perhatian dan kehadiran Bapak/Ibu, kami ucapkan terima kasih.'
   },
   {
@@ -70,7 +71,8 @@ export const SURAT_TEMPLATES: Tpl[] = [
     id: 'surat-tugas',
     label: 'Surat Tugas',
     title: 'SURAT TUGAS',
-    bodyBefore: '<p>Yang bertanda tangan di bawah ini :</p><p>Nama&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ..........................................<br/>NIP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ..........................................<br/>Jabatan&nbsp;&nbsp;&nbsp;&nbsp;: ..........................................</p><p>dengan ini menugaskan :</p><p>Nama&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ..........................................<br/>NIP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ..........................................<br/>Jabatan&nbsp;&nbsp;&nbsp;&nbsp;: ..........................................</p><p>untuk melaksanakan :</p>',
+    hideYth: true,
+    bodyBefore: '<p>Yang bertanda tangan di bawah ini :</p>{{stugas1}}<p style="margin:8px 0 4px;">dengan ini menugaskan :</p>{{stugas2}}<p style="margin:8px 0 0;">untuk melaksanakan :</p>',
     closing: 'Demikian surat tugas ini dibuat untuk dipergunakan sebagaimana mestinya.'
   }
 ]
@@ -88,7 +90,7 @@ function kopHtml(ctx: TemplateCtx): string {
     <tr>
       ${logoCell}
       <td style="text-align:center;vertical-align:middle;padding:0;">
-        <div style="font-size:14pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;">${ctx.instansiNama}</div>
+        <div style="font-size:12pt;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;line-height:1.2;">${ctx.instansiNama}</div>
         <div style="font-size:12pt;font-weight:bold;text-transform:uppercase;margin-top:2px;line-height:1.2;">${ctx.instansiUnit}</div>
         <div style="font-size:12pt;font-weight:bold;text-transform:uppercase;margin-top:2px;line-height:1.2;">${ctx.instansiSubUnit}</div>
         ${alamatLine}
@@ -100,12 +102,24 @@ function kopHtml(ctx: TemplateCtx): string {
 </div>`
 }
 
+function esc(s: string) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+function kvTable(rows: [string, string][], opts?: { labelWidth?: string }): string {
+  const lw = opts?.labelWidth || '130px'
+  const trs = rows.map(([k, v]) =>
+    `<tr><td style="border:none;padding:1px 0;vertical-align:top;white-space:nowrap;width:${lw};">${k}</td><td style="border:none;padding:1px 6px;vertical-align:top;text-align:center;width:12px;">:</td><td style="border:none;padding:1px 0;vertical-align:top;">${v}</td></tr>`
+  ).join('')
+  return `<table border="0" cellpadding="0" cellspacing="0" style="border:none;border-collapse:collapse;margin:0 0 2px;width:100%;">${trs}</table>`
+}
+
+function escAttr(s: string){ return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;') }
+
 function headerBlock(ctx: TemplateCtx): string {
-  return `<div style="margin-bottom:12px;">
-  <div>Nomor : <b>${ctx.noSurat}</b></div>
-  <div>Lampiran : -</div>
-  <div>Perihal : <b>${ctx.perihal}</b></div>
-</div>`
+  return `<div style="margin-bottom:12px;">${kvTable([
+    ['Nomor', `<b id="hdr-nomor">${esc(ctx.noSurat)}</b>`],
+    ['Lampiran', '-'],
+    ['Perihal', `<b id="hdr-perihal">${esc(ctx.perihal)}</b>`],
+  ])}</div>`
 }
 
 export function tembusanBlock(): string {
@@ -129,7 +143,7 @@ export function ttdBlock(ctx: TemplateCtx): string {
   <p style="margin:0;">${ctx.tglSurat}</p>
   <p style="margin:0;">Mengetahui,</p>
   <p style="margin:0 0 4px;">${jabatan}</p>
-  <div style="height:66px;">{{%ttd%}}</div>
+  <div style="height:66px;display:flex;align-items:center;justify-content:center;background:#ffffff;">{{%ttd%}}</div>
   <p style="margin:0;font-weight:bold;text-decoration:underline;">${nama}</p>
   <p style="margin:0;">${nip}</p>
   </div>
@@ -156,18 +170,34 @@ export function getTemplateById(id: string): Tpl {
 export function assembleTemplate(id: string, ctx: TemplateCtx): string {
   const tpl = getTemplateById(id)
   const title = tpl.title ? `<p style="text-align:center;font-weight:bold;text-decoration:underline;margin:0 0 12px;">${tpl.title}</p>` : ''
-  const bodyBefore = tpl.bodyBefore ? tpl.bodyBefore.replace(/\{perihal\}/g, ctx.perihal) : ''
-  const opening = tpl.opening ? `<p style="margin:0 0 8px;">${tpl.opening}</p>` : ''
+  let bodyBefore = tpl.bodyBefore ? tpl.bodyBefore.replace(/\{perihal\}/g, esc(ctx.perihal)) : ''
+  const dot = '..........................................'
+  if (bodyBefore.includes('{{undangan_kv}}')) {
+    bodyBefore = bodyBefore.replace('{{undangan_kv}}', kvTable([
+      ['Hari/Tanggal', dot],
+      ['Waktu', dot],
+      ['Tempat', dot],
+      ['Acara', `<span id="kv-acara">${esc(ctx.perihal) || dot}</span>`],
+    ], { labelWidth: '110px' }))
+  }
+  if (bodyBefore.includes('{{stugas1}}')) {
+    const kv = kvTable([['Nama', dot], ['NIP', dot], ['Jabatan', dot]], { labelWidth: '90px' })
+    bodyBefore = bodyBefore.replace('{{stugas1}}', kv).replace('{{stugas2}}', kv)
+  }
+  let openingHtml = tpl.opening ? `<p style="margin:0 0 8px;">${esc(tpl.opening).replace(/\{perihal\}/g, `<span id="opening-perihal">${esc(ctx.perihal) || '...'}</span>`)}</p>` : ''
+  // handle non-undangan templates where opening contains {perihal} placeholder
+  const opening = openingHtml
   const isi = ctx.isi || '<p>&nbsp;</p>'
   const tembusan = ctx.denganTembusan ? tembusanBlock() : ''
   const parafHirarki = ctx.denganParaf ? parafHirarkiBlock() : ''
+  const ythBlock = tpl.hideYth ? '' : `<p style="margin:0 0 4px;">Yth. <span id="hdr-tujuan">${esc(ctx.tujuan) || '..........................................'}</span></p><p style="margin:0 0 10px;">di -<br/>Tempat</p>`
   return [
     kopHtml(ctx),
     headerBlock(ctx),
     title,
-    `<p style="margin:0 0 4px;">Yth. ${ctx.tujuan}</p><p style="margin:0 0 10px;">di -<br/>Tempat</p>`,
-    bodyBefore,
+    ythBlock,
     opening,
+    bodyBefore ? `<div style="margin:8px 0;">${bodyBefore}</div>` : '',
     `<div>${isi}</div>`,
     `<p style="margin:10px 0 0;">${tpl.closing}</p>`,
     ttdBlock(ctx),

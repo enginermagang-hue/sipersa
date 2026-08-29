@@ -4,6 +4,7 @@ import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { generateNoSuratKeluar } from '../../utils/no'
 import { suratKeluarSchema } from '../../../lib/validations'
 import { logActivity } from '../../utils/logger'
+import { notifyPimpinanSuratKeluar } from '../../utils/notify'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
@@ -19,6 +20,7 @@ export default defineEventHandler(async (event) => {
     klasifikasi_kode: rawKode,
     status: fields.status || 'draft',
     penandatangan: fields.penandatangan || '',
+    penandatangan_id: fields.penandatangan_id ? Number(fields.penandatangan_id) : null,
     html_content: fields.html_content || null,
     render_config: fields.render_config || null,
     no_urut: fields.no_urut ? Number(fields.no_urut) : null,
@@ -55,11 +57,12 @@ export default defineEventHandler(async (event) => {
 
   const db = useDb()
   const res = await db.execute({
-    sql: `INSERT INTO surat_keluar (no_urut, no_surat, klasifikasi_kode, tgl_surat, tujuan, perihal, sifat, status, penandatangan, html_content, render_config, file_drive_id, file_name, created_by)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [ no_urut, no_surat, kode, data.tgl_surat, data.tujuan, data.perihal, data.sifat, data.status, data.penandatangan, data.html_content, data.render_config, fileDriveId, fileName, auth.userId ]
+    sql: `INSERT INTO surat_keluar (no_urut, no_surat, klasifikasi_kode, tgl_surat, tujuan, perihal, sifat, status, penandatangan, penandatangan_id, html_content, render_config, file_drive_id, file_name, created_by)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [ no_urut, no_surat, kode, data.tgl_surat, data.tujuan, data.perihal, data.sifat, data.status, data.penandatangan, (data as any).penandatangan_id || null, data.html_content, data.render_config, fileDriveId, fileName, auth.userId ]
   })
   const id = Number((res.rows[0] as any)?.id ?? res.lastInsertRowid)
+  if (data.status === 'menunggu_persetujuan') await notifyPimpinanSuratKeluar(db, { id, no_surat, tujuan: data.tujuan, perihal: data.perihal })
   await logActivity({ userId: auth.userId, action: 'CREATE_SURAT_KELUAR', entity: 'surat_keluar', entityId: id, detail: { no_surat }, ip: getRequestIP(event, { xForwardedFor: true }) })
   return { id, no_surat }
 })

@@ -26,9 +26,22 @@ const state = reactive({
 
 const isi = ref('')
 
+const MARGIN_TEMPLATES = [
+  { label:'Skripsi — 4·4·3·3 cm (A4)', value:'skripsi', m:{top:4,right:3,bottom:3,left:4} },
+  { label:'Surat Dinas — 3·4·3·3 cm (A4/F4)', value:'dinas', m:{top:3,right:3,bottom:3,left:4} },
+  { label:'Makalah — 3·4·3·3 cm (A4)', value:'makalah', m:{top:3,right:3,bottom:3,left:4} },
+  { label:'Internasional — 2,54 cm semua sisi', value:'inci', m:{top:2.54,right:2.54,bottom:2.54,left:2.54} },
+  { label:'Custom…', value:'custom' },
+] as const
+const marginTemplate = ref('inci')
+const marginCustomCm = reactive({top:2.54,right:2.54,bottom:2.54,left:2.54})
+const marginMm = computed(()=> {
+  if(marginTemplate.value==='custom') return {top:Math.round(marginCustomCm.top*10*10)/10,right:Math.round(marginCustomCm.right*10*10)/10,bottom:Math.round(marginCustomCm.bottom*10*10)/10,left:Math.round(marginCustomCm.left*10*10)/10}
+  const t=(MARGIN_TEMPLATES as any).find((x:any)=>x.value===marginTemplate.value); return t?.m ? {top:t.m.top*10,right:t.m.right*10,bottom:t.m.bottom*10,left:t.m.left*10} : {top:30,right:30,bottom:30,left:40}
+})
+
 const ukuranKertas = ref<'a4' | 'f4' | 'letter'>('a4')
 const font = ref('Inter')
-const marginMm = ref(25)
 const orientasi = ref<'portrait' | 'landscape'>('portrait')
 
 const kertasOptions = [
@@ -163,6 +176,17 @@ watch([denganTembusan, denganParaf, penandatanganId], () => {
   syncBlocks()
 })
 
+function escHtml(s:string){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+function syncDom(id:string, html:string){
+  const ed=getEd(); if(!ed||!ed.dom) return
+  const el=ed.dom.get(id); if(el) { ed.dom.setHTML(el, html); ed.fire('change input') }
+}
+let syncTimer:any=null
+function debouncedSync(fn:()=>void){ clearTimeout(syncTimer); syncTimer=setTimeout(fn, 120) }
+watch(()=>state.tujuan, v=> debouncedSync(()=> syncDom('hdr-tujuan', escHtml(v) || '..........................................')))
+watch(()=>state.perihal, v=> debouncedSync(()=>{ const h=escHtml(v); syncDom('hdr-perihal', h||''); syncDom('kv-acara', h||'..........................................'); syncDom('opening-perihal', h||'...') }))
+watch(()=>state.no_surat, v=> debouncedSync(()=> syncDom('hdr-nomor', escHtml(v))))
+
 const tabItems = [
   { label: 'Informasi Surat', value: 'informasi', slot: 'informasi' },
   { label: 'Opsi Cetak', value: 'cetak', slot: 'cetak' },
@@ -187,28 +211,42 @@ function validate(): string | null {
   return null
 }
 
-async function simpan() {
+const submitting = ref(false)
+const ajukanOpen = ref(false)
+
+async function simpanWithStatus(status: string) {
   const err = validate()
   if (err) {
     toast.add({ title: 'Data belum lengkap', description: err, color: 'error' })
-    return
+    return null
   }
-  saving.value = true
+  const isAjukan = status === 'menunggu_persetujuan'
+  if (isAjukan) submitting.value = true; else saving.value = true
   try {
     const fd = new FormData()
     Object.entries({ ...state }).forEach(([k, v]) => fd.append(k, String(v)))
+    fd.set('status', status)
+    if (penandatanganId.value) fd.append('penandatangan_id', String(penandatanganId.value))
     fd.append('html_content', isi.value)
     fd.append('render_config', JSON.stringify({ ukuranKertas: ukuranKertas.value, font: font.value, marginMm: marginMm.value, orientasi: orientasi.value }))
-
     const res = await $fetch('/api/surat-keluar', { method: 'POST', body: fd })
-    toast.add({ title: 'Berhasil', description: 'Surat disimpan sebagai draft. Submit untuk persetujuan pimpinan di halaman detail.', color: 'success' })
+    toast.add({ title: 'Berhasil', description: isAjukan ? 'Surat diajukan, menunggu persetujuan pimpinan.' : 'Surat disimpan sebagai draft. Submit untuk persetujuan pimpinan di halaman detail.', color: 'success' })
     navigateTo(`/surat-keluar/${res.id}`)
+    return res
   } catch (e: any) {
-    toast.add({ title: 'Gagal menyimpan', description: e?.data?.statusMessage || 'Terjadi kesalahan', color: 'error' })
+    toast.add({ title: isAjukan ? 'Gagal mengajukan' : 'Gagal menyimpan', description: e?.data?.statusMessage || 'Terjadi kesalahan', color: 'error' })
+    return null
   } finally {
-    saving.value = false
+    saving.value = false; submitting.value = false
   }
 }
+async function simpan() { await simpanWithStatus('draft') }
+async function ajukan() {
+  const err = validate()
+  if (err) { toast.add({ title: 'Data belum lengkap', description: err, color: 'error' }); return }
+  ajukanOpen.value = true
+}
+async function confirmAjukan() { ajukanOpen.value = false; await simpanWithStatus('menunggu_persetujuan') }
 </script>
 
 <template>
@@ -221,8 +259,15 @@ async function simpan() {
           <p class="text-sm text-muted mt-0.5">Simpan sebagai draft; PDF dibuat otomatis setelah disetujui pimpinan</p>
         </div>
       </div>
-      <UButton icon="i-lucide-save" color="primary" :loading="saving" @click="simpan">Simpan Surat</UButton>
+      <div class="flex items-center gap-2">
+        <UButton icon="i-lucide-save" color="neutral" variant="outline" :loading="saving" :disabled="submitting" @click="simpan">Simpan draft</UButton>
+        <UButton icon="i-lucide-send" color="primary" :loading="submitting" :disabled="saving" @click="ajukan">Ajukan untuk persetujuan</UButton>
+      </div>
     </div>
+    <UModal v-model:open="ajukanOpen" title="Ajukan surat?" :ui="{ footer: 'justify-end' }">
+      <template #body><p class="text-sm text-muted">Surat akan langsung berstatus <b>Menunggu Persetujuan</b> dan terkunci sampai pimpinan menyetujui/menolak. Lanjutkan?</p></template>
+      <template #footer="{ close }"><UButton variant="ghost" @click="close">Batal</UButton><UButton color="primary" :loading="submitting" @click="confirmAjukan">Ya, Ajukan</UButton></template>
+    </UModal>
 
     <div class="grid gap-5 flex-1 min-h-0 items-stretch" :class="panelOpen ? 'grid-cols-1 lg:grid-cols-[7fr_3fr]' : 'grid-cols-1'">
       <UCard :ui="{ body: 'p-2 h-full flex flex-col min-h-0' }" class="min-w-0 flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -235,6 +280,7 @@ async function simpan() {
             :paper-width="PAPER[ukuranKertas][0]"
             :paper-height="PAPER[ukuranKertas][1]"
             :margin-mm="marginMm"
+            :orientasi="orientasi"
             :font-family="font"
           />
           <div v-if="logoLoading" class="flex items-center gap-2 mt-2 text-sm text-muted shrink-0">
@@ -290,9 +336,21 @@ async function simpan() {
                 <UFormField label="Font">
                   <USelect class="w-full" v-model="font" :items="fontOptions" />
                 </UFormField>
-                <UFormField label="Margin (mm)">
-                  <UInput v-model.number="marginMm" type="number" min="0" max="60" />
+                <UFormField label="Template Margin">
+                  <USelect class="w-full" v-model="marginTemplate" :items="[...MARGIN_TEMPLATES]" />
                 </UFormField>
+                <div v-if="marginTemplate!=='custom'" class="text-xs text-muted bg-muted/30 rounded-lg p-2">
+                  Atas {{(marginMm as any).top/10}} cm ({{(marginMm as any).top}} mm) · Kanan {{(marginMm as any).right/10}} cm · Bawah {{(marginMm as any).bottom/10}} cm · Kiri {{(marginMm as any).left/10}} cm
+                </div>
+                <template v-else>
+                  <div class="grid grid-cols-2 gap-3">
+                    <UFormField label="Atas (cm)"><UInput v-model.number="marginCustomCm.top" type="number" step="0.1" min="0" /></UFormField>
+                    <UFormField label="Kanan (cm)"><UInput v-model.number="marginCustomCm.right" type="number" step="0.1" min="0" /></UFormField>
+                    <UFormField label="Bawah (cm)"><UInput v-model.number="marginCustomCm.bottom" type="number" step="0.1" min="0" /></UFormField>
+                    <UFormField label="Kiri (cm)"><UInput v-model.number="marginCustomCm.left" type="number" step="0.1" min="0" /></UFormField>
+                  </div>
+                  <p class="text-xs text-muted">≈ {{marginMm.top}} / {{marginMm.right}} / {{marginMm.bottom}} / {{marginMm.left}} mm</p>
+                </template>
                 <UFormField label="Orientasi">
                   <USelect class="w-full" v-model="orientasi" :items="orientasiOptions" />
                 </UFormField>

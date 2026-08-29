@@ -3,6 +3,11 @@ const { user } = useAuth()
 const { data, pending, isInitialLoading, isRefreshing, refresh, period, klasifikasiId } = useDashboard()
 const { data: klasifikasi } = await useFetch('/api/klasifikasi', { headers: useRequestHeaders(['cookie']) as any })
 const klasOptions = computed(() => [{ label:'Semua Klasifikasi', value:null }, ...((klasifikasi.value as any[])||[]).map((k:any)=>({label: k.nama, value:k.id}))])
+const aksiItems = computed(() => [[
+  { label: 'Surat Masuk', icon: 'i-lucide-plus', to: '/surat-masuk' },
+  { label: 'Surat Keluar', icon: 'i-lucide-plus', to: '/surat-keluar' },
+  { label: 'Disposisi', icon: 'i-lucide-share-2', to: '/disposisi' },
+], [{ label: 'Export Laporan', icon: 'i-lucide-download', to: '/laporan' }]])
 </script>
 <template>
   <div class="space-y-4">
@@ -11,7 +16,7 @@ const klasOptions = computed(() => [{ label:'Semua Klasifikasi', value:null }, .
       <div class="flex gap-2">
         <USelect v-model="period" :items="[{label:'3 Bulan',value:3},{label:'6 Bulan',value:6},{label:'9 Bulan',value:9},{label:'12 Bulan',value:12}]" size="sm" class="w-28" />
         <USelect v-model="klasifikasiId" :items="klasOptions" value-key="value" label-key="label" size="sm" class="w-48" placeholder="Filter klasifikasi" />
-        <div class="flex items-center gap-2"><UIcon v-if="isRefreshing" name="i-lucide-loader-2" class="animate-spin text-muted" /><UButton icon="i-lucide-refresh-cw" size="sm" variant="outline" :loading="isRefreshing" @click="refresh()">Refresh</UButton></div>
+        <div class="flex items-center gap-2"><UIcon v-if="isRefreshing" name="i-lucide-loader-2" class="animate-spin text-muted" /><UButton icon="i-lucide-refresh-cw" size="sm" variant="outline" :loading="isRefreshing" @click="refresh()">Refresh</UButton><UDropdownMenu :items="aksiItems" :content="{ align: 'end' }"><UButton icon="i-lucide-zap" trailing-icon="i-lucide-chevron-down" size="sm">Aksi Cepat</UButton></UDropdownMenu></div>
       </div>
     </div>
 
@@ -41,7 +46,7 @@ const klasOptions = computed(() => [{ label:'Semua Klasifikasi', value:null }, .
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <UCard><template #header><span class="font-semibold">Disposisi Perlu Tindakan</span></template><div v-if="!data?.pendingList?.length" class="text-sm text-muted">Tidak ada disposisi pending.</div><div v-for="d in (data?.pendingList||[])" :key="(d as any).id" class="py-2 border-b last:border-0 flex justify-between"><div><div class="font-medium text-sm">{{ (d as any).no_surat }} — {{ (d as any).perihal }}</div><div class="text-xs text-muted">{{ (d as any).prioritas }} • batas: {{ (d as any).batas_waktu || '-' }}</div></div><UBadge :color="(d as any).status==='baru'?'error':'warning'">{{ (d as any).status }}</UBadge></div></UCard>
+      <DashboardDisposisiPending :items="(data?.pendingList as any[])||[]" :pending="isInitialLoading" />
       <DashboardRecentSuratMasuk :items="(data?.recentMasuk as any[])||[]" :pending="isInitialLoading" />
     </div>
 
@@ -52,9 +57,6 @@ const klasOptions = computed(() => [{ label:'Semua Klasifikasi', value:null }, .
       <DashboardAktivitasTerbaru class="lg:col-span-4" :items="(data?.aktivitas as any[])||[]" :pending="isInitialLoading" />
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <UCard><template #header><span class="font-semibold">Batas Waktu 7 Hari</span></template><div v-if="!data?.batasWaktu?.length" class="text-sm text-muted">Tidak ada yang mendekati batas.</div><div v-for="b in (data?.batasWaktu||[])" :key="(b as any).id" class="py-2 border-b last:border-0 flex justify-between"><span class="text-sm">{{ (b as any).no_surat }} — {{ (b as any).perihal }}</span><UBadge color="error">{{ (b as any).batas_waktu }}</UBadge></div></UCard>
-      <UCard><template #header><span class="font-semibold">Aksi Cepat</span></template><div class="flex flex-wrap gap-2"><UButton to="/surat-masuk" icon="i-lucide-plus">Surat Masuk</UButton><UButton to="/surat-keluar" icon="i-lucide-plus" color="success">Surat Keluar</UButton><UButton to="/disposisi" icon="i-lucide-share-2" color="warning">Disposisi</UButton><UButton to="/laporan" icon="i-lucide-download" variant="outline">Export Laporan</UButton></div></UCard>
-    </div>
+    <DashboardBatasWaktu :items="(data?.batasWaktu as any[])||[]" :pending="isInitialLoading" />
   </div>
 </template>

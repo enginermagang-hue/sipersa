@@ -11,7 +11,7 @@ export const suratMasukSchema = z.object({
   pengirim: z.string().min(1),
   perihal: z.string().min(1),
   sifat: z.enum(['biasa', 'segera', 'rahasia', 'penting']).default('biasa'),
-  status: z.enum(['diterima', 'didisposisikan', 'selesai']).default('diterima'),
+  status: z.enum(['diterima', 'didisposisikan', 'ditindaklanjuti', 'selesai']).default('diterima'),
   klasifikasi_kode: z.string().optional().nullable(),
   klasifikasi_id: z.number().int().positive().optional().nullable(),
   no_agenda: z.string().optional().nullable()
@@ -25,6 +25,7 @@ export const suratKeluarSchema = z.object({
   klasifikasi_kode: z.string().min(1, 'Kode klasifikasi wajib diisi'),
   status: z.enum(['draft', 'menunggu_persetujuan', 'ditolak', 'terkirim', 'selesai']).default('draft'),
   penandatangan: z.string().optional().default(''),
+  penandatangan_id: z.coerce.number().int().positive().optional().nullable(),
   html_content: z.string().optional().nullable(),
   render_config: z.string().optional().nullable(),
   no_urut: z.number().int().positive().optional().nullable(),

@@ -7,24 +7,40 @@ const { confirm } = useConfirm()
 const toast = useToast()
 
 const q = ref('')
-const status = ref('')
-const sifat = ref('')
+const qDebounced = ref('')
+let qTimer: ReturnType<typeof setTimeout> | null = null
+watch(q, (v) => { if (qTimer) clearTimeout(qTimer); qTimer = setTimeout(() => { qDebounced.value = v; page.value = 1 }, 300) })
+const status = ref<string | undefined>(undefined)
+const sifat = ref<string | undefined>(undefined)
 const bulan = ref('')
 const page = ref(1)
 const perPage = ref(20)
 type ViewMode = 'table' | 'grid' | 'compact'
 const view = useLocalStorage<ViewMode>('sipersa.sk.view', 'table')
+const filterOpen = ref(false)
+const activeFilterCount = computed(() => [sifat.value, status.value, bulan.value].filter(Boolean).length)
+function resetFilters() { sifat.value = undefined; status.value = undefined; bulan.value = ''; page.value = 1 }
+watch([sifat, status, bulan], () => { page.value = 1 })
+const sifatLabel = computed(() => sifatOptions.find(o => o.value === sifat.value)?.label ?? sifat.value ?? '')
+const statusLabel = computed(() => statusOptions.find(o => o.value === status.value)?.label ?? status.value ?? '')
+function fmtBulan(v: string) {
+  if (!v) return ''
+  const [y, m] = v.split('-').map(Number)
+  if (!y || !m) return v
+  return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })
+}
+const kpiExpanded = ref(false)
 const addOpen = ref(false)
 const addLoading = ref(false)
 const editOpen = ref(false)
 const editSurat = ref<any>(null)
 const editLoading = ref(false)
 
-const { data, refresh, pending } = await useFetch('/api/surat-keluar', { query: { q, status, sifat, bulan, page, perPage } })
+const { data, refresh, pending } = await useFetch('/api/surat-keluar', { query: { q: qDebounced, status: computed(() => status.value ?? ''), sifat: computed(() => sifat.value ?? ''), bulan, page, perPage } })
 const { data: stats } = await useFetch('/api/surat-keluar/stats')
 
 const statusOptions = [
-  { label: 'Semua Status', value: '' },
+  { label: 'Semua Status', value: undefined },
   { label: 'Draft', value: 'draft' },
   { label: 'Menunggu Persetujuan', value: 'menunggu_persetujuan' },
   { label: 'Ditolak', value: 'ditolak' },
@@ -41,12 +57,18 @@ const statusMeta: Record<string, { label: string; color: 'neutral' | 'info' | 's
 }
 
 const sifatOptions = [
-  { label: 'Semua Sifat', value: '' },
+  { label: 'Semua Sifat', value: undefined },
   { label: 'Biasa', value: 'biasa' },
   { label: 'Segera', value: 'segera' },
   { label: 'Rahasia', value: 'rahasia' },
   { label: 'Penting', value: 'penting' }
 ]
+const sifatMeta: Record<string, { label: string; color: 'neutral' | 'error' | 'warning' | 'info' }> = {
+  biasa: { label: 'Biasa', color: 'neutral' },
+  segera: { label: 'Segera', color: 'error' },
+  penting: { label: 'Penting', color: 'warning' },
+  rahasia: { label: 'Rahasia', color: 'info' }
+}
 
 const kpiCards = computed(() => {
   const isPimpinan = user.value?.role === 'pimpinan'
@@ -124,43 +146,93 @@ const buatMenu = [
         <h1 class="text-2xl font-bold tracking-tight">Surat Keluar</h1>
         <p class="text-sm text-muted mt-1">Kelola dan pantau semua surat keluar instansi</p>
       </div>
-      <UDropdownMenu v-if="user?.role === 'staff_tu'" :items="buatMenu" :content="{ align: 'end' }">
-        <UButton icon="i-lucide-plus">Buat Surat Keluar</UButton>
-      </UDropdownMenu>
+      <div class="flex items-center gap-2">
+        <UButton variant="soft" icon="i-lucide-file-spreadsheet" @click="exportExcel">Export Excel</UButton>
+        <UDropdownMenu v-if="user?.role === 'staff_tu'" :items="buatMenu" :content="{ align: 'end' }">
+          <UButton icon="i-lucide-plus">Buat Surat Keluar</UButton>
+        </UDropdownMenu>
+        <UButton v-else icon="i-lucide-plus" @click="addOpen = true">Tambah Surat Keluar</UButton>
+      </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <UCard v-for="k in kpiCards" :key="k.label" :ui="{ body: 'p-4' }" class="hover:shadow-sm transition-shadow">
-        <div class="flex items-start justify-between gap-3">
+    <div class="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+      <UCard v-for="(k, i) in kpiCards.slice(0, 2)" :key="k.label" :ui="{ body: 'p-3 sm:p-4' }" class="hover:shadow-sm">
+        <div class="flex items-start justify-between gap-2 sm:gap-3">
           <div class="min-w-0">
-            <div class="text-[11px] font-semibold uppercase tracking-wide text-muted">{{ k.label }}</div>
-            <div class="text-3xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
-            <div class="text-xs text-muted mt-1">{{ k.sub }}</div>
+            <div class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-muted truncate">{{ k.label }}</div>
+            <div class="text-xl sm:text-3xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
+            <div class="hidden sm:block text-xs text-muted mt-1 truncate">{{ k.sub }}</div>
           </div>
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :class="[k.bg, k.color]">
-            <UIcon :name="k.icon" class="w-5 h-5" />
+          <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" :class="[k.bg, k.color]">
+            <UIcon :name="k.icon" class="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+        </div>
+      </UCard>
+      <UCard v-for="k in kpiCards.slice(2)" :key="k.label" :ui="{ body: 'p-3 sm:p-4' }" :class="['hover:shadow-sm', kpiExpanded ? '' : 'hidden lg:block']">
+        <div class="flex items-start justify-between gap-2 sm:gap-3">
+          <div class="min-w-0">
+            <div class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-muted truncate">{{ k.label }}</div>
+            <div class="text-xl sm:text-3xl font-bold mt-1">{{ k.value.toLocaleString('id-ID') }}</div>
+            <div class="hidden sm:block text-xs text-muted mt-1 truncate">{{ k.sub }}</div>
+          </div>
+          <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0" :class="[k.bg, k.color]">
+            <UIcon :name="k.icon" class="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         </div>
       </UCard>
     </div>
+    <div class="flex justify-center lg:hidden">
+      <UButton variant="ghost" size="xs" :trailing-icon="kpiExpanded ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'" @click="kpiExpanded = !kpiExpanded">
+        {{ kpiExpanded ? 'Sembunyikan' : `Lihat semua (${kpiCards.length})` }}
+      </UButton>
+    </div>
 
-    <div class="flex flex-wrap items-center gap-2">
-      <UInput v-model="q" placeholder="Cari no. surat, tujuan, perihal..." icon="i-lucide-search" class="max-w-xs" />
-      <select v-model="status" class="h-9 w-40 rounded-md border border-default bg-default px-2.5 text-sm">
-        <option v-for="o in statusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-      </select>
-      <select v-model="sifat" class="h-9 w-36 rounded-md border border-default bg-default px-2.5 text-sm">
-        <option v-for="o in sifatOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
-      </select>
-      <UInput v-model="bulan" type="month" class="w-40" />
-      <div class="flex-1" />
-      <div role="group" aria-label="Mode tampilan" class="inline-flex rounded-md border border-default bg-default p-0.5">
+    <div class="flex gap-2 items-center">
+      <UInput v-model="q" placeholder="Cari no. surat, tujuan, perihal..." icon="i-lucide-search" class="flex-1 min-w-0" :ui="{ trailing: 'pr-8' }">
+        <template v-if="q" #trailing>
+          <UButton variant="ghost" size="xs" color="neutral" icon="i-lucide-x" aria-label="Hapus pencarian" @click="q = ''" />
+        </template>
+      </UInput>
+      <UButton class="lg:hidden shrink-0" icon="i-lucide-sliders-horizontal" variant="outline" aria-label="Buka filter" @click="filterOpen = true">
+        Filter
+        <UBadge v-if="activeFilterCount" :label="activeFilterCount" color="primary" variant="solid" size="xs" class="ml-1" />
+      </UButton>
+      <UFieldGroup class="border border-default p-1 rounded-lg shrink-0" size="sm">
         <UButton icon="i-lucide-rows-3" :color="view === 'table' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan tabel" :ui="{ base: 'px-2' }" @click="view = 'table'" />
         <UButton icon="i-lucide-layout-grid" :color="view === 'grid' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan grid" :ui="{ base: 'px-2' }" @click="view = 'grid'" />
         <UButton icon="i-lucide-list" :color="view === 'compact' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan ringkas" :ui="{ base: 'px-2' }" @click="view = 'compact'" />
-      </div>
-      <UButton variant="soft" icon="i-lucide-file-spreadsheet" @click="exportExcel">Export Excel</UButton>
+      </UFieldGroup>
     </div>
+
+    <div v-if="activeFilterCount" class="flex flex-wrap items-center gap-1.5 lg:hidden">
+      <span class="text-xs text-muted mr-1">Filter aktif:</span>
+      <UBadge v-if="status" :label="statusLabel" variant="subtle" color="primary" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="status = undefined" />
+      <UBadge v-if="sifat" :label="sifatLabel" variant="subtle" color="neutral" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="sifat = undefined" />
+      <UBadge v-if="bulan" :label="fmtBulan(bulan)" variant="subtle" color="neutral" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="bulan = ''" />
+      <UButton v-if="activeFilterCount > 1" variant="link" size="xs" color="neutral" class="px-1" @click="resetFilters">Hapus semua</UButton>
+    </div>
+
+    <div class="hidden lg:grid lg:grid-cols-12 gap-2">
+      <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="lg:col-span-4 w-full min-w-0" />
+      <USelect v-model="sifat" :items="sifatOptions" value-key="value" label-key="label" placeholder="Sifat" class="lg:col-span-4 w-full min-w-0" />
+      <UInput v-model="bulan" type="month" class="lg:col-span-4 w-full min-w-0" />
+    </div>
+
+    <USlideover v-model:open="filterOpen" title="Filter" description="Saring surat keluar" side="right" :ui="{ content: 'max-w-sm' }">
+      <template #body>
+        <div class="space-y-4">
+          <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="w-full" />
+          <USelect v-model="sifat" :items="sifatOptions" value-key="value" label-key="label" placeholder="Sifat" class="w-full" />
+          <UInput v-model="bulan" type="month" class="w-full" />
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex gap-2 w-full">
+          <UButton variant="ghost" block @click="resetFilters">Reset</UButton>
+          <UButton block @click="filterOpen = false">Terapkan</UButton>
+        </div>
+      </template>
+    </USlideover>
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
@@ -172,26 +244,24 @@ const buatMenu = [
               <th class="px-4 py-3 font-medium">Tujuan</th>
               <th class="px-4 py-3 font-medium">Perihal</th>
               <th class="px-4 py-3 font-medium">Tgl Surat</th>
-              <th class="px-4 py-3 font-medium">Sifat</th>
-              <th class="px-4 py-3 font-medium">Status</th>
               <th class="px-4 py-3 font-medium text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="r in data?.data || []" :key="r.id" class="border-b border-default last:border-0 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-keluar/${r.id}`)">
-              <td class="px-4 py-3 font-medium whitespace-nowrap">{{ r.no_surat }}</td>
+              <td class="px-4 py-3 whitespace-nowrap">
+                <div class="font-medium truncate">{{ r.no_surat }}</div>
+                <UBadge :label="statusMeta[r.status]?.label || r.status" :color="statusMeta[r.status]?.color || 'neutral'" variant="subtle" size="sm" class="mt-1" />
+              </td>
               <td class="px-4 py-3">
                 <div class="font-medium">{{ r.tujuan }}</div>
                 <div v-if="r.penandatangan" class="text-xs text-muted">{{ r.penandatangan }}</div>
               </td>
-              <td class="px-4 py-3 max-w-[280px] truncate">{{ r.perihal }}</td>
+              <td class="px-4 py-3 max-w-[360px]">
+                <div class="truncate">{{ r.perihal }}</div>
+                <UBadge v-if="r.sifat" :label="sifatMeta[r.sifat]?.label || r.sifat" :color="sifatMeta[r.sifat]?.color || 'neutral'" variant="subtle" size="xs" class="mt-1 capitalize" />
+              </td>
               <td class="px-4 py-3 whitespace-nowrap">{{ fmtTgl(r.tgl_surat) }}</td>
-              <td class="px-4 py-3">
-                <UBadge :label="r.sifat" variant="subtle" />
-              </td>
-              <td class="px-4 py-3">
-                <UBadge :label="statusMeta[r.status]?.label || r.status" :color="statusMeta[r.status]?.color || 'neutral'" variant="subtle" />
-              </td>
               <td class="px-4 py-3 text-right" @click.stop>
                 <UDropdownMenu :items="getAksiItems(r)">
                   <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
@@ -199,7 +269,7 @@ const buatMenu = [
               </td>
             </tr>
             <tr v-if="!pending && !(data?.data || []).length">
-              <td colspan="7" class="px-4 py-12 text-center text-muted">Belum ada data</td>
+              <td colspan="5" class="px-4 py-12 text-center text-muted">Belum ada data</td>
             </tr>
           </tbody>
         </table>
@@ -248,17 +318,15 @@ const buatMenu = [
         </div>
         <div v-if="!pending && !(data?.data || []).length" class="py-12 text-center text-muted">Belum ada data</div>
       </div>
-      <div class="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div class="text-sm text-muted">
+      <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="text-sm text-muted min-w-0 truncate text-center sm:text-left">
           Menampilkan {{ data?.data?.length ? ((data!.page - 1) * (data!.limit) + 1).toLocaleString('id-ID') : 0 }}–{{ ((data!.page - 1) * data!.limit + (data?.data || []).length).toLocaleString('id-ID') }} dari {{ (data?.total ?? 0).toLocaleString('id-ID') }}
         </div>
-        <div class="flex items-center gap-2">
-          <select v-model="perPage" class="h-8 w-20 rounded-md border border-default bg-default px-2 text-sm">
-            <option :value="10">10</option>
-            <option :value="20">20</option>
-            <option :value="50">50</option>
-          </select>
-          <UPagination v-model:page="page" :items-per-page="data?.limit || perPage" :total="data?.total || 0" />
+        <div class="flex flex-wrap items-center justify-center gap-2 sm:justify-end w-full sm:w-auto">
+          <USelect v-model="perPage" :items="[10,20,50]" class="w-24 shrink-0" />
+          <div class="overflow-x-auto max-w-full -mx-1 px-1">
+            <UPagination v-model:page="page" :items-per-page="data?.limit || perPage" :total="data?.total || 0" :sibling-count="1" size="sm" />
+          </div>
         </div>
       </div>
     </UCard>

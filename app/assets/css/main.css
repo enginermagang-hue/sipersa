@@ -8,21 +8,7 @@
   --breakpoint-4xl: 2560px;
 }
 
-.responsive-sidebar {
-  --sidebar-width: 16rem;
-}
-/* @media (min-width: 768px) {
-  .responsive-sidebar { --sidebar-width: 18rem; }
-}
-@media (min-width: 1024px) {
-  .responsive-sidebar { --sidebar-width: 20rem; }
-}
-@media (min-width: 1280px) {
-  .responsive-sidebar { --sidebar-width: 22rem; }
-}
-@media (min-width: 1920px) {
-  .responsive-sidebar { --sidebar-width: 24rem; }
-} */
+
 
 @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
 

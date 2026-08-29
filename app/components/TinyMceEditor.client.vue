@@ -7,7 +7,8 @@ const props = defineProps<{
   paper?: boolean
   paperWidth?: number
   paperHeight?: number
-  marginMm?: number
+  marginMm?: number | {top:number;right:number;bottom:number;left:number}
+  orientasi?: 'portrait' | 'landscape'
   fontFamily?: string
 }>()
 
@@ -70,7 +71,9 @@ function applyPaper(ed?: any) {
 
   const PW = props.paperWidth ?? 210
   const PH = props.paperHeight ?? 297
-  const mm = Math.max(0, props.marginMm ?? 25)
+  const [pwMm, phMm] = props.orientasi === 'landscape' ? [Math.max(PW,PH), Math.min(PW,PH)] : [PW,PH]
+  const mm = props.marginMm
+  const m = typeof mm === 'number' ? {top:mm,right:mm,bottom:mm,left:mm} : (mm as any) || {top:30,right:30,bottom:30,left:40}
   const area = target.getContentAreaContainer()
   const areaCs = area ? getComputedStyle(area) : null
   const contentW =
@@ -79,20 +82,24 @@ function applyPaper(ed?: any) {
         (parseFloat(areaCs?.paddingLeft || '') || 0) -
         (parseFloat(areaCs?.paddingRight || '') || 0)
       : body.clientWidth
-  const scale = contentW / Math.min(PW, PH)
-  const padPx = mm * scale
+  const scale = contentW / pwMm
+  const paperWpx = pwMm * scale
+  const paperHpx = phMm * scale
+  const wpx = Math.min(paperWpx, contentW)
 
   target.dom.setStyles(body, {
     margin: '0 auto',
-    width: `${contentW}px`,
-    padding: `${padPx}px`,
+    width: `${wpx}px`,
+    minHeight: `${paperHpx}px`,
+    padding: `${m.top*scale}px ${m.right*scale}px ${m.bottom*scale}px ${m.left*scale}px`,
     boxSizing: 'border-box',
     background: '#ffffff',
+    backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${phMm * (wpx / pwMm) - 1}px, #cbd5e1 ${phMm * (wpx / pwMm) - 1}px, #cbd5e1 ${phMm * (wpx / pwMm)}px)`,
     aspectRatio: '',
     color: '#1a1a1a',
-    overflow: 'visible'
+    overflow: 'hidden'
   })
-  if (doc) target.dom.setStyles(doc.documentElement, { overflow: '' })
+  if (doc) target.dom.setStyles(doc.documentElement, { overflow: 'hidden' })
   resizeSheet(target)
 }
 
@@ -101,16 +108,30 @@ function resizeSheet(ed?: any) {
   const body = target?.getBody?.()
   const container = target?.getContentAreaContainer?.()
   const iframe = container?.querySelector('iframe') as HTMLElement | null
+  const doc = target?.getDoc?.()
   if (!body || !iframe) return
   if (props.paper) {
+    if (doc?.documentElement) {
+      doc.documentElement.style.overflow = 'hidden'
+      doc.documentElement.style.scrollbarWidth = 'none'
+    }
+    body.style.overflow = 'hidden'
+    // ensure iframe grows to content so inner scroll never appears
+    iframe.style.overflow = 'hidden'
     iframe.style.height = `${body.scrollHeight}px`
   } else {
+    if (doc?.documentElement) {
+      doc.documentElement.style.overflow = ''
+      doc.documentElement.style.scrollbarWidth = ''
+    }
+    body.style.overflow = ''
+    iframe.style.overflow = ''
     iframe.style.height = ''
   }
 }
 
 watch(
-  () => [props.paper, props.paperWidth, props.paperHeight, props.marginMm, props.fontFamily],
+  () => [props.paper, props.paperWidth, props.paperHeight, props.marginMm, props.orientasi, props.fontFamily],
   () => applyPaper()
 )
 
@@ -144,20 +165,15 @@ defineExpose({ getEditor, setContent, getContent })
   background: #e2e8f0;
   padding: 32px;
   overflow: auto !important;
-  scrollbar-width: thin;
-  scrollbar-color: #94a3b8 transparent;
-  scrollbar-gutter: stable;
+}
+/* hide scrollbar on paper - outer container still scrolls but no visible bar on kertas */
+.is-paper :deep(.tox .tox-edit-area) {
+  scrollbar-width: none;
 }
 .is-paper :deep(.tox .tox-edit-area)::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-.is-paper :deep(.tox .tox-edit-area)::-webkit-scrollbar-track {
-  background: transparent;
-}
-.is-paper :deep(.tox .tox-edit-area)::-webkit-scrollbar-thumb {
-  background: #94a3b8;
-  border-radius: 4px;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .is-paper :deep(.tox .tox-edit-area__iframe) {
@@ -167,5 +183,9 @@ defineExpose({ getEditor, setContent, getContent })
   height: auto;
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.18);
   overflow: hidden !important;
+}
+/* also hide any scrollbar inside iframe document */
+.is-paper :deep(iframe) {
+  scrollbar-width: none;
 }
 </style>

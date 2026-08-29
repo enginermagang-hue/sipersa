@@ -1,5 +1,6 @@
 import { useDb } from '../../../utils/db'
 import { logActivity } from '../../../utils/logger'
+import { notifyPimpinanSuratKeluar } from '../../../utils/notify'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
     sql: `UPDATE surat_keluar SET status = 'menunggu_persetujuan', submitted_at = datetime('now'), submitted_by = ?, catatan_tolak = NULL WHERE id = ?`,
     args: [auth.userId, id]
   })
+  await notifyPimpinanSuratKeluar(db, { id, no_surat: surat.no_surat, tujuan: surat.tujuan, perihal: surat.perihal })
   await logActivity({ userId: auth.userId, action: 'SUBMIT_SURAT_KELUAR', entity: 'surat_keluar', entityId: id, detail: { no_surat: surat.no_surat }, ip: getRequestIP(event, { xForwardedFor: true }) })
   return { ok: true }
 })

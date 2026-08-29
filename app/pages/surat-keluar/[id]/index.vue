@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { renderPdf, parseRenderConfig, PAPER } from '~/utils/pdf-render'
+import { toTransparentPng } from '~/utils/ttd-transparent'
 
 const route = useRoute()
 const id = route.params.id as string
@@ -91,14 +92,21 @@ async function submitForApproval() {
 
 async function getTtdDataUrl(): Promise<string | null> {
   try {
-    const blob = await $fetch<Blob>('/api/users/ttd/file', { responseType: 'blob' })
+    const blob = await $fetch<Blob>(`/api/surat-keluar/${id}/ttd`, { responseType: 'blob' })
     return await new Promise((resolve) => {
       const reader = new FileReader()
       reader.onloadend = () => resolve(reader.result as string)
       reader.readAsDataURL(blob)
     })
   } catch {
-    return null
+    try {
+      const blob = await $fetch<Blob>('/api/users/ttd/file', { responseType: 'blob' })
+      return await new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.readAsDataURL(blob)
+      })
+    } catch { return null }
   }
 }
 
@@ -131,23 +139,14 @@ async function approveSurat() {
     const fd = new FormData()
     fd.append('status', 'approved')
     if (d.html_content) {
-      const ttdUrl = await getTtdDataUrl()
-      if (!ttdUrl) {
-        toast.add({
-          title: 'Tanda tangan belum diunggah',
-          description: 'Unggah tanda tangan Anda di halaman Profil sebelum menyetujui surat.',
-          color: 'error'
-        })
-        return
-      }
-      const html = String(d.html_content).replace(
-        /\{\{%ttd%\}\}/g,
-        `<img src="${ttdUrl}" style="height:66px;display:block;margin:0 auto;" />`
-      )
+      let ttdUrl = await getTtdDataUrl()
+      if (!ttdUrl) { toast.add({ title: 'Tanda tangan belum diunggah', description: 'Penandatangan maupun pimpinan belum unggah TTD di Profil.', color: 'error' }); return }
+      ttdUrl = await toTransparentPng(ttdUrl, 240)
+      const html = String(d.html_content).replace(/\{\{%ttd%\}\}/g, `<img src="${ttdUrl}" style="height:66px;display:block;margin:0 auto;background:transparent;" />`)
       const cfg = parseRenderConfig(d.render_config)
       const dataUrl = await renderPdf(html, cfg)
       const blob = await (await fetch(dataUrl)).blob()
-      fd.append('file', new File([blob], `${d.no_surat.replace(/\//g, '-')}.pdf`, { type: 'application/pdf' }))
+      fd.append('file', new File([blob], `${d.no_surat.replace(/\//g,'-')}.pdf`, { type: 'application/pdf' }))
     }
     await $fetch(`/api/surat-keluar/${id}/approve`, { method: 'POST', body: fd })
     toast.add({ title: 'Surat disetujui', description: 'PDF final dengan tanda tangan telah dibuat.', color: 'success' })
@@ -188,14 +187,15 @@ const ttdPreviewUrl = ref<string | null>(null)
 
 watch(canDecide, async (v) => {
   if (v && data.value?.html_content && !ttdPreviewUrl.value) {
-    ttdPreviewUrl.value = await getTtdDataUrl()
+    const url = await getTtdDataUrl()
+    ttdPreviewUrl.value = url ? await toTransparentPng(url, 240) : null
   }
 }, { immediate: true })
 
 const previewHtml = computed(() => {
   if (!data.value?.html_content) return ''
   const img = ttdPreviewUrl.value
-    ? `<img src="${ttdPreviewUrl.value}" style="height:66px;display:block;margin:0 auto;" />`
+    ? `<img src="${ttdPreviewUrl.value}" style="height:66px;display:block;margin:0 auto;background:transparent;" />`
     : ''
   return String(data.value.html_content).replace(/\{\{%ttd%\}\}/g, img)
 })
@@ -205,12 +205,13 @@ const sheetStyle = computed(() => {
   const [w, h] = PAPER[cfg.ukuranKertas] || PAPER.a4
   const [pw, ph] = cfg.orientasi === 'landscape' ? [Math.max(w, h), Math.min(w, h)] : [w, h]
   const px = (mm: number) => `${((mm * 96) / 25.4).toFixed(1)}px`
+  const m = typeof cfg.marginMm === 'object' && cfg.marginMm ? cfg.marginMm as any : {top:cfg.marginMm,right:cfg.marginMm,bottom:cfg.marginMm,left:cfg.marginMm}
   return {
     width: px(pw),
     minHeight: px(ph),
     maxWidth: '100%',
     boxSizing: 'border-box',
-    padding: px(cfg.marginMm),
+    padding: `${px(m.top)} ${px(m.right)} ${px(m.bottom)} ${px(m.left)}`,
     backgroundColor: '#ffffff',
     color: '#000000',
     fontFamily: cfg.font === 'Inter' ? "'Inter',sans-serif" : `'${cfg.font}',serif`,
@@ -272,7 +273,7 @@ const sheetStyle = computed(() => {
           <UButton color="error" variant="soft" size="sm" icon="i-lucide-x" :disabled="approving" @click="rejectOpen = true">Tolak</UButton>
         </template>
         <UButton v-if="data.file_drive_id" variant="outline" size="sm" icon="i-lucide-download" @click="unduhPdf">Unduh PDF</UButton>
-        <UButton v-if="canEdit" variant="outline" size="sm" icon="i-lucide-pen" @click="editOpen = true">Edit</UButton>
+        <UButton v-if="canEdit" variant="outline" size="sm" icon="i-lucide-pen" :to="`/surat-keluar/${id}/edit`">Edit</UButton>
         <UButton v-if="isAdminOrCreator" color="error" variant="soft" size="sm" icon="i-lucide-trash" @click="hapus">Hapus</UButton>
       </div>
     </div>
