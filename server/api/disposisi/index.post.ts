@@ -29,15 +29,36 @@ export default defineEventHandler(async (event) => {
     const id = Number((res.rows[0] as any)?.id ?? res.lastInsertRowid)
     ids.push(id)
 
-    if (data.notify) {
-      await db.execute({
-        sql: `INSERT INTO notifications (user_id, title, message, entity, entity_id)
-              VALUES (?, ?, ?, 'disposisi', ?)`,
-        args: [kepadaUserId, 'Disposisi Baru', `Surat: ${(surat.rows[0] as any).no_surat}`, id]
-      })
-    }
+    await db.execute({
+      sql: `INSERT INTO notifications (user_id, title, message, entity, entity_id)
+            VALUES (?, ?, ?, 'disposisi', ?)`,
+      args: [kepadaUserId, 'Disposisi Baru', `Surat: ${(surat.rows[0] as any).no_surat}`, id]
+    })
   }
 
   await logActivity({ userId: auth.userId, action: 'CREATE_DISPOSISI', entity: 'disposisi', entityId: ids[0], detail: { kepada: data.kepada_user_ids, sifat: data.sifat_disposisi }, ip: getRequestIP(event, { xForwardedFor: true }) })
+
+  // WhatsApp Fonnte — selalu ke penerima (selama punya no_hp)
+  try {
+    const { buildDisposisiMessage, queueWa } = await import('../../utils/fonnte')
+    const config = useRuntimeConfig() as any
+    const appUrl = (config.appUrl || '').trim().replace(/\/$/, '') || getHeader(event, 'origin') || ''
+    const s = surat.rows[0] as any
+    for (let i = 0; i < data.kepada_user_ids.length; i++) {
+      const uid = data.kepada_user_ids[i]
+      const did = ids[i]
+      const uRes = await db.execute({ sql: `SELECT nama, no_hp FROM users WHERE id=?`, args: [uid] })
+      const u = (uRes.rows[0] as any)
+      if (!u?.no_hp) continue
+      const msg = buildDisposisiMessage({
+        namaPenerima: u.nama, noSurat: s.no_surat, perihal: s.perihal, pengirim: s.pengirim,
+        sifat: data.sifat_disposisi, prioritas: 'normal', instruksi: (data.instruksi_list || []).join(', ') || data.instruksi || '-',
+        batasWaktu: batasWaktu, namaPengirim: auth.nama || String(auth.userId), disposisiId: did, appUrl
+      })
+      await queueWa(u.no_hp, uid, msg, 'disposisi', did)
+    }
+    const { processOutboxBatch } = await import('../../utils/fonnte')
+    setImmediate(() => processOutboxBatch().catch(() => {}))
+  } catch {}
   return { ids, count: ids.length }
 })

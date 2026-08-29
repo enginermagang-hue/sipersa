@@ -6,6 +6,7 @@ export default defineEventHandler(async (event) => {
   if (!path.startsWith('/api/')) return
   if (path === '/api/auth/login') return
   if (path.startsWith('/api/auth/google')) return
+  if (path.startsWith('/api/whatsapp/webhook')) return
 
   const token = getCookie(event, SESSION_COOKIE)
   const user = await getSessionUser(token)

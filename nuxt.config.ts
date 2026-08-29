@@ -3,7 +3,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: ['@nuxt/ui'],
-  css: ['~/assets/css/main.css', 'cropperjs/dist/cropper.css'],
+  css: ['~/assets/css/main.css'],
   icon: {
     serverBundle: {
       collections: ['lucide']
@@ -36,6 +36,10 @@ export default defineNuxtConfig({
     googleRedirectUri: '',
     sessionSecret: '',
     sessionMaxAge: 86400,
+    fonnteToken: process.env.NUXT_FONNTE_TOKEN || process.env.NUXT_FONTE_TOKEN || '',
+    fonnteEnabled: process.env.NUXT_FONNTE_ENABLED || process.env.NUXT_FONTE_ENABLED || false,
+    fonnteBaseUrl: process.env.NUXT_FONNTE_BASE_URL || 'https://api.fonnte.com/send',
+    appUrl: process.env.NUXT_APP_URL || '',
     appName: process.env.NUXT_PUBLIC_APP_NAME || 'SIPERSA',
     public: {
       klasifikasiGoogleUrl: process.env.NUXT_KLASIFIKASI_GOOGLE_URL || 'https://script.google.com/macros/s/AKfycby4RoU3dPXZWfkofZ5wVkNRKyG_V4x23ypfl-bRyrx7ahZ3i_NvFJ4lBntAANhiXjFyQQ/exec',

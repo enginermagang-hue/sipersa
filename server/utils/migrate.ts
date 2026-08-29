@@ -191,6 +191,8 @@ export async function migrate() {
   await ensureColumn('arsip', 'sifat', "sifat TEXT NOT NULL DEFAULT 'biasa'")
   await ensureColumn('surat_keluar', 'klasifikasi_kode', 'klasifikasi_kode TEXT')
   try { await db.execute(`UPDATE surat_keluar SET klasifikasi_kode = (SELECT kode FROM klasifikasi WHERE id = surat_keluar.klasifikasi_id) WHERE klasifikasi_kode IS NULL AND klasifikasi_id IS NOT NULL`) } catch {}
+  await ensureColumn('surat_keluar', 'penandatangan_id', 'penandatangan_id INTEGER REFERENCES users(id)')
+  try { await db.execute(`UPDATE surat_keluar SET penandatangan_id = (SELECT id FROM users WHERE users.nama = surat_keluar.penandatangan COLLATE NOCASE LIMIT 1) WHERE penandatangan_id IS NULL AND penandatangan IS NOT NULL AND penandatangan != ''`) } catch {}
 
   // Normalisasi email existing ke lowercase trim untuk pencocokan Google login case-insensitive
   try {
@@ -199,6 +201,29 @@ export async function migrate() {
   try {
     await db.execute('CREATE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(TRIM(email)))')
   } catch {}
+
+  await db.execute(`CREATE TABLE IF NOT EXISTS wa_outbox (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    to_phone TEXT NOT NULL,
+    target_user_id INTEGER,
+    message TEXT NOT NULL,
+    entity TEXT,
+    entity_id INTEGER,
+    status TEXT NOT NULL DEFAULT 'pending',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT,
+    fonnte_response TEXT,
+    sent_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`)
+  await db.execute(`CREATE TABLE IF NOT EXISTS wa_inbound (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender TEXT NOT NULL,
+    message TEXT NOT NULL,
+    raw TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`)
+  await db.execute('CREATE INDEX IF NOT EXISTS idx_wa_outbox_status ON wa_outbox(status)')
 
   await seedAdmin()
 }

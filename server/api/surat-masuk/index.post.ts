@@ -56,6 +56,29 @@ export default defineEventHandler(async (event) => {
   })
 
   const id = Number((res.rows[0] as any)?.id ?? res.lastInsertRowid)
+  try {
+    const pims = await db.execute({ sql: `SELECT id FROM users WHERE role = 'pimpinan' AND deleted_at IS NULL` })
+    const perihalShort = data.perihal.length > 120 ? `${data.perihal.slice(0, 120)}…` : data.perihal
+    const msg = `${no_surat} — ${data.pengirim}: ${perihalShort}`
+    for (const r of pims.rows as any[]) {
+      await db.execute({ sql: `INSERT INTO notifications (user_id, title, message, entity, entity_id) VALUES (?, ?, ?, 'surat_masuk', ?)`, args: [r.id, 'Surat Masuk Baru', msg, id] })
+    }
+
+    // WhatsApp Fonnte — otomatis ke semua pimpinan aktif yang punya no_hp
+    try {
+      const { queueWa, processOutboxBatch } = await import('../../utils/fonnte')
+      const config = useRuntimeConfig() as any
+      const appUrl = (config.appUrl || '').trim().replace(/\/$/, '') || getHeader(event, 'origin') || ''
+      const waPims = await db.execute({
+        sql: `SELECT id, nama, no_hp FROM users WHERE role='pimpinan' AND deleted_at IS NULL AND status='active' AND no_hp IS NOT NULL AND TRIM(no_hp) != ''`
+      })
+      for (const u of waPims.rows as any[]) {
+        const waMsg = `*SIPERSA — Surat Masuk Baru* \n\nNo Surat : ${no_surat}\nPengirim : ${data.pengirim}\nPerihal  : ${data.perihal}\nSifat    : ${data.sifat}\n\nBuka: ${appUrl}/surat-masuk/${id}`
+        await queueWa(u.no_hp, u.id, waMsg, 'surat_masuk', id)
+      }
+      if (waPims.rows.length > 0) setImmediate(() => processOutboxBatch().catch(() => {}))
+    } catch {}
+  } catch {}
   await logActivity({
     userId: auth.userId,
     action: 'CREATE_SURAT_MASUK',

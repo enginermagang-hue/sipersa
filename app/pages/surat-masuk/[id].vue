@@ -7,10 +7,12 @@ const { data, refresh } = await useFetch(`/api/surat-masuk/${id}`)
 const { data: users } = await useFetch('/api/users')
 const { user } = useAuth()
 
-const canDisposisi = computed(() => ['pimpinan', 'admin'].includes(user.value?.role))
+const isPenerima = computed(() => (data.value?.disposisi || []).some((d: any) => d.kepada_user_id === user.value?.id))
+const canDisposisi = computed(() => user.value?.role === 'pimpinan' || isPenerima.value)
 const canDelete = computed(() => user.value?.role === 'admin' || user.value?.id === data.value?.surat.created_by)
 const isArchived = computed(() => !!data.value?.arsip)
 const arsipOpen = ref(false)
+const disposisiModalOpen = ref(false)
 const extractingRingkasan = ref(false)
 const extractionError = ref('')
 
@@ -108,9 +110,12 @@ const sifatOptions = [
   { label: 'Rahasia', value: 'rahasia' }
 ]
 
-const recipientOptions = computed(() =>
-  (users.value || []).map((u: any) => ({ label: u.nama, value: u.id }))
-)
+const recipientOptions = computed(() => {
+  const all = (users.value || []) as any[]
+  const mapped = all.map((u: any) => ({ label: u.nama, value: u.id, role: u.role }))
+  const filtered = user.value?.role === 'pimpinan' ? mapped : mapped.filter((u) => !['pimpinan', 'admin'].includes(u.role))
+  return filtered.map(({ role, ...r }) => r)
+})
 
 const dispForm = reactive({
   recipients: [] as number[],
@@ -118,8 +123,7 @@ const dispForm = reactive({
   instruksi_tambahan: '',
   sifat_disposisi: 'biasa',
   batas_waktu: '2026-08-18',
-  catatan: '',
-  notify: false
+  catatan: ''
 })
 const dispDraftLoading = ref(false)
 const dispLoading = ref(false)
@@ -138,29 +142,49 @@ async function submit(opts: { draft: boolean }) {
   dispDraftLoading.value = opts.draft
   dispError.value = ''
   try {
-    const res: any = await $fetch('/api/disposisi', {
-      method: 'POST',
-      body: {
-        surat_masuk_id: Number(id),
-        kepada_user_ids: dispForm.recipients,
-        instruksi_list: dispForm.instruksi,
-        instruksi: dispForm.instruksi_tambahan,
-        sifat_disposisi: dispForm.sifat_disposisi,
-        batas_waktu: dispForm.batas_waktu || null,
-        catatan: dispForm.catatan,
-        notify: dispForm.notify
+    let res: any = null
+    if (user.value?.role === 'pimpinan') {
+      res = await $fetch('/api/disposisi', {
+        method: 'POST',
+        body: {
+          surat_masuk_id: Number(id),
+          kepada_user_ids: dispForm.recipients,
+          instruksi_list: dispForm.instruksi,
+          instruksi: dispForm.instruksi_tambahan,
+          sifat_disposisi: dispForm.sifat_disposisi,
+          batas_waktu: dispForm.batas_waktu || null,
+          catatan: dispForm.catatan
+        }
+      })
+    } else {
+      const my = [...(data.value?.disposisi || [])].reverse().find((d: any) => d.kepada_user_id === user.value?.id)
+      if (!my) throw new Error('Anda bukan penerima disposisi surat ini')
+      let count = 0
+      for (const kepadaId of dispForm.recipients) {
+        await $fetch(`/api/disposisi/${(my as any).id}/teruskan`, {
+          method: 'POST',
+          body: {
+            kepada_user_ids: [kepadaId],
+            instruksi: dispForm.instruksi_tambahan || dispForm.instruksi.join(', '),
+            catatan: dispForm.catatan,
+            sifat_disposisi: dispForm.sifat_disposisi,
+            batas_waktu: dispForm.batas_waktu || null
+          }
+        })
+        count++
       }
-    })
+      res = { count }
+    }
     dispForm.recipients = []
     dispForm.instruksi = []
     dispForm.instruksi_tambahan = ''
     dispForm.sifat_disposisi = 'biasa'
     dispForm.batas_waktu = '2026-08-18'
     dispForm.catatan = ''
-    dispForm.notify = false
     await refresh()
     if (!opts.draft) {
-      successCount.value = res.count || dispForm.recipients.length || 0
+      successCount.value = res.count || 0
+      disposisiModalOpen.value = false
       showSuccess.value = true
     }
   } catch (e: any) {
@@ -178,10 +202,11 @@ function printLembar() {
 /* ---------- Riwayat / timeline ---------- */
 const stepperState = computed(() => {
   const d = data.value?.disposisi || []
+  const suratStatus = (data.value?.surat as any)?.status
   return {
     diterima: true,
     didisposisikan: d.some((x: any) => x.parent_id === null),
-    ditindaklanjuti: d.some((x: any) => x.status === 'diproses'),
+    ditindaklanjuti: suratStatus === 'ditindaklanjuti' || d.some((x: any) => x.status === 'diproses' || x.status === 'selesai'),
     selesai: d.some((x: any) => x.status === 'selesai')
   }
 })
@@ -202,6 +227,8 @@ const timelineItems = computed(() =>
     const batasShort = d.batas_waktu
       ? new Date(d.batas_waktu).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
       : ''
+    const batasLabel = batasShort ? `Batas ${batasShort}` : ''
+    const isOverdue = !!d.batas_waktu && new Date(d.batas_waktu) < new Date(new Date().setHours(0, 0, 0, 0)) && d.status !== 'selesai'
     const description =
       d.parent_id === null
         ? `${d.dari_nama} mendisposisikan ke ${d.kepada_nama}`
@@ -212,7 +239,9 @@ const timelineItems = computed(() =>
       timestamp,
       statusLabel,
       description,
-      tags: [sifatCap, batasShort ? `Batas ${batasShort}` : ''].filter(Boolean) as string[]
+      sifatTag: sifatCap,
+      batasLabel,
+      isOverdue
     }
   })
 )
@@ -236,6 +265,18 @@ const statusBadgeVariant: Record<string, string> = {
   Diteruskan: 'outline'
 }
 const { confirm } = useConfirm()
+const toast = useToast()
+const updatingId = ref<number | null>(null)
+async function selesaikan(item: any) {
+  await confirm({ title: 'Selesaikan Disposisi', message: 'Tandai disposisi ini sebagai selesai?', okLabel: 'Selesaikan', loadingTitle: 'Menyelesaikan...' }, async () => {
+    updatingId.value = item.id
+    try {
+      await $fetch(`/api/disposisi/${item.id}`, { method: 'PUT', body: { status: 'selesai' } })
+      await refresh()
+      toast.add({ title: 'Berhasil', description: 'Disposisi diselesaikan', color: 'success' })
+    } finally { updatingId.value = null }
+  })
+}
 async function hapus() {
   await confirm({ title: 'Hapus Surat', message: 'Hapus surat ini?', okLabel: 'Hapus', loadingTitle: 'Menghapus...' }, async () => {
     await $fetch(`/api/surat-masuk/${id}`, { method: 'DELETE' })
@@ -272,7 +313,8 @@ async function hapus() {
                 variant="subtle"
                 size="md"
               />
-              <span class="ml-auto font-mono text-xs text-muted">{{ formatNoAgenda(data.surat.no_agenda, data.surat.tgl_terima) }}</span>
+              <span class="font-mono text-xs text-muted">{{ formatNoAgenda(data.surat.no_agenda, data.surat.tgl_terima) }}</span>
+              <UButton v-if="canDisposisi" icon="i-lucide-send" size="sm" class="ml-auto rounded-full" @click="disposisiModalOpen = true">Buat Disposisi</UButton>
             </div>
           </template>
             <dl class="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-[13px] text-muted">
@@ -321,108 +363,7 @@ async function hapus() {
             </div>
         </UCard>
 
-        <!-- Card Formulir Disposisi -->
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-2">
-                <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
-                  <UIcon name="i-lucide-send" class="h-4 w-4" />
-                </span>
-                <h3 class="font-semibold text-highlighted">Formulir Disposisi</h3>
-              </div>
-              <span v-if="dispForm.recipients.length" class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                <span class="h-1.5 w-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/300" />
-                Siap diteruskan
-              </span>
-            </div>
-          </template>
-            <UForm :state="dispForm" :validate="validate" class="space-y-5" @submit="submit({ draft: false })">
-              <!-- Penerima -->
-              <UFormField label="DITERUSKAN KEPADA" name="recipients" :required="true">
-                <USelectMenu
-                  v-model="dispForm.recipients"
-                  :items="recipientOptions"
-                  value-key="value"
-                  multiple
-                  placeholder="Cari dan pilih penerima..."
-                  :search-input="{ placeholder: 'Cari nama staf...', icon: 'i-lucide-search' }"
-                  clear
-                  class="w-full"
-                >
-                  <template #empty>Tidak ada staf ditemukan</template>
-                </USelectMenu>
-                <p class="text-xs text-muted mt-1.5">Bisa pilih lebih dari satu penerima — ketik untuk mencari</p>
-              </UFormField>
-
-              <!-- Instruksi -->
-              <UFormField label="INSTRUKSI / ARAHAN PIMPINAN">
-                <div class="grid grid-cols-2 gap-2">
-                  <label
-                    v-for="opt in instruksiOptions"
-                    :key="opt"
-                    class="flex items-center gap-2 text-sm text-muted cursor-pointer select-none"
-                  >
-                    <UCheckbox
-                      :model-value="dispForm.instruksi.includes(opt)"
-                      @update:model-value="(v: boolean) => dispForm.instruksi.includes(opt)
-                        ? dispForm.instruksi = dispForm.instruksi.filter((x: string) => x !== opt)
-                        : dispForm.instruksi.push(opt)"
-                    />
-                    {{ opt }}
-                  </label>
-                </div>
-                <div class="mt-2 relative">
-                  <UTextarea
-                    v-model="dispForm.instruksi_tambahan"
-                    class="w-full"
-                    :rows="4"
-                    placeholder="Tulis instruksi tambahan pimpinan di sini..."
-                    @input="onInstruksiInput"
-                  />
-                  <span class="absolute bottom-2 right-3 text-[11px] text-muted">{{ instruksiCharCount }}/500</span>
-                </div>
-              </UFormField>
-
-              <!-- Sifat + Batas -->
-              <div class="grid grid-cols-2 gap-3">
-                <UFormField label="SIFAT DISPOSISI">
-                  <USelect v-model="dispForm.sifat_disposisi" :items="sifatOptions" class="w-full" />
-                  <p v-if="isUrgent" class="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-                    <span class="h-1.5 w-1.5 rounded-full bg-amber-50 dark:bg-amber-950/300" />
-                    Butuh tindak lanjut < 3 hari
-                  </p>
-                </UFormField>
-                <UFormField label="BATAS WAKTU">
-                  <UInput v-model="dispForm.batas_waktu" type="date" class="w-full" />
-                  <p class="mt-1 text-[11px] text-muted">Sistem akan mengirim pengingat H-1</p>
-                </UFormField>
-              </div>
-
-              <!-- Catatan -->
-              <UFormField label="CATATAN TAMBAHAN">
-                <UTextarea v-model="dispForm.catatan" :rows="2" class="w-full" placeholder="Catatan tambahan..." />
-              </UFormField>
-
-              <!-- Notify -->
-              <UCheckbox v-model="dispForm.notify" label="Kirim notifikasi WhatsApp/Email ke penerima" />
-              <p v-if="dispForm.notify" class="text-xs text-muted -mt-3">
-                Penerima akan mendapat notifikasi push, WhatsApp, dan email otomatis saat disposisi diteruskan.
-              </p>
-
-              <p v-if="dispError" class="text-sm text-error">{{ dispError }}</p>
-
-              <div class="flex justify-end gap-2 pt-2">
-                <UButton variant="soft" color="neutral" :loading="dispDraftLoading" icon="i-lucide-save" @click="submit({ draft: true })">Simpan Draft</UButton>
-                <UButton type="submit" :loading="dispLoading" icon="i-lucide-send" class="rounded-full">Teruskan Disposisi</UButton>
-              </div>
-            </UForm>
-        </UCard>
-      </div>
-
-      <!-- KOLOM KANAN (sticky) -->
-      <div class="space-y-4 lg:sticky lg:top-[76px]">
-        <!-- Card Pratinjau Surat -->
+        <!-- Card Pratinjau Surat (pindah ke kiri) -->
         <UCard>
           <template #header>
             <div class="flex items-center gap-2">
@@ -457,6 +398,10 @@ async function hapus() {
             <p class="text-sm text-muted">Tidak ada file terlampir.</p>
           </div>
         </UCard>
+      </div>
+
+      <!-- KOLOM KANAN (sticky) -->
+      <div class="lg:sticky lg:top-4 lg:self-start space-y-4">
 
         <!-- Card Riwayat Disposisi -->
         <UCard>
@@ -494,7 +439,7 @@ async function hapus() {
                 <div class="rounded-xl border border-default bg-muted p-3">
                   <div class="flex flex-wrap items-center gap-2 mb-1">
                     <span class="text-[11px] font-medium text-muted">{{ item.timestamp }}</span>
-                    <UBadge :label="item.statusLabel" size="2xs"
+                    <UBadge :label="item.statusLabel" size="sm"
                       :color="statusBadgeColor[item.statusLabel] || 'neutral'"
                       :variant="statusBadgeVariant[item.statusLabel] || 'subtle'" />
                   </div>
@@ -502,8 +447,12 @@ async function hapus() {
                   <div v-if="item.instruksi" class="mt-2 bg-default border border-default rounded-lg p-2 text-xs text-muted italic">
                     "{{ item.instruksi }}"
                   </div>
-                  <div v-if="item.tags.length" class="flex flex-wrap gap-1.5 mt-2">
-                    <UBadge v-for="tag in item.tags" :key="tag" :label="tag" size="2xs" variant="outline" color="neutral" />
+                  <div v-if="item.sifatTag || item.batasLabel" class="flex flex-wrap gap-1.5 mt-2">
+                    <UBadge v-if="item.sifatTag" :label="item.sifatTag" size="sm" color="warning" variant="subtle" />
+                    <UBadge v-if="item.batasLabel" :label="item.batasLabel" size="sm" :color="item.isOverdue ? 'error' : 'neutral'" variant="outline" icon="i-lucide-clock-3" />
+                  </div>
+                  <div v-if="item.kepada_user_id === user?.id && item.status !== 'selesai'" class="mt-2">
+                    <UButton size="xs" color="success" variant="soft" icon="i-lucide-check" :loading="updatingId === item.id" @click="selesaikan(item)">Selesaikan</UButton>
                   </div>
                 </div>
               </li>
@@ -528,6 +477,68 @@ async function hapus() {
       <template #footer>
         <div class="flex justify-end">
           <UButton @click="showSuccess = false">OK</UButton>
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Modal Formulir Disposisi -->
+    <UModal v-model:open="disposisiModalOpen" :ui="{ content: 'sm:max-w-2xl' }">
+      <template #header>
+        <div class="flex items-center gap-3 w-full">
+          <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white shrink-0">
+            <UIcon name="i-lucide-send" class="h-4 w-4" />
+          </span>
+          <h3 class="font-semibold">Formulir Disposisi</h3>
+          <span v-if="dispForm.recipients.length" class="ml-auto inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Siap diteruskan
+          </span>
+        </div>
+      </template>
+      <template #body>
+        <UForm :state="dispForm" :validate="validate" class="space-y-5" @submit="submit({ draft: false })">
+          <UFormField label="DITERUSKAN KEPADA" name="recipients" :required="true">
+            <USelectMenu v-model="dispForm.recipients" :items="recipientOptions" value-key="value" multiple placeholder="Cari dan pilih penerima..." :search-input="{ placeholder: 'Cari nama staf...', icon: 'i-lucide-search' }" clear class="w-full">
+              <template #empty>Tidak ada staf ditemukan</template>
+            </USelectMenu>
+            <p class="text-xs text-muted mt-1.5">Bisa pilih lebih dari satu penerima — ketik untuk mencari</p>
+          </UFormField>
+          <UFormField label="INSTRUKSI / ARAHAN PIMPINAN">
+            <div class="grid grid-cols-2 gap-2">
+              <label v-for="opt in instruksiOptions" :key="opt" class="flex items-center gap-2 text-sm text-muted cursor-pointer select-none">
+                <UCheckbox :model-value="dispForm.instruksi.includes(opt)" @update:model-value="(v: boolean) => dispForm.instruksi.includes(opt) ? dispForm.instruksi = dispForm.instruksi.filter((x: string) => x !== opt) : dispForm.instruksi.push(opt)" />
+                {{ opt }}
+              </label>
+            </div>
+            <div class="mt-2 relative">
+              <UTextarea v-model="dispForm.instruksi_tambahan" class="w-full" :rows="4" placeholder="Tulis instruksi tambahan pimpinan di sini..." @input="onInstruksiInput" />
+              <span class="absolute bottom-2 right-3 text-[11px] text-muted">{{ instruksiCharCount }}/500</span>
+            </div>
+          </UFormField>
+          <div class="grid grid-cols-2 gap-3">
+            <UFormField label="SIFAT DISPOSISI">
+              <USelect v-model="dispForm.sifat_disposisi" :items="sifatOptions" class="w-full" />
+              <p v-if="isUrgent" class="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                <span class="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                Butuh tindak lanjut &lt; 3 hari
+              </p>
+            </UFormField>
+            <UFormField label="BATAS WAKTU">
+              <UInput v-model="dispForm.batas_waktu" type="date" class="w-full" />
+              <p class="mt-1 text-[11px] text-muted">Sistem akan mengirim pengingat H-1</p>
+            </UFormField>
+          </div>
+          <UFormField label="CATATAN TAMBAHAN">
+            <UTextarea v-model="dispForm.catatan" :rows="2" class="w-full" placeholder="Catatan tambahan..." />
+          </UFormField>
+          <p class="text-[11px] text-muted">Penerima otomatis mendapat notifikasi push dan WhatsApp saat disposisi dibuat/diteruskan.</p>
+          <p v-if="dispError" class="text-sm text-error">{{ dispError }}</p>
+        </UForm>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2 w-full">
+          <UButton variant="soft" color="neutral" :loading="dispDraftLoading" icon="i-lucide-save" @click="submit({ draft: true })">Simpan Draft</UButton>
+          <UButton :loading="dispLoading" icon="i-lucide-send" class="rounded-full" @click="submit({ draft: false })">Teruskan Disposisi</UButton>
         </div>
       </template>
     </UModal>
