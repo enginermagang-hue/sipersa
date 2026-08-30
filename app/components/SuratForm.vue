@@ -94,43 +94,47 @@ async function submit() {
   <UForm id="surat-form" :state="state" :validate="validate" class="space-y-4" @submit="submit">
     <h3 class="font-semibold text-sm uppercase">Informasi Surat</h3>
     <div class="space-y-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
       <UFormField label="Tanggal Surat" name="tgl_surat">
         <UInput v-model="state.tgl_surat" class="w-full" type="date" />
       </UFormField>
       <UFormField v-if="type === 'masuk'" label="Tanggal Terima">
         <UInput v-model="state.tgl_terima" class="w-full" type="date" />
       </UFormField>
-      <UFormField :label="type === 'masuk' ? 'Pengirim' : 'Tujuan'" name="pihak">
-        <UInput v-model="pihak" class="w-full" />
-      </UFormField>
-      <UFormField label="Perihal" name="perihal">
-        <UInput v-model="state.perihal" class="w-full"/>
-      </UFormField>
+    </div>
+    <UFormField :label="type === 'masuk' ? 'Pengirim' : 'Tujuan'" name="pihak">
+      <UInput v-model="pihak" class="w-full" />
+    </UFormField>
+    <UFormField label="Perihal" name="perihal">
+      <UInput v-model="state.perihal" class="w-full" />
+    </UFormField>
     </div>
 
-    <p v-if="type==='keluar' && previewNo" class="text-xs text-muted">Pratinjau nomor: <span class="font-mono font-medium">{{ previewNo }}</span></p>
+    <p v-if="type === 'keluar' && previewNo" class="text-xs text-muted">Pratinjau nomor: <span
+        class="font-mono font-medium">{{ previewNo }}</span></p>
     <h3 class="font-semibold text-sm uppercase mt-8">Meta Data</h3>
     <div class="space-y-3">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <UFormField label="Sifat">
-        <USelect v-model="state.sifat" class="w-full" :items="sifatOptions" />
-      </UFormField>
-      <UFormField v-if="type==='masuk'" label="Klasifikasi">
-        <USelect v-model="state.klasifikasi_id" :items="klasOptions" class="w-full" :placeholder="'(tanpa)'" />
-      </UFormField>
-      <UFormField v-else label="Klasifikasi" name="klasifikasi_kode">
-        <UInput v-model="state.klasifikasi_kode" class="w-full" placeholder="mis. 800.1" />
-        <a href="#" class="text-xs text-primary underline mt-1 inline-block" @click.prevent="openPopup()">Lihat daftar kode klasifikasi</a>
-      </UFormField>
-    </div>
-    <div v-if="type === 'keluar'" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <UFormField label="Status">
-        <USelect v-model="state.status" class="w-full" :items="statusOptions" />
-      </UFormField>
-      <UFormField label="Penandatangan">
-        <UInput v-model="state.penandatangan" class="w-full" />
-      </UFormField>
-    </div>
+        <UFormField label="Sifat">
+          <USelect v-model="state.sifat" class="w-full" :items="sifatOptions" />
+        </UFormField>
+        <UFormField v-if="type === 'masuk'" label="Klasifikasi">
+          <USelect v-model="state.klasifikasi_id" :items="klasOptions" class="w-full" :placeholder="'(tanpa)'" />
+        </UFormField>
+        <UFormField v-else label="Klasifikasi" name="klasifikasi_kode">
+          <UInput v-model="state.klasifikasi_kode" class="w-full" placeholder="mis. 800.1" />
+          <a href="#" class="text-xs text-primary underline mt-1 inline-block" @click.prevent="openPopup()">Lihat daftar
+            kode klasifikasi</a>
+        </UFormField>
+      </div>
+      <div v-if="type === 'keluar'" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <UFormField label="Status">
+          <USelect v-model="state.status" class="w-full" :items="statusOptions" />
+        </UFormField>
+        <UFormField label="Penandatangan">
+          <UInput v-model="state.penandatangan" class="w-full" />
+        </UFormField>
+      </div>
       <UFormField v-if="type === 'masuk'" label="No. Agenda">
         <UInput v-model="state.no_agenda" />
       </UFormField>
@@ -140,11 +144,7 @@ async function submit() {
     </div>
 
     <div class="space-y-2">
-      <FileUpload
-        label="Unggah File Surat"
-        description="Format: PDF, JPG, PNG. Maks. 25 MB."
-        v-model:file="file"
-      />
+      <FileUpload label="Unggah File Surat" description="Format: PDF, JPG, PNG. Maks. 25 MB." v-model:file="file" />
     </div>
 
     <p v-if="error" class="text-sm text-error">{{ error }}</p>

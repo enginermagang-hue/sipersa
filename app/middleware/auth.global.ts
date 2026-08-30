@@ -3,7 +3,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (!loaded.value) await fetchMe()
 
   const publicPages = ['/login']
-  if (!user.value && !publicPages.includes(to.path)) {
+  const isPublic = publicPages.includes(to.path) || to.path.startsWith('/panduan')
+  if (!user.value && !isPublic) {
     return navigateTo('/login')
   }
   if (user.value && to.path === '/login') {

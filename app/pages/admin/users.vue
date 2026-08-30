@@ -202,7 +202,7 @@ const columns: TableColumn<any>[] = [
         <UInput v-model="search" placeholder="Cari nama, username, email, NIP, jabatan, no HP..." icon="i-lucide-search" class="max-w-sm" />
       </div>
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
-      <UTable :data="data?.data || []" :columns="columns" empty="Belum ada data" />
+      <UTable :data="data?.data || []" :columns="columns" empty="Belum ada data" :ui="{ root: 'custom-scrollbar-table' }" />
       <div class="p-4 border-t border-default flex items-center justify-between gap-4">
         <p class="text-sm text-muted">
           Menampilkan {{ data?.data?.length ? ((data!.page - 1) * data!.limit + 1).toLocaleString('id-ID') : 0 }}–{{ ((data!.page - 1) * (data?.limit || 20) + (data?.data || []).length).toLocaleString('id-ID') }} dari {{ (data?.total ?? 0).toLocaleString('id-ID') }} user

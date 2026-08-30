@@ -67,7 +67,7 @@ const columns: TableColumn<any>[] = [
       <UButton icon="i-lucide-plus" @click="bukaTambah">Tambah</UButton>
     </div>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
-      <UTable :data="data || []" :columns="columns" empty="Belum ada data" />
+      <UTable :data="data || []" :columns="columns" empty="Belum ada data" :ui="{ root: 'custom-scrollbar-table' }" />
     </UCard>
 
     <UModal v-model:open="editOpen" title="Klasifikasi">

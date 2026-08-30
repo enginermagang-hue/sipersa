@@ -46,6 +46,7 @@ const items = computed<NavigationMenuItem[][]>(() => {
     })
   }
   const otherMenu: NavigationMenuItem[] = [
+    { label: 'Panduan', icon: 'i-lucide-book-open', to: '/panduan' },
     { label: 'Tentang', icon: 'i-lucide-info', to: '/tentang' }
   ]
   const groups: NavigationMenuItem[][] = [utama, manajemen]
@@ -103,11 +104,11 @@ const quickActions = computed<DropdownMenuItem[][]>(() => [[
       v-model:collapsed="collapsed"
       collapsible resizable
       :min-size="14" :default-size="16" :max-size="22"
-      :ui="{ footer: 'border-t border-default' }"
+      :ui="{ body: 'custom-scrollbar-sidebar', footer: 'border-t border-default' }"
     >
       <template #header="{ collapsed: c }">
         <div class="flex items-center gap-3 w-full">
-          <img src="/ntt.png" alt="logo" class="size-8 shrink-0">
+          <img src="/logo.png" alt="logo" class="size-8 shrink-0">
           <span v-if="!c" class="font-bold text-sm tracking-[0.3em] truncate">{{ config.public.appName || 'SIPERSA' }}</span>
         </div>
       </template>
@@ -141,7 +142,7 @@ const quickActions = computed<DropdownMenuItem[][]>(() => [[
       </template>
     </UDashboardSidebar>
 
-    <UDashboardPanel id="main">
+    <UDashboardPanel id="main" :ui="{ body: 'custom-scrollbar-main' }">
       <template #header>
         <UDashboardNavbar :title="String(route.meta.title || 'Dashboard')" :ui="{ right: 'gap-3' }">
           <template #leading>

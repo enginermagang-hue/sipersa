@@ -16,7 +16,7 @@ const sifats = ref<string[]>([])
 const statuses = ref<string[]>([])
 const history = useLocalStorage<string[]>('sipersa.search.history', [])
 const page = ref(1)
-const limit = 15
+const perPage = ref(15)
 
 function iso(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -53,6 +53,7 @@ watch(q, (v) => {
 watch([q, jenisTab, sort, preset, customFrom, customTo, sifats, statuses], () => {
   page.value = 1
 }, { deep: true })
+watch(perPage, () => { page.value = 1 })
 
 const hasFilter = computed(() =>
   q.value.trim().length >= 2 || !!range.value.from || !!range.value.to || sifats.value.length > 0 || statuses.value.length > 0
@@ -67,13 +68,16 @@ const { data, pending } = await useFetch('/api/search', {
     date_from: computed(() => range.value.from),
     date_to: computed(() => range.value.to),
     sort,
-    page
+    page,
+    limit: perPage
   }
 })
 
 const d = computed(() => (data.value as any) || {})
 const rows = computed<any[]>(() => d.value.rows || [])
 const totalCount = computed(() => d.value.count ?? 0)
+const rangeStart = computed(() => totalCount.value ? (page.value - 1) * perPage.value + 1 : 0)
+const rangeEnd = computed(() => (page.value - 1) * perPage.value + rows.value.length)
 
 const typeMeta: Record<string, { label: string; base: string; icon: string }> = {
   surat_masuk: { label: 'Surat Masuk', base: '/surat-masuk', icon: 'i-lucide-inbox' },
@@ -261,8 +265,8 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
       <p class="mt-3 text-sm text-muted">Ketik minimal 2 karakter untuk mulai mencari, atau gunakan filter di samping.</p>
     </div>
 
-    <div v-else class="grid grid-cols-1 gap-5 lg:grid-cols-[260px_1fr] items-start">
-      <UCard class="lg:sticky lg:top-[80px]" :ui="{ body: 'p-4 space-y-5' }">
+    <div v-else class="grid grid-cols-1 gap-5 md:grid-cols-[260px_1fr] items-start">
+      <UCard class="md:sticky md:top-4 md:self-start md:max-h-[calc(100dvh-3.5rem-2rem)] md:overflow-y-auto custom-scrollbar-sidebar" :ui="{ body: 'p-4 space-y-5' }">
         <template #header>
           <div class="flex items-center justify-between w-full">
             <span class="font-semibold text-sm">Filter</span>
@@ -433,8 +437,17 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
               </div>
             </UCard>
 
-            <div v-if="totalCount > limit" class="flex justify-center pt-2">
-              <UPagination v-model:page="page" :items-per-page="limit" :total="totalCount" :max="5" show-edges />
+            <div v-if="totalCount > 0" class="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+              <div class="text-sm text-muted min-w-0 truncate text-center sm:text-left">
+                Menampilkan {{ rangeStart.toLocaleString('id-ID') }}–{{ rangeEnd.toLocaleString('id-ID') }} dari {{ totalCount.toLocaleString('id-ID') }}
+                <span v-if="d.took_ms != null" class="hidden sm:inline"> • {{ d.took_ms }} ms</span>
+              </div>
+              <div class="flex flex-wrap items-center justify-center gap-2 sm:justify-end w-full sm:w-auto">
+                <USelect v-model="perPage" :items="[10,15,20,50]" class="w-24 shrink-0" />
+                <div class="overflow-x-auto max-w-full -mx-1 px-1">
+                  <UPagination v-model:page="page" :items-per-page="perPage" :total="totalCount" :max="5" show-edges :sibling-count="1" size="sm" />
+                </div>
+              </div>
             </div>
           </template>
         </template>

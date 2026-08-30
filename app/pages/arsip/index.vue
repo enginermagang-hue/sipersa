@@ -291,7 +291,7 @@ const columns: TableColumn<any>[] = [
     </USlideover>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
-      <UTable :data="data?.data || []" :columns="columns" :loading="pending" empty="Belum ada data" />
+      <UTable :data="data?.data || []" :columns="columns" :loading="pending" empty="Belum ada data" :ui="{ root: 'custom-scrollbar-table' }" />
       <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between border-t border-default">
         <div class="text-sm text-muted min-w-0 truncate text-center sm:text-left">
           Menampilkan {{ data?.data?.length ? ((data!.page - 1) * (data!.limit) + 1).toLocaleString('id-ID') : 0 }}–{{ ((data!.page - 1) * data!.limit + (data?.data || []).length).toLocaleString('id-ID') }} dari {{ (data?.total ?? 0).toLocaleString('id-ID') }}

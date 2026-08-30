@@ -298,7 +298,7 @@ function cetak() {
         <UInput v-model="qInput" placeholder="Cari no. surat, perihal, asal..." icon="i-lucide-search" class="w-full md:w-72" />
       </div>
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
-      <UTable :data="items?.data || []" :columns="columns" :loading="pending" empty="Tidak ada data untuk filter ini." />
+      <UTable :data="items?.data || []" :columns="columns" :loading="pending" empty="Tidak ada data untuk filter ini." :ui="{ root: 'custom-scrollbar-table' }" />
       <div class="p-4 flex flex-wrap items-center justify-between gap-3">
         <p class="text-xs text-muted">
           Menampilkan {{ items?.data?.length || 0 }} dari {{ items?.total || 0 }} surat • {{ periodeLabel }}

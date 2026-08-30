@@ -124,7 +124,7 @@ const columns: TableColumn<any>[] = [
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
-      <UTable :data="rows" :columns="columns" empty="Tidak ada sesi" />
+      <UTable :data="rows" :columns="columns" empty="Tidak ada sesi" :ui="{ root: 'custom-scrollbar-table' }" />
       <template v-if="total > 0" #footer>
         <div class="flex flex-wrap items-center justify-between gap-2 px-2 py-1">
           <div class="flex items-center gap-2">

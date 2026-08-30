@@ -15,28 +15,30 @@ const breadcrumbItems = [
 ]
 
 const fiturList = [
-  { label: 'Surat Masuk', desc: 'Pencatatan, penomoran otomatis & pengarsipan surat dari eksternal.', icon: 'i-lucide-inbox', color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-950/50', to: '/surat-masuk' },
-  { label: 'Surat Keluar', desc: 'Pembuatan surat keluar dengan alur persetujuan pimpinan.', icon: 'i-lucide-send', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/50', to: '/surat-keluar' },
-  { label: 'Disposisi', desc: 'Distribusi & tindak lanjut surat dengan notifikasi real-time.', icon: 'i-lucide-share-2', color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/50', to: '/disposisi' },
-  { label: 'Arsip', desc: 'Klasifikasi, retensi, pencarian & pemusnahan arsip terstruktur.', icon: 'i-lucide-archive', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/50', to: '/arsip' },
-  { label: 'Laporan', desc: 'Rekapitulasi & export Excel/print untuk kebutuhan audit.', icon: 'i-lucide-file-bar-chart', color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/50', to: '/laporan' },
-  { label: 'Admin', desc: 'Manajemen user, sesi, klasifikasi & log aktivitas.', icon: 'i-lucide-settings', color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-100 dark:bg-slate-800', to: '/admin/users' }
+  { label: 'Surat Masuk', desc: 'Agenda & penomoran NNN/SM-INST/ROMAN/TAHUN, status diterima → selesai, ringkasan & lampiran Dropbox.', icon: 'i-lucide-inbox', color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-950/50', to: '/surat-masuk' },
+  { label: 'Surat Keluar', desc: 'Editor TinyMCE + kop instansi, status draft → menunggu persetujuan → terkirim/ditolak, tanda tangan digital.', icon: 'i-lucide-send', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/50', to: '/surat-keluar' },
+  { label: 'Disposisi', desc: 'Instruksi, prioritas & batas waktu, sifat biasa → rahasia, notifikasi WA (Fonnte) & real-time.', icon: 'i-lucide-share-2', color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/50', to: '/disposisi' },
+  { label: 'Arsip', desc: 'Taut surat masuk/keluar, klasifikasi & retensi, tgl arsip & alasan pemusnahan, file di /Arsip.', icon: 'i-lucide-archive', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/50', to: '/arsip' },
+  { label: 'Laporan', desc: 'Filter tanggal/klasifikasi/q, export Excel (ExcelJS) + PDF (jsPDF) + print, log audit.', icon: 'i-lucide-file-bar-chart', color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/50', to: '/laporan' },
+  { label: 'Admin', desc: 'Users (NIP/Jabatan/Google), sesi & revoke, klasifikasi kode/retensi, log aktivitas.', icon: 'i-lucide-settings', color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-100 dark:bg-slate-800', to: '/admin/users' }
 ]
 
 const alurList = [
-  { step: '01', title: 'Pencatatan', desc: 'Surat masuk/keluar dicatat, nomor otomatis per tahun (NNN/SM-INST/...).', icon: 'i-lucide-file-plus' },
-  { step: '02', title: 'Disposisi', desc: 'Pimpinan mendisposisikan surat ke pelaksana dengan instruksi & batas waktu.', icon: 'i-lucide-git-branch' },
-  { step: '03', title: 'Tindak Lanjut', desc: 'Pelaksana memproses disposisi, memberi catatan & update status.', icon: 'i-lucide-list-checks' },
-  { step: '04', title: 'Arsip', desc: 'Dokumen diarsipkan sesuai klasifikasi & jadwal retensi, siap ditelusuri kembali.', icon: 'i-lucide-archive' }
+  { step: '01', title: 'Pencatatan', desc: 'Surat dicatat; Masuk NNN/SM-INST/ROMAN/TAHUN, Keluar KODE/NNN/TU/tekkomdik/ROMAN/TAHUN.', icon: 'i-lucide-file-plus' },
+  { step: '02', title: 'Pengajuan & Persetujuan', desc: 'Staff TU ajukan surat keluar; pimpinan setujui/tolak dengan catatan.', icon: 'i-lucide-badge-check' },
+  { step: '03', title: 'Disposisi', desc: 'Instruksi, prioritas, batas waktu & sifat; notifikasi WA (Fonnte) ke penerima.', icon: 'i-lucide-git-branch' },
+  { step: '04', title: 'Tindak Lanjut & Arsip', desc: 'Pelaksana proses disposisi (diproses_at/selesai_at) lalu arsipkan per klasifikasi & jadwal retensi.', icon: 'i-lucide-list-checks' }
 ]
 
 const teknologi = [
-  { nama: 'Nuxt 4 + Nitro', ket: 'Fullstack Vue 3 (SSR)', icon: 'i-lucide-layers' },
-  { nama: 'Nuxt UI v4 + Tailwind v4', ket: 'Desain sistem & styling', icon: 'i-lucide-palette' },
-  { nama: 'Turso / SQLite', ket: 'Database via @libsql/client', icon: 'i-lucide-database' },
-  { nama: 'Dropbox API', ket: 'Penyimpanan file surat & arsip', icon: 'i-lucide-hard-drive' },
-  { nama: 'Zod + bcryptjs', ket: 'Validasi & keamanan password', icon: 'i-lucide-shield-check' },
-  { nama: 'ExcelJS + window.print', ket: 'Export laporan', icon: 'i-lucide-file-down' }
+  { nama: 'Nuxt 4 + Nitro', ket: 'Fullstack Vue 3 SSR, body 25 MB, /api csr:false', icon: 'i-lucide-layers' },
+  { nama: 'Nuxt UI v4 + Tailwind v4', ket: '@import "tailwindcss"; @import "@nuxt/ui"', icon: 'i-lucide-palette' },
+  { nama: 'Turso / SQLite', ket: '@libsql/client — .data/local.db / libsql://', icon: 'i-lucide-database' },
+  { nama: 'Dropbox API', ket: 'OAuth refresh token, folder Surat Masuk/Keluar/Arsip/TT', icon: 'i-lucide-hard-drive' },
+  { nama: 'Zod + bcryptjs', ket: 'Validasi lib/validations.ts & hash password', icon: 'i-lucide-shield-check' },
+  { nama: 'ExcelJS + jsPDF + window.print', ket: 'Export laporan Excel/PDF/print', icon: 'i-lucide-file-down' },
+  { nama: 'Chart.js + vue-chartjs', ket: 'Grafik statistik dashboard', icon: 'i-lucide-chart-column' },
+  { nama: 'TinyMCE + Uppy + Fonnte WA', ket: 'Editor surat, upload & notifikasi WA', icon: 'i-lucide-message-circle' }
 ]
 </script>
 
@@ -51,10 +53,12 @@ const teknologi = [
         <div aria-hidden="true" class="pointer-events-none absolute -top-16 -right-16 h-64 w-64 rounded-full bg-gradient-to-br from-violet-400/20 to-indigo-400/20 blur-2xl" />
         <div aria-hidden="true" class="pointer-events-none absolute -bottom-12 -left-12 h-56 w-56 rounded-full bg-gradient-to-br from-sky-300/20 to-violet-300/20 blur-2xl" />
         <div class="relative flex flex-col gap-6">
-          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div class="flex flex-col sm:flex-row items-center gap-5">
+            <img src="/logo-full.png" alt="Logo SIPERSA" width="96" height="96" class="h-20 w-20 sm:h-24 sm:w-24 object-contain shrink-0 rounded-xl bg-white p-1.5 shadow-sm dark:bg-white" loading="lazy" decoding="async">
+            <div class="hidden sm:block h-12 w-px bg-slate-200 dark:bg-slate-700 shrink-0" aria-hidden="true" />
             <div class="flex items-center gap-3 shrink-0">
-              <img src="/ntt.png" alt="Logo NTT" width="48" height="48" class="h-12 w-12 object-contain">
-              <img src="/tutwuri.png" alt="Logo Tut Wuri" width="48" height="48" class="h-12 w-12 object-contain">
+              <img src="/ntt.png" alt="Logo NTT" width="48" height="48" class="h-12 w-12 object-contain" loading="lazy">
+              <img src="/tutwuri.png" alt="Logo Tut Wuri" width="48" height="48" class="h-12 w-12 object-contain" loading="lazy">
             </div>
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
@@ -63,8 +67,9 @@ const teknologi = [
               </div>
               <p class="mt-1 text-sm sm:text-base font-medium text-muted">Sistem Informasi Persuratan dan Arsip Digital</p>
               <p class="mt-2 text-sm text-muted max-w-2xl leading-relaxed">
-                Aplikasi manajemen persuratan terpadu untuk pencatatan surat masuk &amp; keluar, disposisi berjenjang,
-                klasifikasi &amp; retensi arsip, serta pelaporan — dirancang untuk satu instansi dengan alur yang sederhana dan teraudit.
+                Aplikasi manajemen persuratan terpadu untuk
+                <span class="font-medium text-default">{{ config.public.instansiNama || 'Pemerintah Provinsi Nusa Tenggara Timur' }} — {{ config.public.instansiUnit || 'Dinas Pendidikan dan Kebudayaan' }}<template v-if="config.public.instansiSubUnit"> {{ config.public.instansiSubUnit }}</template></span>
+                dengan alur teraudit: nomor otomatis per tahun, persetujuan berjenjang, disposisi prioritas &amp; batas waktu, notifikasi WA, dan arsip retensi.
               </p>
             </div>
           </div>
@@ -113,23 +118,29 @@ const teknologi = [
           <span class="font-semibold text-sm">Alur Kerja Sederhana</span>
         </div>
       </template>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div
-          v-for="a in alurList"
-          :key="a.step"
-          class="relative rounded-xl border border-default bg-elevated/30 p-4"
-        >
-          <div class="flex items-center gap-2 mb-2">
-            <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary text-white text-xs font-bold">{{ a.step }}</span>
-            <UIcon :name="a.icon" class="w-4 h-4 text-muted" />
-            <span class="text-sm font-semibold">{{ a.title }}</span>
+      <div class="relative">
+        <!-- garis vertikal kebawah (desktop) -->
+        <div aria-hidden="true" class="pointer-events-none absolute left-[15px] top-2 bottom-2 hidden sm:block w-0.5 bg-border" />
+        <div class="grid grid-cols-1 gap-3">
+          <div
+            v-for="a in alurList"
+            :key="a.step"
+            class="relative flex gap-3 rounded-xl border border-default bg-elevated/30 p-4 sm:pl-10"
+          >
+            <!-- dot di garis (desktop) -->
+            <span class="hidden sm:flex absolute left-0 top-5 -translate-x-1/2 items-center justify-center w-7 h-7 rounded-full bg-primary text-white text-xs font-bold ring-4 ring-white dark:ring-gray-900 shrink-0">{{ a.step }}</span>
+            <!-- badge mobile -->
+            <span class="sm:hidden inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary text-white text-xs font-bold shrink-0 self-start mt-0.5">{{ a.step }}</span>
+            <UIcon :name="a.icon" class="w-4 h-4 text-muted shrink-0 mt-1" />
+            <div class="min-w-0">
+              <span class="text-sm font-semibold">{{ a.title }}</span>
+              <p class="text-xs text-muted leading-relaxed mt-1">{{ a.desc }}</p>
+            </div>
           </div>
-          <p class="text-xs text-muted leading-relaxed">{{ a.desc }}</p>
         </div>
       </div>
       <p class="text-[11px] text-muted mt-3">
-        Penomoran otomatis: <span class="font-mono font-medium">NNN/SM-INST/ROMAN/TAHUN</span> (masuk) &amp;
-        <span class="font-mono font-medium">NNN/SK-INST/...</span> (keluar). Soft delete dengan <span class="font-mono">deleted_at</span>, semua daftar filter <span class="font-mono">IS NULL</span>.
+        Penomoran: Masuk <span class="font-mono font-medium">NNN/SM-INST/ROMAN/TAHUN</span> · Keluar <span class="font-mono font-medium">KODE/NNN/TU/tekkomdik/ROMAN/TAHUN</span> (KODE = kode klasifikasi, TU/unit dari env). Soft delete <span class="font-mono">deleted_at</span>, semua daftar filter <span class="font-mono">IS NULL</span>.
       </p>
     </UCard>
 
@@ -146,18 +157,17 @@ const teknologi = [
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
             <div>
               <p class="text-[11px] font-medium text-muted uppercase tracking-wider">Instansi</p>
-              <p class="mt-1 font-medium">{{ config.public.instansiNama || 'Dinas Pendidikan dan Kebudayaan' }}</p>
+              <p class="mt-1 font-medium">{{ config.public.instansiNama || 'Pemerintah Provinsi Nusa Tenggara Timur' }}</p>
               <p class="text-xs text-muted">Provinsi Nusa Tenggara Timur</p>
             </div>
             <div>
               <p class="text-[11px] font-medium text-muted uppercase tracking-wider">Unit</p>
-              <p class="mt-1 font-medium">{{ config.public.instansiUnit || 'UPTD Tekkomdik' }}</p>
-              <p v-if="config.public.instansiSubUnit" class="text-xs text-muted">{{ config.public.instansiSubUnit }}</p>
-              <p v-else class="text-xs text-muted">Teknologi Komunikasi Pendidikan</p>
+              <p class="mt-1 font-medium">{{ config.public.instansiUnit || 'Dinas Pendidikan dan Kebudayaan' }}<template v-if="config.public.instansiSubUnit"> — {{ config.public.instansiSubUnit }}</template></p>
+              <p class="text-xs text-muted">{{ config.public.instansiSubUnit || 'UPTD Tekkomdik' }}</p>
             </div>
             <div class="sm:col-span-2">
               <p class="text-[11px] font-medium text-muted uppercase tracking-wider">Alamat</p>
-              <p class="mt-1 text-sm leading-relaxed">{{ config.public.instansiAlamat || 'Kupang, Nusa Tenggara Timur' }}</p>
+              <p class="mt-1 text-sm leading-relaxed">{{ config.public.instansiAlamat || 'Jalan Jend. Soeharto No. 57, Naikoten I, Kecamatan Kota Raja, Kota Kupang' }}</p>
             </div>
           </div>
           <USeparator />
@@ -190,8 +200,8 @@ const teknologi = [
         </ul>
         <USeparator class="my-3" />
         <p class="text-[11px] text-muted leading-relaxed">
-          File disimpan di Dropbox (<span class="font-mono">file_drive_id</span>), metadata di Turso. Upload via
-          <span class="font-mono">readFormWithFile()</span> (multipart), body limit 25 MB.
+          File di Dropbox <span class="font-mono">file_drive_id</span> (<span class="font-mono">/Surat Masuk|Keluar|Arsip|Tanda Tangan</span>), metadata di Turso. Upload via
+          <span class="font-mono">readFormWithFile()</span> multipart, body 25 MB. Notifikasi WA via Fonnte (<span class="font-mono">wa_outbox</span>).
         </p>
       </UCard>
     </div>
@@ -208,17 +218,18 @@ const teknologi = [
         <div class="space-y-3 text-sm leading-relaxed text-muted">
           <p>
             <span class="font-semibold text-default">{{ config.public.appName || 'SIPERSA' }}</span> membantu tata kelola surat agar tertib,
-            teraudit, dan mudah ditelusuri. Setiap aksi penting (login, CRUD surat, disposisi, revoke sesi) dicatat di
-            <span class="font-mono text-xs">activity_log</span> melalui <span class="font-mono text-xs">logActivity()</span>.
+            teraudit, dan mudah ditelusuri. Setiap aksi penting (login, CRUD surat, disposisi, revoke sesi, export laporan) dicatat di
+            <span class="font-mono text-xs">activity_log</span> via <span class="font-mono text-xs">logActivity()</span>.
           </p>
-          <p>
-            Peran: <UBadge size="xs" variant="subtle">admin</UBadge> kelola user &amp; klasifikasi,
-            <UBadge size="xs" variant="subtle" color="success">staff_tu</UBadge> kelola persuratan harian,
-            <UBadge size="xs" variant="subtle" color="warning">pimpinan</UBadge> persetujuan &amp; disposisi.
+          <p class="flex flex-wrap items-center gap-1.5">
+            Peran:
+            <UBadge size="xs" variant="subtle">admin</UBadge> <span class="text-xs">kelola user, klasifikasi &amp; sesi</span>
+            <UBadge size="xs" variant="subtle" color="success">staff_tu</UBadge> <span class="text-xs">persuratan harian &amp; ajukan surat</span>
+            <UBadge size="xs" variant="subtle" color="warning">pimpinan</UBadge> <span class="text-xs">persetujuan &amp; disposisi</span>
           </p>
           <p class="text-xs">
-            Login mendukung akun lokal (username/password) dan Google OAuth 2.0 (hanya email terdaftar). Sesi disimpan sebagai cookie
-            <span class="font-mono">sid</span> httpOnly.
+            Login: akun lokal (username/password) &amp; Google OAuth 2.0 (hanya email terdaftar, tanpa auto-create). Sesi <span class="font-mono">sid</span> httpOnly (UUID random, <span class="font-mono">sessionSecret</span> tidak dipakai, maxAge 86400s).
+            Disposisi dapat kirim WA via Fonnte.
           </p>
         </div>
       </UCard>
@@ -233,6 +244,7 @@ const teknologi = [
         <div class="space-y-3">
           <p class="text-sm text-muted leading-relaxed">Butuh bantuan atau menemukan kendala?</p>
           <div class="flex flex-col gap-2">
+            <UButton to="/panduan" icon="i-lucide-book-open" color="primary" block>Buka Panduan Pengguna</UButton>
             <UButton to="/profil" icon="i-lucide-user" variant="outline" block>Lihat Profil Saya</UButton>
             <UButton to="/" icon="i-lucide-layout-dashboard" variant="ghost" block>Kembali ke Dashboard</UButton>
           </div>

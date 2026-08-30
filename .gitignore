@@ -28,3 +28,4 @@ auth.json
 cookies.txt
 .opencode/
 .layouts/
+.chrome-debug/
