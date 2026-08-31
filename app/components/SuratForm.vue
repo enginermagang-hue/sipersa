@@ -94,20 +94,20 @@ async function submit() {
   <UForm id="surat-form" :state="state" :validate="validate" class="space-y-4" @submit="submit">
     <h3 class="font-semibold text-sm uppercase">Informasi Surat</h3>
     <div class="space-y-3">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
-      <UFormField label="Tanggal Surat" name="tgl_surat">
-        <UInput v-model="state.tgl_surat" class="w-full" type="date" />
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <UFormField label="Tanggal Surat" name="tgl_surat">
+          <UInput v-model="state.tgl_surat" class="w-full" type="date" />
+        </UFormField>
+        <UFormField v-if="type === 'masuk'" label="Tanggal Terima">
+          <UInput v-model="state.tgl_terima" class="w-full" type="date" />
+        </UFormField>
+      </div>
+      <UFormField :label="type === 'masuk' ? 'Pengirim' : 'Tujuan'" name="pihak">
+        <UInput v-model="pihak" class="w-full" />
       </UFormField>
-      <UFormField v-if="type === 'masuk'" label="Tanggal Terima">
-        <UInput v-model="state.tgl_terima" class="w-full" type="date" />
+      <UFormField label="Perihal" name="perihal">
+        <UInput v-model="state.perihal" class="w-full" />
       </UFormField>
-    </div>
-    <UFormField :label="type === 'masuk' ? 'Pengirim' : 'Tujuan'" name="pihak">
-      <UInput v-model="pihak" class="w-full" />
-    </UFormField>
-    <UFormField label="Perihal" name="perihal">
-      <UInput v-model="state.perihal" class="w-full" />
-    </UFormField>
     </div>
 
     <p v-if="type === 'keluar' && previewNo" class="text-xs text-muted">Pratinjau nomor: <span
