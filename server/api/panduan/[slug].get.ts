@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import { getBab, getPrevNext, extractHeadings } from '../../utils/panduan'
 
 export default defineEventHandler(async (event) => {
@@ -9,12 +7,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Halaman panduan tidak ditemukan' })
   }
 
-  const root = process.cwd()
-  const filePath = join(root, 'docs', 'panduan', bab.file)
-  let markdown = ''
-  try {
-    markdown = await readFile(filePath, 'utf-8')
-  } catch {
+  // Try assets:panduan (nitro serverAssets) then assets:server (server/assets/panduan)
+  let markdown: string | null = null
+  for (const base of ['assets:panduan', 'assets:server'] as const) {
+    const storage = useStorage(base as any)
+    const key = base === 'assets:server' ? `panduan/${bab.file}` : bab.file
+    markdown = (await storage.getItem(key)) as string | null
+    if (markdown) break
+  }
+  if (!markdown) {
     throw createError({ statusCode: 404, statusMessage: 'File panduan tidak ditemukan' })
   }
 

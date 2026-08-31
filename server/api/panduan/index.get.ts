@@ -1,19 +1,14 @@
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import { PANDUAN_BABS, extractHeadings } from '../../utils/panduan'
 
 export default defineEventHandler(async (event) => {
-  const root = process.cwd()
+  const panduanStorage = useStorage('assets:panduan')
+  const serverStorage = useStorage('assets:server')
 
   const babs = await Promise.all(
     PANDUAN_BABS.map(async (bab) => {
-      const filePath = join(root, 'docs', 'panduan', bab.file)
-      let md = ''
-      try {
-        md = await readFile(filePath, 'utf-8')
-      } catch {
-        md = ''
-      }
+      let md = (await panduanStorage.getItem(bab.file)) as string | null
+      if (!md) md = (await serverStorage.getItem(`panduan/${bab.file}`)) as string | null
+      md = md || ''
       const headings = extractHeadings(md, 3, 3)
       return { ...bab, headings, file: `/docs/panduan/${bab.file}` }
     })

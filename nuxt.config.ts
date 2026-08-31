@@ -56,6 +56,7 @@ export default defineNuxtConfig({
     bodySize: 25,
     routeRules: {
       '/api/**': { csr: false }
-    }
+    },
+    serverAssets: [{ baseName: 'panduan', dir: 'docs/panduan' }]
   }
 })
