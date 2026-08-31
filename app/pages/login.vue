@@ -93,14 +93,14 @@ const fields: AuthFormField[] = [
 const providers = [
   {
     label: 'Login Google',
-    icon: 'i-lucide-chrome',
+    icon: 'i-simple-icons-google',
     color: 'neutral' as const,
     variant: 'outline' as const,
     onClick: () => googleLogin()
   },
   {
     label: 'Login SSO ASN',
-    icon: 'i-lucide-shield-check',
+    icon: 'i-simple-icons-fusionauth',
     color: 'neutral' as const,
     variant: 'outline' as const,
     onClick: () => ssoLogin()
@@ -194,6 +194,10 @@ function ssoLogin() {
     <div class="mt-6 text-center">
       <p class="text-sm leading-relaxed text-muted">UPTD Tekkomdik - Dinas Pendidikan dan Kebudayaan</p>
       <p class="text-sm leading-relaxed text-muted">Provinsi Nusa Tenggara Timur &copy; 2026</p>
+      <ULink to="/panduan" class="mt-2 inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+        <UIcon name="i-lucide-book-open" class="size-4" aria-hidden="true" />
+        Panduan Pengguna
+      </ULink>
     </div>
   </div>
 </template>
