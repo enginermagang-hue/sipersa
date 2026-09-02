@@ -72,6 +72,7 @@ function validate(s: Partial<typeof state>): FormError[] {
 async function submit() {
   emit('busy', true)
   error.value = ''
+  if (file.value && file.value.size > 25*1024*1024) { const m='Ukuran file terlalu besar (maks. 25 MB)'; error.value=m; useToast().add({title:m, color:'error'}); emit('busy', false); return }
   const fd = new FormData()
   const fields: Record<string, any> = { ...state }
   if (props.type === 'masuk') fields.no_agenda = state.no_agenda ?? ''
@@ -83,7 +84,7 @@ async function submit() {
     await $fetch(url, { method: props.suratId ? 'PUT' : 'POST', body: fd })
     emit('close')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || 'Gagal menyimpan'
+    const msg = e?.data?.statusMessage || 'Gagal menyimpan'; error.value = msg; useToast().add({ title: msg, color: 'error' })
   } finally {
     emit('busy', false)
   }

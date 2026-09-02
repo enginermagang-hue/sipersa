@@ -24,6 +24,8 @@ const filteredBabs = computed(() => {
   if (!q) return babs.value
   return babs.value.filter((b: any) => `${b.title} ${b.desc} ${b.slug}`.toLowerCase().includes(q))
 })
+const babUtama = computed(() => filteredBabs.value.filter((b: any) => (b.order ?? 99) <= 13))
+const appendix = computed(() => filteredBabs.value.filter((b: any) => (b.order ?? 99) > 13))
 </script>
 
 <template>
@@ -37,15 +39,15 @@ const filteredBabs = computed(() => {
         <div class="relative flex flex-col gap-4">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-2">
-                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Panduan Pengguna</h1>
-                <UBadge color="primary" variant="subtle" size="sm" class="rounded-full">v{{ appConfig.app.version }}</UBadge>
+              <div class="flex items-center gap-3">
+                <img src="/logo-full.png" alt="Logo SI-PERSA" width="160" height="48" class="h-10 sm:h-12 w-auto object-contain shrink-0 bg-white rounded-lg p-1 shadow-sm dark:bg-white" loading="eager" />
+                <div class="flex flex-wrap items-center gap-2">
+                  <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Panduan Pengguna</h1>
+                  <UBadge color="primary" variant="subtle" size="sm" class="rounded-full">v{{ appConfig.app.version }}</UBadge>
+                </div>
               </div>
               <p class="mt-2 text-sm text-muted max-w-2xl leading-relaxed">
-                Panduan SIPERSA kini per halaman — pilih bab di bawah. Halaman publik, bisa dibaca tanpa login. Tiap bab punya daftar sub-bab (TOC) dan navigasi Sebelumnya/Berikutnya.
-              </p>
-              <p class="mt-2 text-xs text-muted">
-                Sumber: <span class="font-mono">docs/panduan/*.md</span> (16 file fisik) · Bahasa Indonesia · Digital only
+                Panduan SIPERSA kini per halaman — pilih bab di bawah. Halaman publik, bisa dibaca tanpa login. Tiap bab punya daftar sub-bab dan navigasi Sebelumnya/Berikutnya.
               </p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
@@ -55,8 +57,7 @@ const filteredBabs = computed(() => {
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <UBadge icon="i-lucide-book-open" variant="subtle" color="primary" size="md" class="rounded-full">16 halaman</UBadge>
-            <UBadge icon="i-lucide-layers" variant="subtle" color="neutral" size="md" class="rounded-full">13 bab + 3 appendix</UBadge>
+            <UBadge icon="i-lucide-book-open" variant="subtle" color="primary" size="md" class="rounded-full">16 bab</UBadge>
             <UBadge icon="i-lucide-users" variant="subtle" color="neutral" size="md" class="rounded-full">Untuk admin · staff · pimpinan</UBadge>
           </div>
 
@@ -72,39 +73,50 @@ const filteredBabs = computed(() => {
     </div>
 
     <template v-else-if="data">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <UCard
-          v-for="b in filteredBabs"
-          :key="b.slug"
-          :ui="{ body: 'p-4' }"
-          class="hover:shadow-sm transition-shadow group"
-        >
-          <NuxtLink :to="`/panduan/${b.slug}`" class="flex flex-col gap-3">
-            <div class="flex items-start gap-3">
-              <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
-                <UIcon :name="b.icon" class="w-5 h-5" />
+      <section>
+        <h2 class="text-sm font-semibold mb-3 flex items-center gap-2"><UIcon name="i-lucide-book-open" class="w-4 h-4" /> Bab Utama</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <UCard v-for="b in babUtama" :key="b.slug" :ui="{ body: 'p-4' }" class="hover:shadow-md transition-shadow group">
+            <NuxtLink :to="`/panduan/${b.slug}`" class="flex flex-col gap-3">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                  <UIcon :name="b.icon" class="w-5 h-5" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-semibold leading-snug line-clamp-2">{{ b.title }}</div>
+                  <div class="text-xs text-muted mt-1 line-clamp-1">{{ b.desc }}</div>
+                </div>
               </div>
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-semibold leading-snug line-clamp-2">{{ b.title }}</div>
-                <div class="text-xs text-muted mt-1 line-clamp-2">{{ b.desc }}</div>
+              <div class="flex items-center justify-between gap-2 text-xs">
+                <span class="inline-flex items-center gap-1 text-muted"><UIcon name="i-lucide-list-tree" class="w-3.5 h-3.5" />{{ b.headings?.length || 0 }} sub-bab</span>
+                <span class="inline-flex items-center gap-1 font-medium text-primary">Buka <UIcon name="i-lucide-arrow-right" class="w-3.5 h-3.5" /></span>
               </div>
-            </div>
-            <div class="flex items-center justify-between gap-2 text-xs">
-              <span class="inline-flex items-center gap-1 text-muted">
-                <UIcon name="i-lucide-list-tree" class="w-3.5 h-3.5" />
-                {{ b.headings?.length || 0 }} sub-bab
-              </span>
-              <span class="inline-flex items-center gap-1 font-medium text-primary">
-                Buka <UIcon name="i-lucide-arrow-right" class="w-3.5 h-3.5" />
-              </span>
-            </div>
-            <div class="flex flex-wrap gap-1">
-              <UBadge v-for="h in (b.headings || []).slice(0, 3)" :key="h.slug" variant="outline" color="neutral" size="xs" class="font-normal truncate max-w-[160px]">{{ h.text }}</UBadge>
-              <span v-if="(b.headings || []).length > 3" class="text-[11px] text-muted">+{{ (b.headings || []).length - 3 }} lagi</span>
-            </div>
-          </NuxtLink>
-        </UCard>
-      </div>
+            </NuxtLink>
+          </UCard>
+        </div>
+      </section>
+      <section v-if="appendix.length" class="mt-6">
+        <h2 class="text-sm font-semibold mb-3 flex items-center gap-2"><UIcon name="i-lucide-archive" class="w-4 h-4" /> Lampiran</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <UCard v-for="b in appendix" :key="b.slug" :ui="{ body: 'p-4' }" class="hover:shadow-sm transition-shadow group">
+            <NuxtLink :to="`/panduan/${b.slug}`" class="flex flex-col gap-2">
+              <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-xl bg-muted text-muted flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                  <UIcon :name="b.icon" class="w-4 h-4" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-semibold leading-snug line-clamp-2">{{ b.title }}</div>
+                  <div class="text-xs text-muted mt-1 line-clamp-1">{{ b.desc }}</div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-2 text-xs">
+                <span class="inline-flex items-center gap-1 text-muted"><UIcon name="i-lucide-list-tree" class="w-3.5 h-3.5" />{{ b.headings?.length || 0 }} sub-bab</span>
+                <span class="inline-flex items-center gap-1 font-medium text-primary">Buka <UIcon name="i-lucide-arrow-right" class="w-3.5 h-3.5" /></span>
+              </div>
+            </NuxtLink>
+          </UCard>
+        </div>
+      </section>
 
       <p v-if="!filteredBabs.length" class="text-sm text-muted text-center py-8">Tidak ada hasil untuk “{{ search }}”</p>
 

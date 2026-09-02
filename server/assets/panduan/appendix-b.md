@@ -1,4 +1,4 @@
-## Appendix B — Glosarium
+﻿## Appendix B — Glosarium
 
 | Istilah | Arti |
 |---------|------|
@@ -16,3 +16,4 @@
 ![Badge Sifat — elemen contoh badge di list](/panduan/glosarium-badge.png)
 
 > *Gambar G — Contoh badge sifat & status.*
+

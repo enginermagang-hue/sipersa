@@ -2,9 +2,9 @@
 
 ### 8.1 Daftar Arsip
 
-Header “Arsip — Kelola arsip dan retensi dokumen” + Export Excel (semua) & Tambah (**hidden jika mode Terhapus *atau* jika pimpinan — hanya admin & staff**, `canCreateArsip` di `app/pages/arsip/index.vue:8,209` & `server/api/arsip/index.post.ts:9` 403).
+Header “Arsip — Kelola arsip dan retensi dokumen” + tombol Export Excel (semua peran) dan Tambah (hanya admin & staff; tidak tampil untuk pimpinan atau saat filter Terhapus aktif).
 
-**KPI retensi** via endpoint baru `GET /api/arsip/stats` (`app/pages/arsip/index.vue:30` → 4 kartu Total/Aktif/Menjelang/Kadaluarsa, mobile 2+expand):
+**KPI retensi:** 4 kartu — Total, Aktif, Menjelang, Kadaluarsa (tampil 2 kartu di mobile, ketuk “Lihat semua” untuk lainnya).
 
 | Status | Arti | Warna |
 |--------|------|-------|
@@ -17,7 +17,7 @@ Header “Arsip — Kelola arsip dan retensi dokumen” + Export Excel (semua) &
 
 > *Gambar 16a — Elemen KPI retensi.*
 
-**Toolbar 1 baris (Desain A):** Search `Cari dokumen/lokasi` (flex-1) + Status + Sumber + Tahun + Toggle Terhapus + Reset — `flex flex-col lg:flex-row lg:flex-nowrap gap-2` (`app/pages/arsip/index.vue:246`, wrap hanya di mobile). Badge filter aktif di bawah baris.
+**Toolbar:** Kolom Cari “Cari dokumen/lokasi”, filter Status, Sumber, Tahun, toggle Terhapus, dan tombol Reset. Di mobile filter tersusun vertikal, di desktop sejajar. Badge filter aktif di bawah baris.
 
 ![Toolbar Arsip — elemen filter & toggle Terhapus](/panduan/arsip-toolbar.png)
 
@@ -53,7 +53,7 @@ Header “Arsip — Kelola arsip dan retensi dokumen” + Export Excel (semua) &
 
 ### 8.3 Hapus, Restore, Pemusnahan
 
-> **Catatan:** Fitur **Restore** & **Pemusnahan** berada di **halaman Arsip** (bukan di menu Admin) — gunakan filter `Terhapus` & status `Kadaluarsa` di toolbar Arsip. Restore khusus `admin` (`app/pages/arsip/index.vue:156` `role==='admin'`), Pemusnahan hanya jika `status==='kadaluarsa'` + `canManage` (`admin|creator`).
+> **Catatan:** Fitur **Restore** & **Pemusnahan** ada di halaman Arsip (bukan menu Admin) — gunakan filter Terhapus dan status Kadaluarsa di toolbar. Restore hanya untuk admin. Pemusnahan hanya untuk arsip berstatus Kadaluarsa dan hanya oleh admin atau pembuat arsip.
 
 1. **Hapus:**
    - Klik dropdown Aksi → Hapus → konfirmasi → hilang dari list normal.

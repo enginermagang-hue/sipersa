@@ -130,14 +130,14 @@ function getAksiItems(row: any) {
 
 <template>
   <div class="space-y-5">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight">Surat Masuk</h1>
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="min-w-0 flex-1 basis-full sm:basis-auto">
+        <h1 class="text-2xl font-bold tracking-tight truncate">Surat Masuk</h1>
         <p class="text-sm text-muted mt-1">Kelola dan pantau semua surat masuk instansi</p>
       </div>
-      <div class="flex items-center gap-2">
-        <UButton variant="soft" icon="i-lucide-file-spreadsheet" @click="exportExcel">Export Excel</UButton>
-        <UButton v-if="canCreateMasuk" icon="i-lucide-plus" @click="addOpen = true">Tambah Surat Masuk</UButton>
+      <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
+        <UButton variant="soft" icon="i-lucide-file-spreadsheet" class="shrink-0" aria-label="Export Excel" @click="exportExcel"><span class="hidden sm:inline">Export Excel</span><span class="sm:hidden sr-only">Export Excel</span></UButton>
+        <UButton v-if="canCreateMasuk" icon="i-lucide-plus" class="shrink-0" @click="addOpen = true"><span class="hidden sm:inline">Tambah Surat Masuk</span><span class="sm:hidden">Tambah</span></UButton>
       </div>
     </div>
 
@@ -227,8 +227,7 @@ function getAksiItems(row: any) {
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-default text-left text-xs uppercase text-muted">
-              <th class="px-4 py-3 font-medium">No. Surat</th>
-              <th class="px-4 py-3 font-medium">Tgl Surat</th>
+              <th class="px-4 py-3 font-medium">Surat</th>
               <th class="px-4 py-3 font-medium">Pengirim</th>
               <th class="px-4 py-3 font-medium">Perihal</th>
               <th class="px-4 py-3 font-medium">Disposisi</th>
@@ -237,22 +236,22 @@ function getAksiItems(row: any) {
           </thead>
           <tbody>
             <tr v-for="r in data?.data || []" :key="r.id" class="border-b border-default last:border-0 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.id}`)">
-              <td class="px-4 py-3 font-medium whitespace-nowrap">
-                <div class="flex items-center justify-between gap-2">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-1.5 font-medium">
                   <span class="truncate">{{ r.no_surat }}</span>
                   <UTooltip v-if="r.is_arsip" text="Diarsipkan" :delay-duration="0">
                     <UIcon name="i-lucide-archive" class="w-4 h-4 text-success shrink-0" aria-label="Diarsipkan" />
                   </UTooltip>
                 </div>
+                <div class="text-xs text-muted whitespace-nowrap">{{ fmtTgl(r.tgl_surat) }}</div>
               </td>
-              <td class="px-4 py-3 whitespace-nowrap">{{ fmtTgl(r.tgl_surat) }}</td>
               <td class="px-4 py-3">
                 <div class="font-medium flex flex-row">{{ r.pengirim }}</div>
                 <div v-if="r.klasifikasi_nama" class="text-xs text-muted">{{ r.klasifikasi_nama }}</div>
               </td>
               <td class="px-4 py-3 max-w-[360px]">
                 <div class="truncate">{{ r.perihal }}</div>
-                <UBadge v-if="r.sifat" :label="sifatMeta[r.sifat]?.label || r.sifat" :color="sifatMeta[r.sifat]?.color || 'neutral'" variant="subtle" size="xs" class="mt-1 capitalize" />
+                <UBadge v-if="r.sifat" :label="sifatMeta[r.sifat]?.label || r.sifat" :color="sifatMeta[r.sifat]?.color || 'neutral'" variant="subtle" size="sm" class="mt-1.5 capitalize" />
               </td>
               <td class="px-4 py-3">
                 <UBadge v-if="r.disposisi_status" :label="statusMeta[r.disposisi_status]?.label || r.disposisi_status" :color="statusMeta[r.disposisi_status]?.color || 'neutral'" variant="subtle" />
@@ -265,7 +264,7 @@ function getAksiItems(row: any) {
               </td>
             </tr>
             <tr v-if="!pending && !(data?.data || []).length">
-              <td colspan="6" class="px-4 py-12 text-center text-muted">Belum ada data</td>
+              <td colspan="5" class="px-4 py-12 text-center text-muted">Belum ada data</td>
             </tr>
           </tbody>
         </table>

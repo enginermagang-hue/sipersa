@@ -1,5 +1,5 @@
 import { useDb } from '../../utils/db'
-import { readFormWithFile, toIntOrNull } from '../../utils/body'
+import { assertFileSize, readFormWithFile, toIntOrNull } from '../../utils/body'
 import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { logActivity } from '../../utils/logger'
 
@@ -14,6 +14,7 @@ export default defineEventHandler(async (event) => {
 
   let fileDriveId = fields.file_drive_id || null
   let fileName = fields.file_name || null
+  assertFileSize(file)
   if (file) {
     const up = await uploadToDrive(`${fields.nama_dokumen || 'arsip'}_${file.filename}`, file.type, file.data, DROPBOX_FOLDERS.ARSIP)
     fileDriveId = up.id as string

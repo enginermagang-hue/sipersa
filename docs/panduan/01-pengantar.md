@@ -19,7 +19,7 @@
 
 Semua pengguna yang sudah login bisa membaca panduan ini.
 
-> **Catatan peran:** `staff` adalah hasil rename dari `staff_tu` (migrasi otomatis `UPDATE users SET role='staff' WHERE role='staff_tu'` di `server/utils/migrate.ts:229`). Pimpinan tidak melihat menu Laporan, Disposisi inbox, dan tombol Tambah (hanya Kelola Disposisi & Approval).
+> **Catatan peran:** Pimpinan tidak melihat menu Laporan, inbox Disposisi, dan tombol Tambah (hanya Kelola Disposisi & Approval).
 
 ![Gambaran aplikasi SIPERSA](/panduan/tentang-hero.png)
 

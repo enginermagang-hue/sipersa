@@ -53,7 +53,7 @@ export default defineNuxtConfig({
     }
   },
   nitro: {
-    bodySize: 25,
+    bodySize: '25MB',
     routeRules: {
       '/api/**': { csr: false }
     },

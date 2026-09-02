@@ -1,4 +1,4 @@
-## Appendix C — Referensi Teknis untuk Admin IT
+﻿## Appendix C — Referensi Teknis untuk Admin IT
 
 **Pengaturan penting** (file .env):
 
@@ -31,3 +31,4 @@
 - Setiap endpoint API (kecuali login & Google) cek sesi login yang valid.
 
 > **Akhir Panduan** — Jika menemukan bug atau butuh fitur tambahan, catat di Log Aktivitas lalu hubungi admin. Selamat menggunakan SIPERSA!
+

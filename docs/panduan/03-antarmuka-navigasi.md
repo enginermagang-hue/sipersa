@@ -46,7 +46,7 @@ Tata letak aplikasi terdiri dari sidebar, navbar, dan area konten.
 
 ### 3.4 Notifikasi
 
-Notifikasi muncul di lonceng navbar. Badge angka menunjukkan yang belum dibaca. Notifikasi dibuat otomatis saat disposisi baru ditujukan ke Anda. Di header panel notifikasi ada tombol **X Tutup** (kanan atas, `aria-label="Tutup notifikasi"` di `app/components/NotificationBell.vue:90`) — klik untuk menutup tanpa mark read.
+Notifikasi muncul di lonceng navbar. Badge angka menunjukkan yang belum dibaca. Notifikasi dibuat otomatis saat disposisi baru ditujukan ke Anda. Di header panel notifikasi ada tombol X Tutup di kanan atas — klik untuk menutup panel tanpa menandai notifikasi sebagai dibaca.
 
 ![Lonceng notifikasi — elemen badge di navbar](/panduan/antarmuka-notifikasi.png)
 
@@ -54,7 +54,7 @@ Notifikasi muncul di lonceng navbar. Badge angka menunjukkan yang belum dibaca. 
 
 ### 3.5 Aksi Cepat
 
-Tombol + di navbar & Aksi Cepat Dashboard — hanya muncul jika berhak: Surat Masuk Baru & Surat Keluar Baru (hanya staff), Arsip Baru (admin & staff). Pimpinan tidak melihat Aksi Cepat (`app/layouts/default.vue:102`, `app/pages/index.vue:7`).
+Tombol + di navbar dan menu Aksi Cepat di Dashboard hanya muncul sesuai hak: Surat Masuk/Keluar Baru untuk staff, Arsip Baru untuk admin & staff. Pimpinan tidak melihat menu Aksi Cepat.
 
 ![Tombol Aksi Cepat (+) — elemen di navbar](/panduan/antarmuka-aksi-cepat.png)
 

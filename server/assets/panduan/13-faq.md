@@ -27,13 +27,6 @@ A: Data masih tersimpan dan bisa dipulihkan. Untuk arsip, admin bisa toggle Terh
 
 > *Gambar FAQc — Elemen toggle Terhapus.*
 
-**Q: Disposisi tidak terkirim WA?**
-A: Pastikan WA aktif, token valid, no HP penerima format 62xxx, dan centang notify saat buat/teruskan.
-
-![Toggle Notify WA — elemen centang di form disposisi](/panduan/faq-notify.png)
-
-> *Gambar FAQd — Elemen toggle notify.*
-
 **Q: Nomor surat tidak berurutan?**
 A: Nomor otomatis per tahun + klasifikasi. Jika tahun ganti, urutan reset ke 1. Jangan ubah nomor manual.
 

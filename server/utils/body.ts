@@ -22,6 +22,11 @@ export async function readFormWithFile(event: any): Promise<{ fields: Record<str
   return { fields, file }
 }
 
+export const MAX_UPLOAD_SIZE = 25 * 1024 * 1024
+export function assertFileSize(file: UploadedFile | null, max = MAX_UPLOAD_SIZE) {
+  if (file && file.data.length > max) throw createError({ statusCode: 413, statusMessage: `Ukuran file terlalu besar (maks. ${Math.round(max/1024/1024)} MB)` })
+}
+
 export function toIntOrNull(v: string | undefined): number | null {
   if (v === undefined || v === '' || v === null) return null
   const n = Number(v)

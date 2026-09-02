@@ -141,15 +141,15 @@ const buatMenu = [
 
 <template>
   <div class="space-y-5">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight">Surat Keluar</h1>
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="min-w-0 flex-1 basis-full sm:basis-auto">
+        <h1 class="text-2xl font-bold tracking-tight truncate">Surat Keluar</h1>
         <p class="text-sm text-muted mt-1">Kelola dan pantau semua surat keluar instansi</p>
       </div>
-      <div class="flex items-center gap-2">
-        <UButton variant="soft" icon="i-lucide-file-spreadsheet" @click="exportExcel">Export Excel</UButton>
+      <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
+        <UButton variant="soft" icon="i-lucide-file-spreadsheet" class="shrink-0" aria-label="Export Excel" @click="exportExcel"><span class="hidden sm:inline">Export Excel</span><span class="sm:hidden sr-only">Export Excel</span></UButton>
         <UDropdownMenu v-if="user?.role === 'staff'" :items="buatMenu" :content="{ align: 'end' }">
-          <UButton icon="i-lucide-plus">Buat Surat Keluar</UButton>
+          <UButton icon="i-lucide-plus" class="shrink-0"><span class="hidden sm:inline">Buat Surat Keluar</span><span class="sm:hidden">Buat</span></UButton>
         </UDropdownMenu>
       </div>
     </div>
@@ -239,17 +239,17 @@ const buatMenu = [
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-default text-left text-xs uppercase text-muted">
-              <th class="px-4 py-3 font-medium">No. Surat</th>
+              <th class="px-4 py-3 font-medium">Surat</th>
               <th class="px-4 py-3 font-medium">Tujuan</th>
               <th class="px-4 py-3 font-medium">Perihal</th>
-              <th class="px-4 py-3 font-medium">Tgl Surat</th>
               <th class="px-4 py-3 font-medium text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="r in data?.data || []" :key="r.id" class="border-b border-default last:border-0 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-keluar/${r.id}`)">
-              <td class="px-4 py-3 whitespace-nowrap">
+              <td class="px-4 py-3">
                 <div class="font-medium truncate">{{ r.no_surat }}</div>
+                <div class="text-xs text-muted whitespace-nowrap">{{ fmtTgl(r.tgl_surat) }}</div>
                 <UBadge :label="statusMeta[r.status]?.label || r.status" :color="statusMeta[r.status]?.color || 'neutral'" variant="subtle" size="sm" class="mt-1" />
               </td>
               <td class="px-4 py-3">
@@ -258,9 +258,8 @@ const buatMenu = [
               </td>
               <td class="px-4 py-3 max-w-[360px]">
                 <div class="truncate">{{ r.perihal }}</div>
-                <UBadge v-if="r.sifat" :label="sifatMeta[r.sifat]?.label || r.sifat" :color="sifatMeta[r.sifat]?.color || 'neutral'" variant="subtle" size="xs" class="mt-1 capitalize" />
+                <UBadge v-if="r.sifat" :label="sifatMeta[r.sifat]?.label || r.sifat" :color="sifatMeta[r.sifat]?.color || 'neutral'" variant="subtle" size="sm" class="mt-1.5 capitalize" />
               </td>
-              <td class="px-4 py-3 whitespace-nowrap">{{ fmtTgl(r.tgl_surat) }}</td>
               <td class="px-4 py-3 text-right" @click.stop>
                 <UDropdownMenu :items="getAksiItems(r)">
                   <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
@@ -268,7 +267,7 @@ const buatMenu = [
               </td>
             </tr>
             <tr v-if="!pending && !(data?.data || []).length">
-              <td colspan="5" class="px-4 py-12 text-center text-muted">Belum ada data</td>
+              <td colspan="4" class="px-4 py-12 text-center text-muted">Belum ada data</td>
             </tr>
           </tbody>
         </table>

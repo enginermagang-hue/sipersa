@@ -18,27 +18,25 @@ const fiturList = [
   { label: 'Surat Masuk', desc: 'Agenda & penomoran NNN/SM-INST/ROMAN/TAHUN, status diterima → selesai, ringkasan & lampiran Dropbox.', icon: 'i-lucide-inbox', color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-950/50', to: '/surat-masuk' },
   { label: 'Surat Keluar', desc: 'Editor TinyMCE + kop instansi, status draft → menunggu persetujuan → terkirim/ditolak, tanda tangan digital.', icon: 'i-lucide-send', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/50', to: '/surat-keluar' },
   { label: 'Disposisi', desc: 'Instruksi, prioritas & batas waktu, sifat biasa → rahasia, notifikasi WA (Fonnte) & real-time.', icon: 'i-lucide-share-2', color: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/50', to: '/disposisi' },
-  { label: 'Arsip', desc: 'Taut surat masuk/keluar, klasifikasi & retensi, tgl arsip & alasan pemusnahan, file di /Arsip.', icon: 'i-lucide-archive', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/50', to: '/arsip' },
-  { label: 'Laporan', desc: 'Filter tanggal/klasifikasi/q, export Excel (ExcelJS) + PDF (jsPDF) + print, log audit.', icon: 'i-lucide-file-bar-chart', color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/50', to: '/laporan' },
+  { label: 'Arsip', desc: 'Klasifikasi, jadwal retensi, dan pemusnahan sesuai masa simpan.', icon: 'i-lucide-archive', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/50', to: '/arsip' },
+  { label: 'Laporan', desc: 'Filter periode & klasifikasi, export Excel dan cetak PDF.', icon: 'i-lucide-file-bar-chart', color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/50', to: '/laporan' },
   { label: 'Admin', desc: 'Users (NIP/Jabatan/Google), sesi & revoke, klasifikasi kode/retensi, log aktivitas.', icon: 'i-lucide-settings', color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-100 dark:bg-slate-800', to: '/admin/users' }
 ]
 
 const alurList = [
-  { step: '01', title: 'Pencatatan', desc: 'Surat dicatat; Masuk NNN/SM-INST/ROMAN/TAHUN, Keluar KODE/NNN/TU/tekkomdik/ROMAN/TAHUN.', icon: 'i-lucide-file-plus' },
+  { step: '01', title: 'Pencatatan', desc: 'Surat masuk & keluar dicatat dengan nomor otomatis per tahun.', icon: 'i-lucide-file-plus' },
   { step: '02', title: 'Pengajuan & Persetujuan', desc: 'Staff ajukan surat keluar; pimpinan setujui/tolak dengan catatan.', icon: 'i-lucide-badge-check' },
   { step: '03', title: 'Disposisi', desc: 'Instruksi, prioritas, batas waktu & sifat; notifikasi WA (Fonnte) ke penerima.', icon: 'i-lucide-git-branch' },
-  { step: '04', title: 'Tindak Lanjut & Arsip', desc: 'Pelaksana proses disposisi (diproses_at/selesai_at) lalu arsipkan per klasifikasi & jadwal retensi.', icon: 'i-lucide-list-checks' }
+  { step: '04', title: 'Tindak Lanjut & Arsip', desc: 'Tindak lanjuti disposisi hingga selesai, lalu arsipkan sesuai klasifikasi & jadwal retensi.', icon: 'i-lucide-list-checks' }
 ]
 
 const teknologi = [
-  { nama: 'Nuxt 4 + Nitro', ket: 'Fullstack Vue 3 SSR, body 25 MB, /api csr:false', icon: 'i-lucide-layers' },
-  { nama: 'Nuxt UI v4 + Tailwind v4', ket: '@import "tailwindcss"; @import "@nuxt/ui"', icon: 'i-lucide-palette' },
-  { nama: 'Turso / SQLite', ket: '@libsql/client — .data/local.db / libsql://', icon: 'i-lucide-database' },
-  { nama: 'Dropbox API', ket: 'OAuth refresh token, folder Surat Masuk/Keluar/Arsip/TT', icon: 'i-lucide-hard-drive' },
-  { nama: 'Zod + bcryptjs', ket: 'Validasi lib/validations.ts & hash password', icon: 'i-lucide-shield-check' },
-  { nama: 'ExcelJS + jsPDF + window.print', ket: 'Export laporan Excel/PDF/print', icon: 'i-lucide-file-down' },
-  { nama: 'Chart.js + vue-chartjs', ket: 'Grafik statistik dashboard', icon: 'i-lucide-chart-column' },
-  { nama: 'TinyMCE + Uppy + Fonnte WA', ket: 'Editor surat, upload & notifikasi WA', icon: 'i-lucide-message-circle' }
+  { nama: 'Aman & Teraudit', ket: 'Setiap aksi penting tercatat, akses berbasis peran', icon: 'i-lucide-shield-check' },
+  { nama: 'File Cloud', ket: 'Lampiran tersimpan aman, mudah diunduh & dibagikan', icon: 'i-lucide-hard-drive' },
+  { nama: 'Notifikasi WhatsApp', ket: 'Penerima disposisi dapat pemberitahuan otomatis', icon: 'i-lucide-message-circle' },
+  { nama: 'Grafik & Laporan', ket: 'Tren bulanan, rekap klasifikasi, export Excel/PDF', icon: 'i-lucide-chart-column' },
+  { nama: 'Editor Surat', ket: 'Tulis surat langsung dengan kop & tanda tangan digital', icon: 'i-lucide-pen-line' },
+  { nama: 'Pencarian Cepat', ket: 'Cari surat & arsip lintas modul dalam detik', icon: 'i-lucide-search' }
 ]
 </script>
 
@@ -68,18 +66,18 @@ const teknologi = [
               <p class="mt-1 text-sm sm:text-base font-medium text-muted">Sistem Informasi Persuratan dan Arsip Digital</p>
               <p class="mt-2 text-sm text-muted max-w-2xl leading-relaxed">
                 Aplikasi manajemen persuratan terpadu untuk
-                <span class="font-medium text-default">{{ config.public.instansiNama || 'Pemerintah Provinsi Nusa Tenggara Timur' }} — {{ config.public.instansiUnit || 'Dinas Pendidikan dan Kebudayaan' }}<template v-if="config.public.instansiSubUnit"> {{ config.public.instansiSubUnit }}</template></span>
+                <span class="font-medium text-default">UPTD TEKKOMDIK -- Dinas Pendidikan dan Kebudayaan Provinsi NTT</span>
                 dengan alur teraudit: nomor otomatis per tahun, persetujuan berjenjang, disposisi prioritas &amp; batas waktu, notifikasi WA, dan arsip retensi.
               </p>
             </div>
           </div>
 
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-col items-start gap-2">
             <UBadge icon="i-lucide-building-2" variant="subtle" color="neutral" size="md" class="rounded-full">
               {{ config.public.instansiUnit || 'UPTD Tekkomdik' }}<template v-if="config.public.instansiSubUnit"> — {{ config.public.instansiSubUnit }}</template>
             </UBadge>
             <UBadge icon="i-lucide-map-pin" variant="subtle" color="neutral" size="md" class="rounded-full">
-              {{ config.public.instansiNama || 'Dinas Pendidikan dan Kebudayaan' }} Provinsi NTT
+              {{ config.public.instansiAlamat || 'Dinas Pendidikan dan Kebudayaan' }} Provinsi NTT
             </UBadge>
             <UBadge icon="i-lucide-copyright" variant="subtle" color="neutral" size="md" class="rounded-full">© {{ currentYear }}</UBadge>
           </div>
@@ -140,7 +138,7 @@ const teknologi = [
         </div>
       </div>
       <p class="text-[11px] text-muted mt-3">
-        Penomoran: Masuk <span class="font-mono font-medium">NNN/SM-INST/ROMAN/TAHUN</span> · Keluar <span class="font-mono font-medium">KODE/NNN/TU/tekkomdik/ROMAN/TAHUN</span> (KODE = kode klasifikasi, TU/unit dari env). Soft delete <span class="font-mono">deleted_at</span>, semua daftar filter <span class="font-mono">IS NULL</span>.
+        Nomor surat dibuat otomatis per tahun. Data yang dihapus masih tersimpan dan dapat dipulihkan admin.
       </p>
     </UCard>
 
@@ -198,11 +196,7 @@ const teknologi = [
             </div>
           </li>
         </ul>
-        <USeparator class="my-3" />
-        <p class="text-[11px] text-muted leading-relaxed">
-          File di Dropbox <span class="font-mono">file_drive_id</span> (<span class="font-mono">/Surat Masuk|Keluar|Arsip|Tanda Tangan</span>), metadata di Turso. Upload via
-          <span class="font-mono">readFormWithFile()</span> multipart, body 25 MB. Notifikasi WA via Fonnte (<span class="font-mono">wa_outbox</span>).
-        </p>
+
       </UCard>
     </div>
 
@@ -218,8 +212,7 @@ const teknologi = [
         <div class="space-y-3 text-sm leading-relaxed text-muted">
           <p>
             <span class="font-semibold text-default">{{ config.public.appName || 'SIPERSA' }}</span> membantu tata kelola surat agar tertib,
-            teraudit, dan mudah ditelusuri. Setiap aksi penting (login, CRUD surat, disposisi, revoke sesi, export laporan) dicatat di
-            <span class="font-mono text-xs">activity_log</span> via <span class="font-mono text-xs">logActivity()</span>.
+            teraudit, dan mudah ditelusuri. Setiap aksi penting dicatat di riwayat aktivitas.
           </p>
           <p class="flex flex-wrap items-center gap-1.5">
             Peran:
@@ -228,8 +221,7 @@ const teknologi = [
             <UBadge size="xs" variant="subtle" color="warning">pimpinan</UBadge> <span class="text-xs">persetujuan &amp; disposisi</span>
           </p>
           <p class="text-xs">
-            Login: akun lokal (username/password) &amp; Google OAuth 2.0 (hanya email terdaftar, tanpa auto-create). Sesi <span class="font-mono">sid</span> httpOnly (UUID random, <span class="font-mono">sessionSecret</span> tidak dipakai, maxAge 86400s).
-            Disposisi dapat kirim WA via Fonnte.
+            Login dengan akun lokal atau Google (hanya email terdaftar). Sesi aman dan otomatis berakhir. Disposisi dapat mengirim notifikasi WhatsApp otomatis.
           </p>
         </div>
       </UCard>

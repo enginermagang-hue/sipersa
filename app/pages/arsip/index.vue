@@ -199,14 +199,14 @@ const columns: TableColumn<any>[] = [
 
 <template>
   <div class="space-y-5">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight">Arsip</h1>
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="min-w-0 flex-1 basis-full sm:basis-auto">
+        <h1 class="text-2xl font-bold tracking-tight truncate">Arsip</h1>
         <p class="text-sm text-muted mt-1">Kelola arsip dan retensi dokumen</p>
       </div>
-      <div class="flex items-center gap-2">
-        <UButton variant="soft" icon="i-lucide-file-spreadsheet" @click="exportExcel">Export Excel</UButton>
-        <UButton v-if="!deleted && canCreateArsip" icon="i-lucide-plus" @click="formOpen = true">Tambah</UButton>
+      <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
+        <UButton variant="soft" icon="i-lucide-file-spreadsheet" class="shrink-0" aria-label="Export Excel" @click="exportExcel"><span class="hidden sm:inline">Export Excel</span><span class="sm:hidden sr-only">Export Excel</span></UButton>
+        <UButton v-if="!deleted && canCreateArsip" icon="i-lucide-plus" class="shrink-0" @click="formOpen = true">Tambah</UButton>
       </div>
     </div>
 

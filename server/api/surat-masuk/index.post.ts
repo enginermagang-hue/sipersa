@@ -1,5 +1,5 @@
 import { useDb } from '../../utils/db'
-import { readFormWithFile, toIntOrNull } from '../../utils/body'
+import { assertFileSize, readFormWithFile, toIntOrNull } from '../../utils/body'
 import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { generateNo } from '../../utils/no'
 import { suratMasukSchema } from '../../../lib/validations'
@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
 
   let fileDriveId: string | null = null
   let fileName: string | null = null
+  assertFileSize(file)
   if (file) {
     const up = await uploadToDrive(`${no_surat}_${file.filename}`, file.type, file.data, DROPBOX_FOLDERS.SM)
     fileDriveId = up.id as string

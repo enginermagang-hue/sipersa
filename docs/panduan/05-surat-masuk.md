@@ -2,7 +2,7 @@
 
 ### 5.1 Daftar Surat Masuk
 
-Header: judul “Surat Masuk — Kelola dan pantau semua surat masuk instansi” + Export Excel (semua) & Tambah Surat Masuk (**hanya staff**, `v-if="canCreateMasuk"` di `app/pages/surat-masuk/index.vue:8,139`; pimpinan read-only).
+Header: judul “Surat Masuk — Kelola dan pantau semua surat masuk instansi” + Export Excel (semua) & Tambah Surat Masuk (hanya staff, pimpinan read-only).
 
 **KPI ringkas (4 kartu):** Total Surat Masuk, Baru (3 Hari), Belum Disposisi, Didisposisi Bulan Ini.
 
@@ -77,7 +77,7 @@ Header: judul “Surat Masuk — Kelola dan pantau semua surat masuk instansi”
 
 > *Gambar 8 — Form Tambah Surat Masuk.*
 
-**Hak akses:** Hanya role **staff** yang melihat tombol Tambah Surat Masuk (server `POST /api/surat-masuk` 403 untuk non-staff di `server/api/surat-masuk/index.post.ts:10`). Edit/hapus tetap hanya admin atau pemilik (`canManage`).
+**Hak akses:** Hanya staff yang melihat tombol Tambah. Edit/hapus hanya admin atau pemilik.
 
 ### 5.3 Edit & Hapus
 
@@ -117,8 +117,7 @@ Halaman detail menampilkan header surat, badge sifat/status, tombol Unduh, Edit/
    - Instruksi — pilih instruksi dan catatan tambahan.
    - Sifat disposisi — biasa / segera / sangat_segera / rahasia.
    - Batas waktu — pilih tanggal (opsional).
-   - Centang notify jika ingin kirim WA.
-3. Klik Kirim → disposisi dibuat per penerima, notifikasi terkirim, status surat menjadi didisposisikan.
+3. Klik Kirim → disposisi dibuat per penerima, notifikasi dan WA terkirim otomatis jika penerima punya nomor HP, status surat menjadi didisposisikan.
 
 ### 5.6 Export Excel
 

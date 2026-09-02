@@ -1,5 +1,5 @@
 import { useDb } from '../../utils/db'
-import { readFormWithFile, toIntOrNull } from '../../utils/body'
+import { assertFileSize, readFormWithFile, toIntOrNull } from '../../utils/body'
 import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { logActivity } from '../../utils/logger'
 
@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
   const { fields, file } = await readFormWithFile(event)
   let fileDriveId: string | null = (exist.rows[0] as any).file_drive_id
   let fileName: string | null = (exist.rows[0] as any).file_name
+  assertFileSize(file)
   if (file) {
     const up = await uploadToDrive(`${fields.no_surat || id}_${file.filename}`, file.type, file.data, DROPBOX_FOLDERS.SM)
     fileDriveId = up.id as string

@@ -35,7 +35,7 @@
 
 ### 7.2 Kelola Disposisi
 
-Khusus pimpinan/admin (`app/layouts/default.vue:38`, `auth.global.ts:23`, `server/api/disposisi/index.get.ts:5` `pimpinan+admin`). Menampilkan semua disposisi instansi (bukan hanya milik saya), filter sama, plus kemampuan lihat semua dan tindak lanjut. **Disposisi Saya (inbox) hanya untuk admin & staff** (`default.vue:26`, `auth.global.ts:20`) — pimpinan mengelola via Kelola Disposisi, bukan inbox.
+Khusus pimpinan/admin: menampilkan semua disposisi di instansi. Inbox Disposisi Saya hanya untuk admin & staff — pimpinan mengelola via menu Kelola Disposisi.
 
 ![Kelola Disposisi](/panduan/disposisi-kelola.png)
 
@@ -52,8 +52,7 @@ Khusus pimpinan/admin (`app/layouts/default.vue:38`, `auth.global.ts:23`, `serve
    > *Gambar 15a — Elemen tombol Buat Disposisi.*
 
 2. Isi field:
-   - Penerima — minimal 1 penerima
-   - Instruksi / instruksi list, catatan, sifat disposisi, batas waktu (YYYY-MM-DD atau kosong), notify (centang WA)
+   - Penerima (minimal 1 orang), Instruksi, catatan, sifat disposisi, dan batas waktu (opsional, pilih tanggal). WA terkirim otomatis jika penerima punya nomor HP.
 
    ![Form Buat Disposisi — elemen field penerima & instruksi](/panduan/disposisi-form-buat.png)
 
@@ -61,7 +60,7 @@ Khusus pimpinan/admin (`app/layouts/default.vue:38`, `auth.global.ts:23`, `serve
 
 3. Klik Kirim → disposisi dibuat per penerima, notifikasi terkirim, status surat berubah.
 
-   - Jika notify dicentang dan WA aktif, penerima dengan no HP valid akan dapat WA berisi perihal & link.
+   - WA terkirim otomatis jika penerima punya nomor HP.
 
 **Teruskan** (forward chain):
 

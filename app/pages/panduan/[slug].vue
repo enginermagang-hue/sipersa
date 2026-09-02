@@ -164,14 +164,14 @@ async function copyLink(s: string) {
               </div>
               <UInput v-model="searchQuery" placeholder="Cari sub-bab..." icon="i-lucide-search" size="sm" class="w-full" />
             </div>
-            <div class="max-h-[50vh] overflow-y-auto custom-scrollbar p-2 space-y-0.5">
+            <div class="max-h-[50vh] overflow-x-hidden overflow-y-auto custom-scrollbar p-2 space-y-0.5 min-w-0">
               <template v-if="headings.length">
                 <button
                   v-for="h in filteredHeadings"
                   :key="h.slug"
                   :class="[
-                    'w-full text-left rounded-lg px-2 py-1.5 text-sm leading-snug hover:bg-elevated transition-colors',
-                    'ml-3 text-xs border-l border-default pl-3',
+                    'w-full min-w-0 text-left rounded-lg px-2 py-1.5 text-sm leading-snug hover:bg-elevated transition-colors break-words whitespace-normal',
+                    'ml-2 text-xs border-l border-default pl-3',
                     activeSlug === h.slug ? 'bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300 font-semibold' : 'text-muted hover:text-default'
                   ]"
                   @click="scrollTo(h.slug)"
@@ -203,11 +203,11 @@ async function copyLink(s: string) {
           <USlideover v-model:open="tocOpen" title="Di halaman ini" :description="bab.title" side="left" :ui="{ content: 'max-w-sm' }">
             <template #body>
               <UInput v-model="searchQuery" placeholder="Cari sub-bab..." icon="i-lucide-search" size="sm" class="w-full mb-3" />
-              <div class="space-y-0.5 max-h-[60vh] overflow-y-auto pr-1">
+              <div class="space-y-0.5 max-h-[60vh] overflow-x-hidden overflow-y-auto pr-1 min-w-0">
                 <button
                   v-for="h in filteredHeadings"
                   :key="h.slug"
-                  class="w-full text-left rounded-lg px-2 py-1.5 text-sm hover:bg-elevated ml-3 text-xs border-l border-default pl-3"
+                  class="w-full min-w-0 text-left rounded-lg px-2 py-1.5 text-sm hover:bg-elevated ml-2 text-xs border-l border-default pl-3 break-words whitespace-normal"
                   :class="activeSlug === h.slug ? 'bg-primary-50 text-primary-700 dark:bg-primary-950/40' : 'text-muted'"
                   @click="() => { scrollTo(h.slug); tocOpen = false }"
                 >

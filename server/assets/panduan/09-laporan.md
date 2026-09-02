@@ -1,6 +1,6 @@
 ## 9. Laporan
 
-> **Akses:** Laporan hanya untuk **admin & staff** (`app/layouts/default.vue:33`, `auth.global.ts:16`, `server/api/laporan/*:6` 403). Pimpinan tidak melihat menu Laporan; direct `/laporan` akan 403.
+> **Akses:** Laporan hanya untuk admin & staff. Pimpinan tidak melihat menu Laporan.
 
 ### 9.1 Filter & Ringkasan
 

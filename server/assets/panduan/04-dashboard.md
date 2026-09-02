@@ -3,13 +3,13 @@
 ### 4.1 Header
 
 - Sapaan “Selamat datang, Nama” di bagian atas.
-- Filter Periode (3/6/9/12 Bulan) dan Klasifikasi — header responsif `flex-col sm:flex-row` (`app/pages/index.vue:17`): stack vertikal di mobile, horizontal di sm+.
+- Filter Periode (3/6/9/12 Bulan) dan Klasifikasi di header.
 
   ![Filter Periode & Klasifikasi — elemen di header dashboard](/panduan/dashboard-filter.png)
 
   > *Gambar 5a — Elemen filter periode dan klasifikasi.*
 
-- Tombol Refresh (berputar saat memuat), dan menu Aksi Cepat — **hidden untuk pimpinan** (return `[]` di `app/pages/index.vue:7`, `v-if="aksiItems.length"`). Hanya staff/admin melihat dropdown Zap.
+- Tombol Refresh (berputar saat memuat), dan menu Aksi Cepat — hanya staff/admin yang melihatnya, pimpinan tidak.
 
 ![Dashboard header](/panduan/dashboard-01.png)
 

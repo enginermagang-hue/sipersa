@@ -99,13 +99,9 @@ const columns: TableColumn<any>[] = [
     accessorKey: 'jenis',
     header: 'Jenis',
     cell: ({ row }: { row: Row<any> }) => {
-      const j = row.getValue('jenis')
-      const cls = j === 'masuk'
-        ? 'bg-blue-50 text-blue-700 border-blue-200'
-        : j === 'keluar'
-          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-          : 'bg-slate-100 text-slate-700 border-slate-200'
-      return h('span', { class: `inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold border ${cls}` }, j)
+      const j = row.getValue('jenis') as string
+      const color = (j === 'masuk' ? 'info' : j === 'keluar' ? 'success' : 'neutral') as any
+      return h(UBadge, { label: j, color, variant: 'subtle', size: 'md' })
     }
   },
   { accessorKey: 'no_surat', header: 'No. Surat', cell: ({ row }: { row: Row<any> }) => h('span', { class: 'font-medium' }, row.getValue('no_surat')) },

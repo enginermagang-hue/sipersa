@@ -40,6 +40,7 @@ function validate(s: Partial<typeof state>): FormError[] {
 async function submit() {
   loading.value = true
   error.value = ''
+  if (file.value && file.value.size > 25*1024*1024) { const m='Ukuran file terlalu besar (maks. 25 MB)'; error.value=m; useToast().add({title:m, color:'error'}); loading.value=false; return }
   const fd = new FormData()
   fd.append('nama_dokumen', state.nama_dokumen)
   fd.append('lokasi', state.lokasi)
@@ -64,7 +65,7 @@ async function submit() {
     await $fetch(url, { method: isEdit.value ? 'PUT' : 'POST', body: fd })
     emit('saved')
   } catch (e: any) {
-    error.value = e?.data?.statusMessage || 'Gagal menyimpan'
+    const msg = e?.data?.statusMessage || 'Gagal menyimpan'; error.value = msg; useToast().add({ title: msg, color: 'error' })
   } finally {
     loading.value = false
   }

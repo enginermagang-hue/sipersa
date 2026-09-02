@@ -9,17 +9,18 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, loginSchema.parse)
   const db = useDb()
 
+  const ident = String(body.username).trim()
   const res = await db.execute({
-    sql: 'SELECT * FROM users WHERE username = ? AND deleted_at IS NULL',
-    args: [body.username]
+    sql: 'SELECT * FROM users WHERE (username = ? OR nip = ?) AND deleted_at IS NULL',
+    args: [ident, ident]
   })
   if (res.rows.length === 0) {
-    throw createError({ statusCode: 401, statusMessage: 'Username atau password salah' })
+    throw createError({ statusCode: 401, statusMessage: 'Username/NIP atau password salah' })
   }
   const user = res.rows[0] as any
   const ok = await bcrypt.compare(body.password, user.password_hash)
   if (!ok) {
-    throw createError({ statusCode: 401, statusMessage: 'Username atau password salah' })
+    throw createError({ statusCode: 401, statusMessage: 'Username/NIP atau password salah' })
   }
   if (user.status !== 'active') {
     throw createError({ statusCode: 403, statusMessage: 'Akun nonaktif' })

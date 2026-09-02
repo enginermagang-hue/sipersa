@@ -14,17 +14,13 @@ const aksiItems = computed(() => {
 </script>
 <template>
   <div class="space-y-4">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div class="min-w-0"><h1 class="text-xl font-bold truncate">Selamat datang, {{ user?.nama }}</h1><p class="text-muted text-sm">Ringkasan persuratan instansi.</p></div>
-      <div class="flex flex-col sm:flex-row gap-2 sm:items-center w-full sm:w-auto">
-        <div class="flex gap-2 w-full sm:w-auto">
-          <USelect v-model="period" :items="[{label:'3 Bulan',value:3},{label:'6 Bulan',value:6},{label:'9 Bulan',value:9},{label:'12 Bulan',value:12}]" size="sm" class="flex-1 sm:flex-none sm:w-28 min-w-0" />
-          <USelect v-model="klasifikasiId" :items="klasOptions" value-key="value" label-key="label" size="sm" class="flex-1 sm:flex-none sm:w-48 min-w-0 truncate" placeholder="Filter klasifikasi" />
-        </div>
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-          <UButton icon="i-lucide-refresh-cw" size="sm" variant="outline" block class="flex-1 sm:flex-none" :loading="isRefreshing" @click="refresh()">Refresh</UButton>
-          <UDropdownMenu v-if="aksiItems.length" :items="aksiItems" :content="{ align: 'end' }" class="flex-1 sm:flex-none"><UButton icon="i-lucide-zap" trailing-icon="i-lucide-chevron-down" size="sm" block class="w-full sm:w-auto">Aksi Cepat</UButton></UDropdownMenu>
-        </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="min-w-0 flex-1 basis-full sm:basis-auto"><h1 class="text-xl font-bold truncate">Selamat datang, {{ user?.nama }}</h1><p class="text-muted text-sm">Ringkasan persuratan instansi.</p></div>
+      <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
+        <USelect v-model="period" :items="[{label:'3 Bulan',value:3},{label:'6 Bulan',value:6},{label:'9 Bulan',value:9},{label:'12 Bulan',value:12}]" size="sm" class="flex-1 sm:flex-none sm:w-32 min-w-[7rem]" />
+        <USelect v-model="klasifikasiId" :items="klasOptions" value-key="value" label-key="label" size="sm" class="flex-1 sm:flex-none sm:w-52 min-w-[10rem] truncate" placeholder="Filter klasifikasi" />
+        <UButton icon="i-lucide-refresh-cw" size="sm" variant="outline" class="shrink-0" :loading="isRefreshing" aria-label="Refresh" @click="refresh()"><span class="hidden sm:inline">Refresh</span><span class="sm:hidden sr-only">Refresh</span></UButton>
+        <UDropdownMenu v-if="aksiItems.length" :items="aksiItems" :content="{ align: 'end' }"><UButton icon="i-lucide-zap" trailing-icon="i-lucide-chevron-down" size="sm" class="shrink-0"><span class="hidden sm:inline">Aksi Cepat</span><span class="sm:hidden sr-only">Aksi Cepat</span></UButton></UDropdownMenu>
       </div>
     </div>
 
