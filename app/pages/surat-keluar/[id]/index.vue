@@ -15,6 +15,7 @@ const { user } = useAuth()
 const { confirm } = useConfirm()
 
 const isArchived = computed(() => !!data.value?.arsip)
+const canArsip = computed(() => ['admin', 'staff_tu'].includes(user.value?.role))
 const editOpen = ref(false)
 const editLoading = ref(false)
 
@@ -392,8 +393,8 @@ const sheetStyle = computed(() => {
           </div>
         </UCard>
 
-        <!-- Card Arsipkan Surat (inline form) -->
-        <div v-else class="rounded-xl border border-indigo-100 shadow-sm overflow-hidden bg-white dark:bg-slate-900 dark:border-slate-800">
+        <!-- Card Arsipkan Surat (inline form) — hanya admin & staff_tu -->
+        <div v-else-if="canArsip" class="rounded-xl border border-indigo-100 shadow-sm overflow-hidden bg-white dark:bg-slate-900 dark:border-slate-800">
           <div class="bg-indigo-50/40 p-5 border-b border-indigo-100 dark:bg-slate-800/60 dark:border-slate-700">
             <div class="flex items-start gap-3">
               <span class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">

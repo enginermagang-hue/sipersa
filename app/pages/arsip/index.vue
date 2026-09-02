@@ -5,6 +5,7 @@ import type { TableColumn } from '@nuxt/ui'
 
 const { user } = useAuth()
 const { confirm } = useConfirm()
+const canCreateArsip = computed(() => ['admin', 'staff_tu'].includes(user.value?.role))
 
 const q = ref('')
 const qDebounced = ref('')
@@ -206,7 +207,7 @@ const columns: TableColumn<any>[] = [
       </div>
       <div class="flex items-center gap-2">
         <UButton variant="soft" icon="i-lucide-file-spreadsheet" @click="exportExcel">Export Excel</UButton>
-        <UButton v-if="!deleted" icon="i-lucide-plus" @click="formOpen = true">Tambah</UButton>
+        <UButton v-if="!deleted && canCreateArsip" icon="i-lucide-plus" @click="formOpen = true">Tambah</UButton>
       </div>
     </div>
 

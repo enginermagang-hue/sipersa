@@ -97,11 +97,16 @@ defineShortcuts({
   ctrl_k: () => { showSearch.value = !showSearch.value }
 })
 
-const quickActions = computed<DropdownMenuItem[][]>(() => [[
-  { label: 'Surat Masuk Baru', icon: 'i-lucide-inbox', to: '/surat-masuk' },
-  { label: 'Surat Keluar Baru', icon: 'i-lucide-send', to: '/surat-keluar/tulis' },
-  { label: 'Arsip Baru', icon: 'i-lucide-archive', to: '/arsip' }
-]])
+const quickActions = computed<DropdownMenuItem[][]>(() => {
+  const acts: DropdownMenuItem[] = [
+    { label: 'Surat Masuk Baru', icon: 'i-lucide-inbox', to: '/surat-masuk' },
+    { label: 'Surat Keluar Baru', icon: 'i-lucide-send', to: '/surat-keluar/tulis' }
+  ]
+  if (['admin', 'staff_tu'].includes(user.value?.role)) {
+    acts.push({ label: 'Arsip Baru', icon: 'i-lucide-archive', to: '/arsip' })
+  }
+  return [acts]
+})
 </script>
 
 <template>

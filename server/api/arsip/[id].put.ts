@@ -5,6 +5,9 @@ import { logActivity } from '../../utils/logger'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
+  if (!['admin', 'staff_tu'].includes(auth.role)) {
+    throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan mengubah Arsip — hanya Admin & Staff TU' })
+  }
   const id = Number(event.context.params?.id)
   const { fields, file } = await readFormWithFile(event)
   const db = useDb()
