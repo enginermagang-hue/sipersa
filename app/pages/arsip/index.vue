@@ -17,7 +17,6 @@ const refType = ref<string | undefined>(undefined)
 const deleted = ref(false)
 const page = ref(1)
 const perPage = ref(20)
-const filterOpen = ref(false)
 const activeFilterCount = computed(() => [status.value, refType.value, tahun.value].filter(Boolean).length)
 function resetFilters() { status.value = undefined; refType.value = undefined; tahun.value = ''; page.value = 1 }
 watch([status, refType, tahun], () => { page.value = 1 })
@@ -243,53 +242,30 @@ const columns: TableColumn<any>[] = [
       </UButton>
     </div>
 
-    <div class="flex gap-2 items-center">
-      <UInput v-model="q" placeholder="Cari dokumen/lokasi" icon="i-lucide-search" class="flex-1 min-w-0" :ui="{ trailing: 'pr-8' }">
+    <!-- Search + Filter dalam 1 baris (Desain A: wrap responsif) -->
+    <div class="flex flex-col lg:flex-row lg:flex-nowrap gap-2 lg:items-center">
+      <UInput v-model="q" placeholder="Cari dokumen/lokasi" icon="i-lucide-search" class="w-full lg:flex-1 lg:min-w-[220px]" :ui="{ trailing: 'pr-8' }">
         <template v-if="q" #trailing>
           <UButton variant="ghost" size="xs" color="neutral" icon="i-lucide-x" aria-label="Hapus pencarian" @click="q = ''" />
         </template>
       </UInput>
-      <UButton class="lg:hidden shrink-0" icon="i-lucide-sliders-horizontal" variant="outline" aria-label="Buka filter" @click="filterOpen = true">
-        Filter
-        <UBadge v-if="activeFilterCount" :label="activeFilterCount" color="primary" variant="solid" size="xs" class="ml-1" />
-      </UButton>
-      <UToggle v-model="deleted" label="Terhapus" class="shrink-0 hidden sm:flex" />
-      <UToggle v-model="deleted" class="shrink-0 sm:hidden" />
+      <div class="flex flex-wrap lg:flex-nowrap gap-2 w-full lg:w-auto">
+        <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="flex-1 lg:flex-none lg:w-44 min-w-0" />
+        <USelect v-model="refType" :items="refTypeOptions" value-key="value" label-key="label" placeholder="Sumber" class="flex-1 lg:flex-none lg:w-52 min-w-0" />
+        <UInput v-model="tahun" placeholder="Tahun" type="number" class="w-full sm:flex-1 lg:flex-none lg:w-28 min-w-0" />
+        <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
+          <UToggle v-model="deleted" label="Terhapus" />
+          <UButton v-if="activeFilterCount" variant="ghost" size="sm" icon="i-lucide-x" @click="resetFilters">Reset</UButton>
+        </div>
+      </div>
     </div>
-
-    <div v-if="activeFilterCount" class="flex flex-wrap items-center gap-1.5 lg:hidden">
+    <div v-if="activeFilterCount" class="flex flex-wrap items-center gap-1.5 -mt-1">
       <span class="text-xs text-muted mr-1">Filter aktif:</span>
       <UBadge v-if="status" :label="statusLabel" variant="subtle" color="primary" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="status = undefined" />
       <UBadge v-if="refType" :label="refTypeLabel" variant="subtle" color="neutral" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="refType = undefined" />
       <UBadge v-if="tahun" :label="tahun" variant="subtle" color="neutral" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="tahun = ''" />
       <UButton v-if="activeFilterCount > 1" variant="link" size="xs" color="neutral" class="px-1" @click="resetFilters">Hapus semua</UButton>
     </div>
-    <div class="flex lg:hidden items-center gap-2">
-      <UToggle v-model="deleted" label="Tampilkan terhapus" />
-    </div>
-
-    <div class="hidden lg:grid lg:grid-cols-12 gap-2 items-center">
-      <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="lg:col-span-3 w-full min-w-0" />
-      <USelect v-model="refType" :items="refTypeOptions" value-key="value" label-key="label" placeholder="Sumber" class="lg:col-span-5 w-full min-w-0" />
-      <UInput v-model="tahun" placeholder="Tahun" type="number" class="lg:col-span-4 w-full min-w-0" />
-    </div>
-
-    <USlideover v-model:open="filterOpen" title="Filter" description="Saring arsip" side="right" :ui="{ content: 'max-w-sm' }">
-      <template #body>
-        <div class="space-y-4">
-          <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="w-full" />
-          <USelect v-model="refType" :items="refTypeOptions" value-key="value" label-key="label" placeholder="Sumber" class="w-full" />
-          <UInput v-model="tahun" placeholder="Tahun" type="number" class="w-full" />
-          <UToggle v-model="deleted" label="Tampilkan terhapus" />
-        </div>
-      </template>
-      <template #footer>
-        <div class="flex gap-2 w-full">
-          <UButton variant="ghost" block @click="resetFilters">Reset</UButton>
-          <UButton block @click="filterOpen = false">Terapkan</UButton>
-        </div>
-      </template>
-    </USlideover>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
       <UTable :data="data?.data || []" :columns="columns" :loading="pending" empty="Belum ada data" :ui="{ root: 'custom-scrollbar-table' }" />
