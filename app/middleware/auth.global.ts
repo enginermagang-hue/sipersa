@@ -14,7 +14,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/')
   }
   if (user.value && to.path.startsWith('/laporan') && !['admin', 'staff_tu'].includes(user.value.role)) {
-    return navigateTo('/')
+    throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan mengakses Laporan — hanya Admin & Staff TU' })
   }
    if (user.value && (to.path.startsWith('/surat-keluar/tulis') || /\/surat-keluar\/\d+\/edit/.test(to.path)) && !['staff_tu', 'admin'].includes(user.value.role)) {
     return navigateTo('/')

@@ -24,9 +24,12 @@ const items = computed<NavigationMenuItem[][]>(() => {
     { label: 'Disposisi', icon: 'i-lucide-share-2', to: '/disposisi', badge: (stats.value?.disposisiSaya || 0) || undefined }
   ]
   const manajemen: NavigationMenuItem[] = [
-    { label: 'Arsip', icon: 'i-lucide-archive', to: '/arsip' },
-    { label: 'Laporan', icon: 'i-lucide-file-bar-chart', to: '/laporan' }
+    { label: 'Arsip', icon: 'i-lucide-archive', to: '/arsip' }
   ]
+  // Pilihan B: Laporan hanya untuk admin & staff_tu — sembunyikan dari pimpinan & role lain agar tidak redirect senyap ke Dashboard
+  if (['admin', 'staff_tu'].includes(user.value?.role)) {
+    manajemen.push({ label: 'Laporan', icon: 'i-lucide-file-bar-chart', to: '/laporan' })
+  }
   const operasional: NavigationMenuItem[] = []
   if (['pimpinan', 'admin'].includes(user.value?.role)) {
     operasional.push({ label: 'Kelola Disposisi', icon: 'i-lucide-list-checks', to: '/disposisi/kelola' })
