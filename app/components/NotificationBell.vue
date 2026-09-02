@@ -87,6 +87,7 @@ function timeAgo(s: string) {
           <div class="flex items-center gap-1">
             <UButton v-if="unread" size="xs" variant="ghost" @click="markRead()">Tandai semua dibaca</UButton>
             <UButton size="xs" variant="ghost" icon="i-lucide-refresh-cw" aria-label="Muat ulang" :loading="loading" @click="load()" />
+            <UButton color="neutral" variant="ghost" icon="i-lucide-x" size="xs" aria-label="Tutup notifikasi" @click="open = false" />
           </div>
         </div>
         <div v-if="items.length" class="flex items-center justify-between gap-2 border-t border-default pt-2">
