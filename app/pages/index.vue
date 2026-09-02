@@ -14,12 +14,17 @@ const aksiItems = computed(() => {
 </script>
 <template>
   <div class="space-y-4">
-    <div class="flex flex-wrap gap-2 justify-between items-center">
-      <div><h1 class="text-xl font-bold">Selamat datang, {{ user?.nama }}</h1><p class="text-muted text-sm">Ringkasan persuratan instansi.</p></div>
-      <div class="flex gap-2">
-        <USelect v-model="period" :items="[{label:'3 Bulan',value:3},{label:'6 Bulan',value:6},{label:'9 Bulan',value:9},{label:'12 Bulan',value:12}]" size="sm" class="w-28" />
-        <USelect v-model="klasifikasiId" :items="klasOptions" value-key="value" label-key="label" size="sm" class="w-48" placeholder="Filter klasifikasi" />
-        <div class="flex items-center gap-2"><UIcon v-if="isRefreshing" name="i-lucide-loader-2" class="animate-spin text-muted" /><UButton icon="i-lucide-refresh-cw" size="sm" variant="outline" :loading="isRefreshing" @click="refresh()">Refresh</UButton><UDropdownMenu v-if="aksiItems.length" :items="aksiItems" :content="{ align: 'end' }"><UButton icon="i-lucide-zap" trailing-icon="i-lucide-chevron-down" size="sm">Aksi Cepat</UButton></UDropdownMenu></div>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0"><h1 class="text-xl font-bold truncate">Selamat datang, {{ user?.nama }}</h1><p class="text-muted text-sm">Ringkasan persuratan instansi.</p></div>
+      <div class="flex flex-col sm:flex-row gap-2 sm:items-center w-full sm:w-auto">
+        <div class="flex gap-2 w-full sm:w-auto">
+          <USelect v-model="period" :items="[{label:'3 Bulan',value:3},{label:'6 Bulan',value:6},{label:'9 Bulan',value:9},{label:'12 Bulan',value:12}]" size="sm" class="flex-1 sm:flex-none sm:w-28 min-w-0" />
+          <USelect v-model="klasifikasiId" :items="klasOptions" value-key="value" label-key="label" size="sm" class="flex-1 sm:flex-none sm:w-48 min-w-0 truncate" placeholder="Filter klasifikasi" />
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <UButton icon="i-lucide-refresh-cw" size="sm" variant="outline" block class="flex-1 sm:flex-none" :loading="isRefreshing" @click="refresh()">Refresh</UButton>
+          <UDropdownMenu v-if="aksiItems.length" :items="aksiItems" :content="{ align: 'end' }" class="flex-1 sm:flex-none"><UButton icon="i-lucide-zap" trailing-icon="i-lucide-chevron-down" size="sm" block class="w-full sm:w-auto">Aksi Cepat</UButton></UDropdownMenu>
+        </div>
       </div>
     </div>
 
