@@ -16,6 +16,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (user.value && to.path.startsWith('/laporan') && !['admin', 'staff_tu'].includes(user.value.role)) {
     throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan mengakses Laporan — hanya Admin & Staff TU' })
   }
+  // Disposisi (inbox) — hanya admin & staff_tu; pimpinan dialihkan ke 403 agar tidak senyap ke dashboard
+  if (user.value && to.path.startsWith('/disposisi') && !to.path.startsWith('/disposisi/kelola') && !['admin', 'staff_tu'].includes(user.value.role)) {
+    throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan mengakses Disposisi — hanya Admin & Staff TU' })
+  }
+  // Kelola Disposisi — hanya admin
+  if (user.value && to.path.startsWith('/disposisi/kelola') && user.value.role !== 'admin') {
+    throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan mengakses Kelola Disposisi — hanya Admin' })
+  }
    if (user.value && (to.path.startsWith('/surat-keluar/tulis') || /\/surat-keluar\/\d+\/edit/.test(to.path)) && !['staff_tu', 'admin'].includes(user.value.role)) {
     return navigateTo('/')
   }

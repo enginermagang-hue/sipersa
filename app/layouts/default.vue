@@ -20,9 +20,12 @@ const items = computed<NavigationMenuItem[][]>(() => {
   const utama: NavigationMenuItem[] = [
     { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: '/' },
     { label: 'Surat Masuk', icon: 'i-lucide-inbox', to: '/surat-masuk' },
-    { label: 'Surat Keluar', icon: 'i-lucide-send', to: '/surat-keluar', badge: (['pimpinan'].includes(user.value?.role) ? stats.value?.keluarMenungguPersetujuan : 0) || undefined },
-    { label: 'Disposisi', icon: 'i-lucide-share-2', to: '/disposisi', badge: (stats.value?.disposisiSaya || 0) || undefined }
+    { label: 'Surat Keluar', icon: 'i-lucide-send', to: '/surat-keluar', badge: (['pimpinan'].includes(user.value?.role) ? stats.value?.keluarMenungguPersetujuan : 0) || undefined }
   ]
+  // Disposisi (inbox) — sembunyikan untuk pimpinan (pilihan B: hanya admin & staff_tu)
+  if (['admin', 'staff_tu'].includes(user.value?.role)) {
+    utama.push({ label: 'Disposisi', icon: 'i-lucide-share-2', to: '/disposisi', badge: (stats.value?.disposisiSaya || 0) || undefined })
+  }
   const manajemen: NavigationMenuItem[] = [
     { label: 'Arsip', icon: 'i-lucide-archive', to: '/arsip' }
   ]
@@ -31,7 +34,8 @@ const items = computed<NavigationMenuItem[][]>(() => {
     manajemen.push({ label: 'Laporan', icon: 'i-lucide-file-bar-chart', to: '/laporan' })
   }
   const operasional: NavigationMenuItem[] = []
-  if (['pimpinan', 'admin'].includes(user.value?.role)) {
+  // Kelola Disposisi — sembunyikan untuk pimpinan (hanya admin) sesuai permintaan
+  if (['admin'].includes(user.value?.role)) {
     operasional.push({ label: 'Kelola Disposisi', icon: 'i-lucide-list-checks', to: '/disposisi/kelola' })
   }
   const adminMenu: NavigationMenuItem[] = []
