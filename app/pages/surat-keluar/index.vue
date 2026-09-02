@@ -151,7 +151,6 @@ const buatMenu = [
         <UDropdownMenu v-if="user?.role === 'staff_tu'" :items="buatMenu" :content="{ align: 'end' }">
           <UButton icon="i-lucide-plus">Buat Surat Keluar</UButton>
         </UDropdownMenu>
-        <UButton v-else icon="i-lucide-plus" @click="addOpen = true">Tambah Surat Keluar</UButton>
       </div>
     </div>
 

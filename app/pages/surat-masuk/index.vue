@@ -5,6 +5,7 @@ import { h } from 'vue'
 const { user } = useAuth()
 const { confirm } = useConfirm()
 const toast = useToast()
+const canCreateMasuk = computed(() => user.value?.role === 'staff_tu')
 
 const q = ref('')
 const qDebounced = ref('')
@@ -136,7 +137,7 @@ function getAksiItems(row: any) {
       </div>
       <div class="flex items-center gap-2">
         <UButton variant="soft" icon="i-lucide-file-spreadsheet" @click="exportExcel">Export Excel</UButton>
-        <UButton icon="i-lucide-plus" @click="addOpen = true">Tambah Surat Masuk</UButton>
+        <UButton v-if="canCreateMasuk" icon="i-lucide-plus" @click="addOpen = true">Tambah Surat Masuk</UButton>
       </div>
     </div>
 

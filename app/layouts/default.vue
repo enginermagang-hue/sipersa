@@ -98,10 +98,13 @@ defineShortcuts({
 })
 
 const quickActions = computed<DropdownMenuItem[][]>(() => {
-  const acts: DropdownMenuItem[] = [
-    { label: 'Surat Masuk Baru', icon: 'i-lucide-inbox', to: '/surat-masuk' },
-    { label: 'Surat Keluar Baru', icon: 'i-lucide-send', to: '/surat-keluar/tulis' }
-  ]
+  const acts: DropdownMenuItem[] = []
+  if (user.value?.role === 'staff_tu') {
+    acts.push({ label: 'Surat Masuk Baru', icon: 'i-lucide-inbox', to: '/surat-masuk' })
+  }
+  if (user.value?.role === 'staff_tu') {
+    acts.push({ label: 'Surat Keluar Baru', icon: 'i-lucide-send', to: '/surat-keluar/tulis' })
+  }
   if (['admin', 'staff_tu'].includes(user.value?.role)) {
     acts.push({ label: 'Arsip Baru', icon: 'i-lucide-archive', to: '/arsip' })
   }
@@ -163,7 +166,7 @@ const quickActions = computed<DropdownMenuItem[][]>(() => {
           <template #right>
             <UColorModeButton />
             <NotificationBell />
-            <UDropdownMenu :items="quickActions" :content="{ align: 'end' }" :ui="{ content: 'min-w-48' }">
+            <UDropdownMenu v-if="quickActions[0]?.length" :items="quickActions" :content="{ align: 'end' }" :ui="{ content: 'min-w-48' }">
               <UButton icon="i-lucide-plus" size="md" class="rounded-full" aria-label="Aksi cepat" />
             </UDropdownMenu>
           </template>

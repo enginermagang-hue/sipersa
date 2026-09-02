@@ -7,6 +7,9 @@ import { logActivity } from '../../utils/logger'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
+  if (auth.role !== 'staff_tu') {
+    throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan membuat Surat Masuk — hanya Staff TU' })
+  }
   const { fields, file } = await readFormWithFile(event)
 
   const parsed = suratMasukSchema.safeParse({
