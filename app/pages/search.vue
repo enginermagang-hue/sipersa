@@ -136,12 +136,16 @@ const sifatColor: Record<string, 'neutral' | 'warning' | 'info' | 'error'> = {
   rahasia: 'error'
 }
 
+function stripHtml(s: string) {
+  return s.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim()
+}
+
 function esc(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 }
 
 function hl(text?: string | null) {
-  const t = text ?? ''
+  const t = stripHtml(text ?? '')
   const needle = q.value.trim()
   if (!needle) return esc(t)
   const re = new RegExp(`(${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
@@ -149,7 +153,7 @@ function hl(text?: string | null) {
 }
 
 function excerpt(r: any) {
-  return r.ringkasan || r.perihal || ''
+  return stripHtml(r.ringkasan || r.judul || r.perihal || '')
 }
 
 function fmtTgl(s?: string | null) {
@@ -333,7 +337,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
             <div class="cursor-pointer" @click="buka(d.best_match)">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <div class="font-semibold">{{ hl(d.best_match.nomor || d.best_match.judul) }}</div>
+                  <div class="font-semibold" v-html="hl(d.best_match.nomor || d.best_match.judul)" />
                   <div class="text-sm font-medium mt-0.5 line-clamp-1" v-html="hl(d.best_match.judul)" />
                 </div>
                 <div class="flex gap-1 shrink-0" @click.stop>
@@ -392,9 +396,9 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
                   <div class="min-w-0">
                     <div class="flex items-center gap-2">
                       <UBadge :label="typeMeta[r._type]?.label || r._type" variant="subtle" size="sm" :icon="typeMeta[r._type]?.icon" />
-                      <div class="font-semibold text-sm truncate">{{ hl(r.nomor || r.judul) }}</div>
+                      <div class="font-semibold text-sm truncate" v-html="hl(r.nomor || r.judul)" />
                     </div>
-                    <div v-if="(r.perihal || '').trim()" class="text-sm font-medium mt-1 line-clamp-1" v-html="hl(r.judul)" />
+                    <div v-if="(r.judul || '').trim() && r.judul !== r.nomor" class="text-sm font-medium mt-1 line-clamp-1" v-html="hl(r.judul)" />
                   </div>
                   <div class="flex gap-1 shrink-0" @click.stop>
                     <UButton

@@ -2,6 +2,11 @@
 import { useDb } from '../utils/db'
 
 const ph = (n: number) => Array(n).fill('?').join(',')
+const stripHtml = (s: any) => String(s ?? '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim()
+const cleanRow = (r: any) => {
+  if (!r) return r
+  return { ...r, judul: stripHtml(r.judul), nomor: stripHtml(r.nomor) }
+}
 
 export default defineEventHandler(async (event) => {
   const qp = getQuery(event)
@@ -139,7 +144,7 @@ export default defineEventHandler(async (event) => {
     page,
     limit,
     counts,
-    best_match: best,
-    rows: rowsRes.rows
+    best_match: cleanRow(best),
+    rows: (rowsRes.rows as any[]).map(cleanRow)
   }
 })
