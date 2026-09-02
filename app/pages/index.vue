@@ -3,11 +3,14 @@ const { user } = useAuth()
 const { data, pending, isInitialLoading, isRefreshing, refresh, period, klasifikasiId } = useDashboard()
 const { data: klasifikasi } = await useFetch('/api/klasifikasi', { headers: useRequestHeaders(['cookie']) as any })
 const klasOptions = computed(() => [{ label:'Semua Klasifikasi', value:null }, ...((klasifikasi.value as any[])||[]).map((k:any)=>({label: k.nama, value:k.id}))])
-const aksiItems = computed(() => [[
-  { label: 'Surat Masuk', icon: 'i-lucide-plus', to: '/surat-masuk' },
-  { label: 'Surat Keluar', icon: 'i-lucide-plus', to: '/surat-keluar' },
-  { label: 'Disposisi', icon: 'i-lucide-share-2', to: '/disposisi' },
-], [{ label: 'Export Laporan', icon: 'i-lucide-download', to: '/laporan' }]])
+const aksiItems = computed(() => {
+  if (user.value?.role === 'pimpinan') return []
+  return [[
+    { label: 'Surat Masuk', icon: 'i-lucide-plus', to: '/surat-masuk' },
+    { label: 'Surat Keluar', icon: 'i-lucide-plus', to: '/surat-keluar' },
+    { label: 'Disposisi', icon: 'i-lucide-share-2', to: '/disposisi' },
+  ], [{ label: 'Export Laporan', icon: 'i-lucide-download', to: '/laporan' }]]
+})
 </script>
 <template>
   <div class="space-y-4">
@@ -16,7 +19,7 @@ const aksiItems = computed(() => [[
       <div class="flex gap-2">
         <USelect v-model="period" :items="[{label:'3 Bulan',value:3},{label:'6 Bulan',value:6},{label:'9 Bulan',value:9},{label:'12 Bulan',value:12}]" size="sm" class="w-28" />
         <USelect v-model="klasifikasiId" :items="klasOptions" value-key="value" label-key="label" size="sm" class="w-48" placeholder="Filter klasifikasi" />
-        <div class="flex items-center gap-2"><UIcon v-if="isRefreshing" name="i-lucide-loader-2" class="animate-spin text-muted" /><UButton icon="i-lucide-refresh-cw" size="sm" variant="outline" :loading="isRefreshing" @click="refresh()">Refresh</UButton><UDropdownMenu :items="aksiItems" :content="{ align: 'end' }"><UButton icon="i-lucide-zap" trailing-icon="i-lucide-chevron-down" size="sm">Aksi Cepat</UButton></UDropdownMenu></div>
+        <div class="flex items-center gap-2"><UIcon v-if="isRefreshing" name="i-lucide-loader-2" class="animate-spin text-muted" /><UButton icon="i-lucide-refresh-cw" size="sm" variant="outline" :loading="isRefreshing" @click="refresh()">Refresh</UButton><UDropdownMenu v-if="aksiItems.length" :items="aksiItems" :content="{ align: 'end' }"><UButton icon="i-lucide-zap" trailing-icon="i-lucide-chevron-down" size="sm">Aksi Cepat</UButton></UDropdownMenu></div>
       </div>
     </div>
 
