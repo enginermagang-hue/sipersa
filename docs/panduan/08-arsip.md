@@ -53,6 +53,8 @@ Header “Arsip — Kelola arsip dan retensi dokumen” + Export Excel (semua) &
 
 ### 8.3 Hapus, Restore, Pemusnahan
 
+> **Catatan:** Fitur **Restore** & **Pemusnahan** berada di **halaman Arsip** (bukan di menu Admin) — gunakan filter `Terhapus` & status `Kadaluarsa` di toolbar Arsip. Restore khusus `admin` (`app/pages/arsip/index.vue:156` `role==='admin'`), Pemusnahan hanya jika `status==='kadaluarsa'` + `canManage` (`admin|creator`).
+
 1. **Hapus:**
    - Klik dropdown Aksi → Hapus → konfirmasi → hilang dari list normal.
 
