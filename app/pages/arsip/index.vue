@@ -255,8 +255,8 @@ const columns: TableColumn<any>[] = [
         <UInput v-model="tahun" placeholder="Tahun" type="number" class="w-full sm:flex-1 lg:flex-none lg:w-28 min-w-0" />
       </div>
     </div>
-    <div class="flex flex-wrap items-center gap-3 mt-1 p-2 rounded-lg border border-default bg-muted/20">
-      <UToggle v-model="deleted" label="Tampilkan terhapus" size="lg" />
+    <div class="flex flex-wrap items-center gap-3 mt-1 p-2 rounded-lg border-2 transition-colors" :class="deleted ? 'border-warning bg-warning/5' : 'border-default bg-muted/20'">
+      <UCheckbox v-model="deleted" label="Tampilkan terhapus" />
       <span class="text-xs text-muted">(hanya admin dapat Restore — aktifkan untuk lihat tombol Restore di tabel)</span>
       <div class="ml-auto flex items-center gap-2">
         <UBadge v-if="deleted" label="Mode Terhapus" color="warning" variant="subtle" size="xs" />
