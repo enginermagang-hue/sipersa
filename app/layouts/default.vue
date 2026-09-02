@@ -16,7 +16,7 @@ onMounted(() => {
   if (!user.value) fetchMe()
 })
 
-const items = computed<NavigationMenuItem[][]>(() => {
+const mainGroups = computed<NavigationMenuItem[][]>(() => {
   const utama: NavigationMenuItem[] = [
     { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: '/' },
     { label: 'Surat Masuk', icon: 'i-lucide-inbox', to: '/surat-masuk' },
@@ -52,16 +52,16 @@ const items = computed<NavigationMenuItem[][]>(() => {
       ]
     })
   }
-  const otherMenu: NavigationMenuItem[] = [
-    { label: 'Panduan', icon: 'i-lucide-book-open', to: '/panduan' },
-    { label: 'Tentang', icon: 'i-lucide-info', to: '/tentang' }
-  ]
   const groups: NavigationMenuItem[][] = [utama, manajemen]
   if (operasional.length) groups.push(operasional)
   if (adminMenu.length) groups.push(adminMenu)
-  groups.push(otherMenu)
   return groups
 })
+
+const bottomGroups = computed<NavigationMenuItem[][]>(() => [[
+  { label: 'Panduan', icon: 'i-lucide-book-open', to: '/panduan' },
+  { label: 'Tentang', icon: 'i-lucide-info', to: '/tentang' }
+]])
 
 const appConfig = useAppConfig()
 const config = useRuntimeConfig()
@@ -143,7 +143,8 @@ const quickActions = computed<DropdownMenuItem[][]>(() => {
           </template>
         </UButton>
 
-        <UNavigationMenu :collapsed="c" :items="items" orientation="vertical" class="flex-1" />
+        <UNavigationMenu :collapsed="c" :items="mainGroups" orientation="vertical" />
+        <UNavigationMenu :collapsed="c" :items="bottomGroups" orientation="vertical" class="mt-auto" />
       </template>
 
       <template #footer="{ collapsed: c }">
