@@ -97,7 +97,7 @@ const providers = [
     color: 'neutral' as const,
     variant: 'outline' as const,
     class: 'group transition-all duration-300 hover:shadow-md hover:border-primary/30 hover:scale-[1.01] motion-safe:transition-all',
-    ui: { leadingIcon: 'transition-all duration-300 ease-out motion-safe:group-hover:scale-110 motion-safe:group-hover:rotate-12 motion-safe:group-hover:text-[#4285F4]' },
+    ui: { leadingIcon: 'transition-all duration-300 ease-out motion-safe:group-hover:scale-110 motion-safe:group-hover:text-[#4285F4]' },
     onClick: () => googleLogin()
   },
   {
@@ -106,7 +106,7 @@ const providers = [
     color: 'neutral' as const,
     variant: 'outline' as const,
     class: 'group transition-all duration-300 hover:shadow-md hover:border-primary/30 hover:scale-[1.01] motion-safe:transition-all',
-    ui: { leadingIcon: 'transition-all duration-300 ease-out motion-safe:group-hover:scale-110 motion-safe:group-hover:rotate-6 motion-safe:group-hover:text-primary' },
+    ui: { leadingIcon: 'transition-all duration-300 ease-out motion-safe:group-hover:scale-110 motion-safe:group-hover:text-primary' },
     onClick: () => ssoLogin()
   }
 ]
