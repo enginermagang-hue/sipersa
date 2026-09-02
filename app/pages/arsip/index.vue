@@ -253,15 +253,15 @@ const columns: TableColumn<any>[] = [
         <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="flex-1 lg:flex-none lg:w-44 min-w-0" />
         <USelect v-model="refType" :items="refTypeOptions" value-key="value" label-key="label" placeholder="Sumber" class="flex-1 lg:flex-none lg:w-52 min-w-0" />
         <UInput v-model="tahun" placeholder="Tahun" type="number" class="w-full sm:flex-1 lg:flex-none lg:w-28 min-w-0" />
-        <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
-          <UToggle v-model="deleted" label="Terhapus" />
-          <UButton v-if="activeFilterCount" variant="ghost" size="sm" icon="i-lucide-x" @click="resetFilters">Reset</UButton>
-        </div>
       </div>
     </div>
-    <div class="flex items-center gap-2 mt-1">
-      <UToggle v-model="deleted" label="Tampilkan terhapus" />
-      <span class="text-xs text-muted">(hanya admin dapat Restore)</span>
+    <div class="flex flex-wrap items-center gap-3 mt-1 p-2 rounded-lg border border-default bg-muted/20">
+      <UToggle v-model="deleted" label="Tampilkan terhapus" size="lg" />
+      <span class="text-xs text-muted">(hanya admin dapat Restore — aktifkan untuk lihat tombol Restore di tabel)</span>
+      <div class="ml-auto flex items-center gap-2">
+        <UBadge v-if="deleted" label="Mode Terhapus" color="warning" variant="subtle" size="xs" />
+        <UButton v-if="activeFilterCount" variant="ghost" size="sm" icon="i-lucide-x" @click="resetFilters">Reset filter</UButton>
+      </div>
     </div>
     <div v-if="activeFilterCount" class="flex flex-wrap items-center gap-1.5 -mt-1">
       <span class="text-xs text-muted mr-1">Filter aktif:</span>
