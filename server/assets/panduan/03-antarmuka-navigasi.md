@@ -24,7 +24,8 @@ Tata letak aplikasi terdiri dari sidebar, navbar, dan area konten.
 
 ### 3.2 Menu Navigasi per Peran
 
-- **Semua peran:** Dashboard, Surat Masuk, Surat Keluar (badge “menunggu persetujuan” jika pimpinan), Disposisi (badge disposisi saya), Arsip, Laporan, Tentang, Panduan.
+- **Semua peran:** Dashboard, Surat Masuk, Surat Keluar (badge “menunggu persetujuan” hanya pimpinan), Arsip, Tentang, Panduan.
+- **Khusus admin & staff:** Disposisi (inbox, badge disposisi saya) & Laporan.
 - **Khusus pimpinan & admin:** Kelola Disposisi.
 - **Khusus admin:** Grup Admin → Users, Session, Log Aktivitas, Klasifikasi.
 
@@ -45,7 +46,7 @@ Tata letak aplikasi terdiri dari sidebar, navbar, dan area konten.
 
 ### 3.4 Notifikasi
 
-Notifikasi muncul di lonceng navbar. Badge angka menunjukkan yang belum dibaca. Notifikasi dibuat otomatis saat disposisi baru ditujukan ke Anda.
+Notifikasi muncul di lonceng navbar. Badge angka menunjukkan yang belum dibaca. Notifikasi dibuat otomatis saat disposisi baru ditujukan ke Anda. Di header panel notifikasi ada tombol **X Tutup** (kanan atas, `aria-label="Tutup notifikasi"` di `app/components/NotificationBell.vue:90`) — klik untuk menutup tanpa mark read.
 
 ![Lonceng notifikasi — elemen badge di navbar](/panduan/antarmuka-notifikasi.png)
 
@@ -53,7 +54,7 @@ Notifikasi muncul di lonceng navbar. Badge angka menunjukkan yang belum dibaca. 
 
 ### 3.5 Aksi Cepat
 
-Tombol + di navbar: Surat Masuk Baru, Surat Keluar Baru (Tulis Surat), Arsip Baru. Di dashboard ada menu aksi cepat serupa.
+Tombol + di navbar & Aksi Cepat Dashboard — hanya muncul jika berhak: Surat Masuk Baru & Surat Keluar Baru (hanya staff), Arsip Baru (admin & staff). Pimpinan tidak melihat Aksi Cepat (`app/layouts/default.vue:102`, `app/pages/index.vue:7`).
 
 ![Tombol Aksi Cepat (+) — elemen di navbar](/panduan/antarmuka-aksi-cepat.png)
 

@@ -10,10 +10,10 @@
 
 ### Pimpinan
 
-1. Terima disposisi (Disposisi Saya, badge di sidebar)
+1. Terima disposisi via **Kelola Disposisi** (Disposisi Saya hidden untuk pimpinan, Kelola untuk pimpinan+admin)
 2. Proses (ubah status diproses/selesai, teruskan ke bawahan)
-3. Setujui/Tolak Surat Keluar di Approval Queue
-4. Pantau Laporan
+3. Setujui/Tolak Surat Keluar di Approval / Dashboard `ApprovalQueue` (`app/pages/index.vue:53` `pimpinan||admin`)
+4. Pantau via Dashboard & Kelola Disposisi (Laporan hanya admin & staff)
 
 ### Admin
 Semua di atas + kelola Users/Sesi/Klasifikasi/Log. Seed awal sudah ada klasifikasi & admin.

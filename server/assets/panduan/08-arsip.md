@@ -2,9 +2,9 @@
 
 ### 8.1 Daftar Arsip
 
-Header “Arsip — Kelola arsip dan retensi dokumen” + Export Excel & Tambah (tersembunyi jika mode Terhapus).
+Header “Arsip — Kelola arsip dan retensi dokumen” + Export Excel (semua) & Tambah (**hidden jika mode Terhapus *atau* jika pimpinan — hanya admin & staff**, `canCreateArsip` di `app/pages/arsip/index.vue:8,209` & `server/api/arsip/index.post.ts:9` 403).
 
-**KPI retensi** (dihitung dari retensi klasifikasi + tgl buat vs sekarang):
+**KPI retensi** via endpoint baru `GET /api/arsip/stats` (`app/pages/arsip/index.vue:30` → 4 kartu Total/Aktif/Menjelang/Kadaluarsa, mobile 2+expand):
 
 | Status | Arti | Warna |
 |--------|------|-------|
@@ -17,7 +17,7 @@ Header “Arsip — Kelola arsip dan retensi dokumen” + Export Excel & Tambah 
 
 > *Gambar 16a — Elemen KPI retensi.*
 
-**Toolbar:** Cari dokumen/lokasi, toggle Terhapus (hanya admin bisa restore), filter status retensi, sumber (Dari Surat Masuk/Keluar/Mandiri), tahun, popup filter di mobile.
+**Toolbar 1 baris (Desain A):** Search `Cari dokumen/lokasi` (flex-1) + Status + Sumber + Tahun + Toggle Terhapus + Reset — `flex flex-col lg:flex-row lg:flex-nowrap gap-2` (`app/pages/arsip/index.vue:246`, wrap hanya di mobile). Badge filter aktif di bawah baris.
 
 ![Toolbar Arsip — elemen filter & toggle Terhapus](/panduan/arsip-toolbar.png)
 
@@ -33,7 +33,7 @@ Header “Arsip — Kelola arsip dan retensi dokumen” + Export Excel & Tambah 
 
 ### 8.2 Tambah & Edit Arsip
 
-1. Klik Tambah → popup form terbuka.
+1. Klik Tambah (hanya admin & staff, hidden untuk pimpinan) → popup form terbuka.
 
    ![Tombol Tambah Arsip — elemen di header](/panduan/arsip-tombol-tambah.png)
 

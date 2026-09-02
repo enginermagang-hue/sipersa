@@ -35,7 +35,7 @@
 
 ### 7.2 Kelola Disposisi
 
-Khusus pimpinan/admin. Menampilkan semua disposisi instansi (bukan hanya milik saya), filter sama, plus kemampuan lihat semua dan tindak lanjut.
+Khusus pimpinan/admin (`app/layouts/default.vue:38`, `auth.global.ts:23`, `server/api/disposisi/index.get.ts:5` `pimpinan+admin`). Menampilkan semua disposisi instansi (bukan hanya milik saya), filter sama, plus kemampuan lihat semua dan tindak lanjut. **Disposisi Saya (inbox) hanya untuk admin & staff** (`default.vue:26`, `auth.global.ts:20`) — pimpinan mengelola via Kelola Disposisi, bukan inbox.
 
 ![Kelola Disposisi](/panduan/disposisi-kelola.png)
 

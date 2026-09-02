@@ -50,7 +50,7 @@
 
 ### 2.3 SSO ASN
 
-Tombol Login SSO ASN saat ini menampilkan toast “SSO belum tersedia — masih dalam pengembangan”. Abaikan untuk operasional harian.
+Tombol Login Google & SSO ASN memiliki animasi hover halus `scale-110` (Google biru #4285F4, SSO primary) + shadow pada tombol (`app/pages/login.vue:99`). Tombol Login SSO ASN saat ini menampilkan toast “SSO belum tersedia — masih dalam pengembangan”. Abaikan untuk operasional harian.
 
 ### 2.4 Lupa Password & Ganti Password
 
@@ -74,4 +74,5 @@ Tombol Login SSO ASN saat ini menampilkan toast “SSO belum tersedia — masih 
    > *Gambar 3c — Menu avatar dengan opsi Keluar.*
 
 2. Sesi disimpan dengan alamat IP, browser, waktu aktif terakhir, dan status. Token adalah kode acak, bukan tanda tangan.
+3. Modal Logout kini tanpa judul — hanya body "Sedang keluar…" dengan spinner (`app/layouts/default.vue:202`).
 3. Jika sesi dicabut admin, Anda akan otomatis logout saat akses berikutnya.

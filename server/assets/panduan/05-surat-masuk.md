@@ -2,7 +2,7 @@
 
 ### 5.1 Daftar Surat Masuk
 
-Header: judul “Surat Masuk — Kelola dan pantau semua surat masuk instansi” + tombol Export Excel & Tambah Surat Masuk.
+Header: judul “Surat Masuk — Kelola dan pantau semua surat masuk instansi” + Export Excel (semua) & Tambah Surat Masuk (**hanya staff**, `v-if="canCreateMasuk"` di `app/pages/surat-masuk/index.vue:8,139`; pimpinan read-only).
 
 **KPI ringkas (4 kartu):** Total Surat Masuk, Baru (3 Hari), Belum Disposisi, Didisposisi Bulan Ini.
 
@@ -77,7 +77,7 @@ Header: judul “Surat Masuk — Kelola dan pantau semua surat masuk instansi”
 
 > *Gambar 8 — Form Tambah Surat Masuk.*
 
-**Hak akses:** Semua peran bisa tambah; edit/hapus hanya admin atau pemilik.
+**Hak akses:** Hanya role **staff** yang melihat tombol Tambah Surat Masuk (server `POST /api/surat-masuk` 403 untuk non-staff di `server/api/surat-masuk/index.post.ts:10`). Edit/hapus tetap hanya admin atau pemilik (`canManage`).
 
 ### 5.3 Edit & Hapus
 

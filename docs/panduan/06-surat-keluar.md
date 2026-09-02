@@ -22,14 +22,14 @@ Filter: status (Draft/Menunggu Persetujuan/Ditolak/Terkirim/Selesai), sifat, bul
 **Membuat surat:**
 
 1. Jika staff:
-   - Buka dropdown Buat Surat Keluar → pilih Unggah Surat atau Tulis Surat (editor).
+   - Buka dropdown Buat Surat Keluar → pilih Unggah Surat atau Tulis Surat (editor) (`app/pages/surat-keluar/index.vue:151` `v-if="staff"`).
 
      ![Dropdown Buat Surat Keluar — elemen pilihan Unggah/Tulis](/panduan/surat-keluar-dropdown-buat.png)
 
-     > *Gambar 10b — Elemen dropdown Buat.*
+     > *Gambar 10b — Elemen dropdown Buat (hanya staff).*
 
-2. Jika peran lain:
-   - Klik Tambah Surat Keluar → langsung buka popup unggah.
+2. Jika pimpinan/admin:
+   - **Tidak ada tombol tambah** — hanya meninjau & menyetujui di detail (`/surat-keluar/[id]`). Server `POST /api/surat-keluar` hanya `staff` (`index.post.ts:11`).
 
 ### 6.2 Tulis Surat (Editor)
 
@@ -80,7 +80,7 @@ Popup unggah mirip surat masuk tapi field tujuan/perihal/klasifikasi wajib, file
 
 3. **Menunggu persetujuan → Tolak** → Pimpinan klik Tolak + isi catatan → status menjadi ditolak → staff bisa edit & ajukan ulang.
 
-Hanya admin atau pemilik yang bisa edit/hapus, tapi approve hanya pimpinan/admin.
+Hanya admin atau pemilik yang bisa edit/hapus (jika draft/ditolak & `canManage`), tapi approve hanya pimpinan/admin (`canDecide`). Buat baru tetap hanya staff.
 
 ![Approval Surat Keluar](/panduan/surat-keluar-approval.png)
 

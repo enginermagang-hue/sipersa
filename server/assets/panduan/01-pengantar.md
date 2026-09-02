@@ -15,9 +15,11 @@
 |-------|-------------|
 | admin | Kelola user, klasifikasi, sesi, log aktivitas |
 | staff | Operasional harian surat & arsip, ajukan surat keluar |
-| pimpinan | Persetujuan surat keluar, disposisi & kelola disposisi |
+| pimpinan | Persetujuan surat keluar & Kelola Disposisi (tidak melihat Laporan, Disposisi inbox, tombol Tambah) |
 
 Semua pengguna yang sudah login bisa membaca panduan ini.
+
+> **Catatan peran:** `staff` adalah hasil rename dari `staff_tu` (migrasi otomatis `UPDATE users SET role='staff' WHERE role='staff_tu'` di `server/utils/migrate.ts:229`). Pimpinan tidak melihat menu Laporan, Disposisi inbox, dan tombol Tambah (hanya Kelola Disposisi & Approval).
 
 ![Gambaran aplikasi SIPERSA](/panduan/tentang-hero.png)
 
