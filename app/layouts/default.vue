@@ -199,7 +199,7 @@ const quickActions = computed<DropdownMenuItem[][]>(() => {
     </template>
   </UModal>
 
-  <UModal v-model:open="loggingOut" :dismissible="false" :close="false" title="Keluar">
+  <UModal v-model:open="loggingOut" :dismissible="false" :close="false">
     <template #body>
       <div class="flex flex-col items-center gap-4 py-6">
         <UIcon name="i-lucide-loader-circle" class="animate-spin size-10 text-primary" />
