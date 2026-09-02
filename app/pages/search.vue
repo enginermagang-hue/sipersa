@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useLocalStorage, watchDebounced } from '@vueuse/core'
+import { breakpointsTailwind, useBreakpoints, useLocalStorage, watchDebounced } from '@vueuse/core'
+import { CalendarDate, DateFormatter, getLocalTimeZone } from '@internationalized/date'
 
 const route = useRoute()
 const router = useRouter()
@@ -9,30 +10,60 @@ const qInput = ref(initial)
 const q = ref(initial)
 const jenisTab = ref<'semua' | 'masuk' | 'keluar' | 'arsip'>('semua')
 const sort = ref<'relevance' | 'newest'>('relevance')
-const preset = ref<'' | 'hari_ini' | '7hari' | '30hari' | 'tahun' | 'kustom'>('')
-const customFrom = ref('')
-const customTo = ref('')
 const sifats = ref<string[]>([])
 const statuses = ref<string[]>([])
 const history = useLocalStorage<string[]>('sipersa.search.history', [])
 const page = ref(1)
 const perPage = ref(15)
 
+// Rentang Waktu — date range picker (UCalendar range + UPopover)
+const tz = getLocalTimeZone()
+const df = new DateFormatter('id-ID', { dateStyle: 'medium' })
+const breakpoints = useBreakpoints(breakpointsTailwind)
+const isDesktop = breakpoints.greaterOrEqual('sm')
+type RangeValue = { start?: CalendarDate, end?: CalendarDate }
+const dateRange = ref<RangeValue>({ start: undefined, end: undefined })
+
+const presetRanges = [
+  { label: 'Hari ini', value: 'hari_ini' },
+  { label: '7 hari terakhir', value: '7hari' },
+  { label: '30 hari terakhir', value: '30hari' },
+  { label: `Tahun ${new Date().getFullYear()}`, value: 'tahun' }
+]
+
 function iso(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
-
-const range = computed(() => {
-  const now = new Date()
-  switch (preset.value) {
-    case 'hari_ini': return { from: iso(now), to: iso(now) }
-    case '7hari': { const f = new Date(now); f.setDate(f.getDate() - 6); return { from: iso(f), to: iso(now) } }
-    case '30hari': { const f = new Date(now); f.setDate(f.getDate() - 29); return { from: iso(f), to: iso(now) } }
-    case 'tahun': return { from: `${now.getFullYear()}-01-01`, to: `${now.getFullYear()}-12-31` }
-    case 'kustom': return { from: customFrom.value, to: customTo.value }
-    default: return { from: '', to: '' }
-  }
+function calToIso(c?: CalendarDate | null) {
+  return c ? `${c.year}-${String(c.month).padStart(2, '0')}-${String(c.day).padStart(2, '0')}` : ''
+}
+const range = computed(() => ({ from: calToIso(dateRange.value.start), to: calToIso(dateRange.value.end) }))
+const rangeLabel = computed(() => {
+  const { start, end } = dateRange.value
+  if (!start && !end) return 'Semua waktu'
+  if (start && !end) return df.format(start.toDate(tz))
+  if (start && end) return `${df.format(start.toDate(tz))} - ${df.format(end.toDate(tz))}`
+  return 'Semua waktu'
 })
+function buildRange(preset: string) {
+  const now = new Date()
+  const toCal = (d: Date) => new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate())
+  const todayCal = toCal(now)
+  if (preset === 'hari_ini') return { start: todayCal, end: todayCal }
+  if (preset === '7hari') { const f = new Date(now); f.setDate(f.getDate() - 6); return { start: toCal(f), end: todayCal } }
+  if (preset === '30hari') { const f = new Date(now); f.setDate(f.getDate() - 29); return { start: toCal(f), end: todayCal } }
+  if (preset === 'tahun') return { start: new CalendarDate(now.getFullYear(), 1, 1), end: new CalendarDate(now.getFullYear(), 12, 31) }
+  return { start: undefined, end: undefined }
+}
+function isRangeSelected(preset: string) {
+  const cur = buildRange(preset)
+  const a = dateRange.value; const b = cur
+  if (!a.start || !a.end || !b.start || !b.end) return false
+  return a.start.compare(b.start) === 0 && a.end.compare(b.end) === 0
+}
+function selectPreset(preset: string) {
+  dateRange.value = buildRange(preset)
+}
 
 watchDebounced(qInput, (v) => {
   q.value = v
@@ -50,7 +81,7 @@ watch(q, (v) => {
 })
 
 // Reset ke halaman 1 saat kriteria pencarian berubah
-watch([q, jenisTab, sort, preset, customFrom, customTo, sifats, statuses], () => {
+watch([q, jenisTab, sort, dateRange, sifats, statuses], () => {
   page.value = 1
 }, { deep: true })
 watch(perPage, () => { page.value = 1 })
@@ -98,7 +129,7 @@ const waktuOptions = [
   { value: '7hari', label: '7 hari terakhir' },
   { value: '30hari', label: '30 hari terakhir' },
   { value: 'tahun', label: `Tahun ${new Date().getFullYear()}` },
-  { value: 'kustom', label: 'Kustom' }
+  { value: 'kustom', label: 'Kustom (pilih di kalender)' }
 ]
 
 const sifatOptions = [
@@ -169,9 +200,7 @@ function cariLangsung(term: string) {
 }
 
 function resetFilter() {
-  preset.value = ''
-  customFrom.value = ''
-  customTo.value = ''
+  dateRange.value = { start: undefined, end: undefined }
   sifats.value = []
   statuses.value = []
   qInput.value = ''
@@ -280,15 +309,27 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 
         <fieldset>
           <legend class="text-xs font-medium uppercase text-muted mb-2">Rentang Waktu</legend>
-          <div class="space-y-1.5">
-            <label v-for="w in waktuOptions" :key="w.value" class="flex items-center gap-2 text-sm cursor-pointer">
-              <input v-model="preset" type="radio" name="waktu" :value="w.value" class="accent-primary">
-              {{ w.label }}
-            </label>
-          </div>
-          <div v-if="preset === 'kustom'" class="mt-2 space-y-2">
-            <UInput v-model="customFrom" type="date" class="w-full" />
-            <UInput v-model="customTo" type="date" class="w-full" />
+          <UPopover :content="{ align: 'center' }">
+            <UButton color="neutral" variant="subtle" icon="i-lucide-calendar" block class="justify-start">
+              {{ rangeLabel }}
+            </UButton>
+            <template #content>
+              <div class="flex items-stretch divide-x divide-(--ui-border)">
+                <div class="hidden sm:flex flex-col justify-center py-2">
+                  <UButton label="Semua waktu" color="neutral" variant="ghost" class="rounded-none px-4" :class="[!dateRange.start && !dateRange.end ? 'bg-elevated' : '']" truncate @click="dateRange = { start: undefined, end: undefined }" />
+                  <UButton v-for="pr in presetRanges" :key="pr.value" :label="pr.label" color="neutral" variant="ghost" class="rounded-none px-4" :class="[isRangeSelected(pr.value) ? 'bg-elevated' : 'hover:bg-elevated/50']" truncate @click="selectPreset(pr.value)" />
+                  <UButton label="Hapus" icon="i-lucide-x" color="neutral" variant="ghost" class="rounded-none px-4 mt-1" @click="dateRange = { start: undefined, end: undefined }" />
+                </div>
+                <UCalendar v-model="dateRange" range :number-of-months="isDesktop ? 2 : 1" class="p-2" />
+              </div>
+              <div class="sm:hidden flex flex-wrap gap-1.5 p-2 border-t border-default">
+                <UButton label="Semua" size="xs" color="neutral" :variant="!dateRange.start && !dateRange.end ? 'solid' : 'ghost'" @click="dateRange = { start: undefined, end: undefined }" />
+                <UButton v-for="pr in presetRanges" :key="pr.value+'-m'" :label="pr.label" size="xs" color="neutral" :variant="isRangeSelected(pr.value) ? 'solid' : 'ghost'" @click="selectPreset(pr.value)" />
+              </div>
+            </template>
+          </UPopover>
+          <div v-if="range.from || range.to" class="mt-2 flex flex-wrap gap-1.5">
+            <UBadge :label="`${range.from || '?'} → ${range.to || '?'}`" variant="subtle" color="primary" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="dateRange = { start: undefined, end: undefined }" />
           </div>
         </fieldset>
 
