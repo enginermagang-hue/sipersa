@@ -259,6 +259,10 @@ const columns: TableColumn<any>[] = [
         </div>
       </div>
     </div>
+    <div class="flex items-center gap-2 mt-1">
+      <UToggle v-model="deleted" label="Tampilkan terhapus" />
+      <span class="text-xs text-muted">(hanya admin dapat Restore)</span>
+    </div>
     <div v-if="activeFilterCount" class="flex flex-wrap items-center gap-1.5 -mt-1">
       <span class="text-xs text-muted mr-1">Filter aktif:</span>
       <UBadge v-if="status" :label="statusLabel" variant="subtle" color="primary" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="status = undefined" />
