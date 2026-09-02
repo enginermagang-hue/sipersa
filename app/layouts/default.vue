@@ -34,8 +34,8 @@ const mainGroups = computed<NavigationMenuItem[][]>(() => {
     manajemen.push({ label: 'Laporan', icon: 'i-lucide-file-bar-chart', to: '/laporan' })
   }
   const operasional: NavigationMenuItem[] = []
-  // Kelola Disposisi — sembunyikan untuk pimpinan (hanya admin) sesuai permintaan
-  if (['admin'].includes(user.value?.role)) {
+  // Kelola Disposisi — untuk pimpinan & admin (opsi B)
+  if (['pimpinan', 'admin'].includes(user.value?.role)) {
     operasional.push({ label: 'Kelola Disposisi', icon: 'i-lucide-list-checks', to: '/disposisi/kelola' })
   }
   const adminMenu: NavigationMenuItem[] = []

@@ -3,8 +3,8 @@ import { useDb } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
-  if (!['admin'].includes(auth.role)) {
-    throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan — Kelola Disposisi hanya untuk Admin' })
+  if (!['pimpinan', 'admin'].includes(auth.role)) {
+    throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan — Kelola Disposisi hanya untuk Pimpinan & Admin' })
   }
 
   const query = getQuery(event)
