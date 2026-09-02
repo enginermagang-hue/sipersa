@@ -13,7 +13,7 @@
   "dependencies": {
     "@iconify-json/lucide": "^1.2.123",
     "@iconify-json/simple-icons": "^1.2.94",
-    "@libsql/client": "^0.17.4",
+    "@libsql/client": "^0.18.0",
     "@nuxt/ui": "^4.10.0",
     "@tinymce/tinymce-vue": "^6.3.0",
     "@uppy/core": "^5.2.0",
