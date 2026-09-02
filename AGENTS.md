@@ -20,7 +20,7 @@
 
 ## Auth & RBAC
 - Session cookie `sid` (httpOnly). `server/middleware/auth.ts` guards every `/api/**` except `/api/auth/login`; it sets `event.context.auth` (userId, role, status, nama, username, email).
-- Roles: `admin`, `staff_tu`, `pimpinan`. Server-side admin checks are inline per endpoint (`if (auth.role !== 'admin') throw createError(...403)`), not a shared guard. Frontend redirects in `app/middleware/auth.global.ts`.
+- Roles: `admin`, `staff`, `pimpinan`. Server-side admin checks are inline per endpoint (`if (auth.role !== 'admin') throw createError(...403)`), not a shared guard. Frontend redirects in `app/middleware/auth.global.ts`.
 - `sessionSecret` in runtimeConfig is declared but **unused** — session tokens are random UUIDs, not signed. `sessionMaxAge` is used.
 
 ## Google login (OAuth2)

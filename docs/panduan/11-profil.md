@@ -49,7 +49,7 @@
 
 ### 11.3 Tanda Tangan Digital
 
-Card khusus jika pimpinan/staff_tu.
+Card khusus jika pimpinan/staff.
 
 1. **Jika belum ada:**
    - Lihat dashed border + icon signature + “Belum ada tanda tangan” → klik Pilih Gambar Tanda Tangan.
@@ -78,7 +78,7 @@ Card kanan:
 
 - Stats grid 3: Surat Keluar, Terarsip, Belum Diarsip, plus progress bar.
 - Riwayat Terbaru: timeline icon per aksi (login, buat surat, update, hapus) + label + tanggal relatif (Hari ini/Kemarin). Jika kosong “Belum ada aktivitas.”
-- Pintasan: Tombol Buat Surat Keluar (jika staff_tu) + Lihat Arsip Saya, footer “Alur simple: fokus hanya buat & arsip”.
+- Pintasan: Tombol Buat Surat Keluar (jika staff) + Lihat Arsip Saya, footer “Alur simple: fokus hanya buat & arsip”.
 
 ![Aktivitas Saya — elemen stats & timeline](/panduan/profil-aktivitas.png)
 

@@ -20,7 +20,7 @@ Aplikasi web manajemen persuratan (satu instansi) dengan:
 
 ## 3. Keputusan Desain
 - Auth: session cookie httpOnly (`sid`) + tabel `sessions`
-- Role: admin | staff_tu | pimpinan
+- Role: admin | staff | pimpinan
 - Nomor otomatis per tahun: `NNN/SM-INST/<Romawi>/<Tahun>`, `NNN/SK-INST/...`
 - Soft delete: kolom `deleted_at` di tabel inti (filter IS NULL)
 - Semua Turso & Drive hanya dari server (Nitro)

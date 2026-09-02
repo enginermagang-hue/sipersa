@@ -1,6 +1,6 @@
 ## Appendix A — Alur Kerja per Peran
 
-### Staff TU
+### Staff
 
 1. Catat Surat Masuk (atau terima)
 2. Buat Disposisi ke pimpinan/pelaksana

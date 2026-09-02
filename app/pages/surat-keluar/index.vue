@@ -148,7 +148,7 @@ const buatMenu = [
       </div>
       <div class="flex items-center gap-2">
         <UButton variant="soft" icon="i-lucide-file-spreadsheet" @click="exportExcel">Export Excel</UButton>
-        <UDropdownMenu v-if="user?.role === 'staff_tu'" :items="buatMenu" :content="{ align: 'end' }">
+        <UDropdownMenu v-if="user?.role === 'staff'" :items="buatMenu" :content="{ align: 'end' }">
           <UButton icon="i-lucide-plus">Buat Surat Keluar</UButton>
         </UDropdownMenu>
       </div>

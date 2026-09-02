@@ -21,7 +21,7 @@ Filter: status (Draft/Menunggu Persetujuan/Ditolak/Terkirim/Selesai), sifat, bul
 
 **Membuat surat:**
 
-1. Jika staff_tu:
+1. Jika staff:
    - Buka dropdown Buat Surat Keluar → pilih Unggah Surat atau Tulis Surat (editor).
 
      ![Dropdown Buat Surat Keluar — elemen pilihan Unggah/Tulis](/panduan/surat-keluar-dropdown-buat.png)
@@ -66,7 +66,7 @@ Popup unggah mirip surat masuk tapi field tujuan/perihal/klasifikasi wajib, file
 
 ### 6.3 Alur Persetujuan (Approval)
 
-1. **Dari draft** → Staff TU klik Ajukan Persetujuan → status menjadi menunggu persetujuan → muncul di antrian pimpinan.
+1. **Dari draft** → Staff klik Ajukan Persetujuan → status menjadi menunggu persetujuan → muncul di antrian pimpinan.
 
    ![Tombol Ajukan Persetujuan — elemen di detail](/panduan/surat-keluar-ajukan.png)
 
@@ -88,7 +88,7 @@ Hanya admin atau pemilik yang bisa edit/hapus, tapi approve hanya pimpinan/admin
 
 ### 6.4 Tanda Tangan Digital
 
-1. Buka Profil → Tanda Tangan Digital. Hanya pimpinan atau staff_tu.
+1. Buka Profil → Tanda Tangan Digital. Hanya pimpinan atau staff.
 
    ![Card Tanda Tangan Digital — elemen di Profil](/panduan/surat-keluar-ttd-card.png)
 

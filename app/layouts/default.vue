@@ -22,15 +22,15 @@ const mainGroups = computed<NavigationMenuItem[][]>(() => {
     { label: 'Surat Masuk', icon: 'i-lucide-inbox', to: '/surat-masuk' },
     { label: 'Surat Keluar', icon: 'i-lucide-send', to: '/surat-keluar', badge: (['pimpinan'].includes(user.value?.role) ? stats.value?.keluarMenungguPersetujuan : 0) || undefined }
   ]
-  // Disposisi (inbox) — sembunyikan untuk pimpinan (pilihan B: hanya admin & staff_tu)
-  if (['admin', 'staff_tu'].includes(user.value?.role)) {
+  // Disposisi (inbox) — sembunyikan untuk pimpinan (pilihan B: hanya admin & staff)
+  if (['admin', 'staff'].includes(user.value?.role)) {
     utama.push({ label: 'Disposisi', icon: 'i-lucide-share-2', to: '/disposisi', badge: (stats.value?.disposisiSaya || 0) || undefined })
   }
   const manajemen: NavigationMenuItem[] = [
     { label: 'Arsip', icon: 'i-lucide-archive', to: '/arsip' }
   ]
-  // Pilihan B: Laporan hanya untuk admin & staff_tu — sembunyikan dari pimpinan & role lain agar tidak redirect senyap ke Dashboard
-  if (['admin', 'staff_tu'].includes(user.value?.role)) {
+  // Pilihan B: Laporan hanya untuk admin & staff — sembunyikan dari pimpinan & role lain agar tidak redirect senyap ke Dashboard
+  if (['admin', 'staff'].includes(user.value?.role)) {
     manajemen.push({ label: 'Laporan', icon: 'i-lucide-file-bar-chart', to: '/laporan' })
   }
   const operasional: NavigationMenuItem[] = []
@@ -99,13 +99,13 @@ defineShortcuts({
 
 const quickActions = computed<DropdownMenuItem[][]>(() => {
   const acts: DropdownMenuItem[] = []
-  if (user.value?.role === 'staff_tu') {
+  if (user.value?.role === 'staff') {
     acts.push({ label: 'Surat Masuk Baru', icon: 'i-lucide-inbox', to: '/surat-masuk' })
   }
-  if (user.value?.role === 'staff_tu') {
+  if (user.value?.role === 'staff') {
     acts.push({ label: 'Surat Keluar Baru', icon: 'i-lucide-send', to: '/surat-keluar/tulis' })
   }
-  if (['admin', 'staff_tu'].includes(user.value?.role)) {
+  if (['admin', 'staff'].includes(user.value?.role)) {
     acts.push({ label: 'Arsip Baru', icon: 'i-lucide-archive', to: '/arsip' })
   }
   return [acts]

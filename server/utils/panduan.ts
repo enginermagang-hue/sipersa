@@ -23,7 +23,7 @@ export const PANDUAN_BABS: PanduanBab[] = [
   { slug: 'profil', file: '11-profil.md', title: '11. Profil Saya', desc: 'Akun, keamanan & tanda tangan', icon: 'i-lucide-user', order: 11 },
   { slug: 'admin', file: '12-admin.md', title: '12. Admin — Khusus Admin', desc: 'Users, sesi, klasifikasi & log', icon: 'i-lucide-settings', order: 12 },
   { slug: 'faq', file: '13-faq.md', title: '13. FAQ & Bantuan', desc: 'Troubleshooting & kontak', icon: 'i-lucide-circle-help', order: 13 },
-  { slug: 'appendix-a', file: 'appendix-a.md', title: 'Appendix A — Alur Kerja per Peran', desc: 'Staff TU, pimpinan & admin', icon: 'i-lucide-route', order: 14 },
+  { slug: 'appendix-a', file: 'appendix-a.md', title: 'Appendix A — Alur Kerja per Peran', desc: 'Staff, pimpinan & admin', icon: 'i-lucide-route', order: 14 },
   { slug: 'appendix-b', file: 'appendix-b.md', title: 'Appendix B — Glosarium', desc: 'Istilah & status', icon: 'i-lucide-book-marked', order: 15 },
   { slug: 'appendix-c', file: 'appendix-c.md', title: 'Appendix C — Referensi Teknis', desc: 'Env, deploy & migrasi DB', icon: 'i-lucide-wrench', order: 16 },
 ]

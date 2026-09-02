@@ -15,7 +15,7 @@ const { user } = useAuth()
 const { confirm } = useConfirm()
 
 const isArchived = computed(() => !!data.value?.arsip)
-const canArsip = computed(() => ['admin', 'staff_tu'].includes(user.value?.role))
+const canArsip = computed(() => ['admin', 'staff'].includes(user.value?.role))
 const editOpen = ref(false)
 const editLoading = ref(false)
 
@@ -168,7 +168,7 @@ async function rejectSurat() {
     await $fetch(`/api/surat-keluar/${id}/approve`, { method: 'POST', body: fd })
     rejectOpen.value = false
     rejectCatatan.value = ''
-    toast.add({ title: 'Surat ditolak', description: 'Staff TU dapat memperbaiki dan mensubmit ulang.', color: 'success' })
+    toast.add({ title: 'Surat ditolak', description: 'Staff dapat memperbaiki dan mensubmit ulang.', color: 'success' })
     refresh()
   } catch (e: any) {
     toast.add({ title: 'Gagal menolak surat', description: e?.data?.statusMessage || 'Terjadi kesalahan', color: 'error' })
@@ -393,7 +393,7 @@ const sheetStyle = computed(() => {
           </div>
         </UCard>
 
-        <!-- Card Arsipkan Surat (inline form) — hanya admin & staff_tu -->
+        <!-- Card Arsipkan Surat (inline form) — hanya admin & staff -->
         <div v-else-if="canArsip" class="rounded-xl border border-indigo-100 shadow-sm overflow-hidden bg-white dark:bg-slate-900 dark:border-slate-800">
           <div class="bg-indigo-50/40 p-5 border-b border-indigo-100 dark:bg-slate-800/60 dark:border-slate-700">
             <div class="flex items-start gap-3">
@@ -474,7 +474,7 @@ const sheetStyle = computed(() => {
     <UModal v-model:open="rejectOpen" title="Tolak Surat" :ui="{ footer: 'justify-end' }">
       <template #body>
         <div class="space-y-3">
-          <p class="text-sm text-slate-500 dark:text-slate-400">Beri catatan penolakan agar staff TU tahu apa yang perlu diperbaiki.</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400">Beri catatan penolakan agar staff tahu apa yang perlu diperbaiki.</p>
           <UTextarea
             v-model="rejectCatatan"
             :rows="4"

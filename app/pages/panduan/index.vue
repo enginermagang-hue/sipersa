@@ -57,7 +57,7 @@ const filteredBabs = computed(() => {
           <div class="flex flex-wrap items-center gap-2">
             <UBadge icon="i-lucide-book-open" variant="subtle" color="primary" size="md" class="rounded-full">16 halaman</UBadge>
             <UBadge icon="i-lucide-layers" variant="subtle" color="neutral" size="md" class="rounded-full">13 bab + 3 appendix</UBadge>
-            <UBadge icon="i-lucide-users" variant="subtle" color="neutral" size="md" class="rounded-full">Untuk admin · staff_tu · pimpinan</UBadge>
+            <UBadge icon="i-lucide-users" variant="subtle" color="neutral" size="md" class="rounded-full">Untuk admin · staff · pimpinan</UBadge>
           </div>
 
           <UInput v-model="search" placeholder="Cari bab... mis. disposisi, arsip, laporan" icon="i-lucide-search" size="md" class="max-w-xl" />

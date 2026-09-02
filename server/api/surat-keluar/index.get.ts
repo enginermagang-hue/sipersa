@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (status === 'draft') {
     if (auth.role === 'pimpinan') {
       wheres.push('1 = 0')
-    } else if (auth.role === 'staff_tu') {
+    } else if (auth.role === 'staff') {
       wheres.push('sk.created_by = ?')
       args.push(auth.userId)
     }

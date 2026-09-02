@@ -25,7 +25,7 @@ const fiturList = [
 
 const alurList = [
   { step: '01', title: 'Pencatatan', desc: 'Surat dicatat; Masuk NNN/SM-INST/ROMAN/TAHUN, Keluar KODE/NNN/TU/tekkomdik/ROMAN/TAHUN.', icon: 'i-lucide-file-plus' },
-  { step: '02', title: 'Pengajuan & Persetujuan', desc: 'Staff TU ajukan surat keluar; pimpinan setujui/tolak dengan catatan.', icon: 'i-lucide-badge-check' },
+  { step: '02', title: 'Pengajuan & Persetujuan', desc: 'Staff ajukan surat keluar; pimpinan setujui/tolak dengan catatan.', icon: 'i-lucide-badge-check' },
   { step: '03', title: 'Disposisi', desc: 'Instruksi, prioritas, batas waktu & sifat; notifikasi WA (Fonnte) ke penerima.', icon: 'i-lucide-git-branch' },
   { step: '04', title: 'Tindak Lanjut & Arsip', desc: 'Pelaksana proses disposisi (diproses_at/selesai_at) lalu arsipkan per klasifikasi & jadwal retensi.', icon: 'i-lucide-list-checks' }
 ]
@@ -174,7 +174,7 @@ const teknologi = [
           <div class="flex flex-wrap gap-2 text-xs">
             <span class="inline-flex items-center gap-1.5 text-muted"><UIcon name="i-lucide-mail" class="w-3.5 h-3.5" /> Sistem persuratan internal</span>
             <span class="hidden sm:inline text-muted">•</span>
-            <span class="inline-flex items-center gap-1.5 text-muted"><UIcon name="i-lucide-lock" class="w-3.5 h-3.5" /> Akses berbasis peran (admin / staff_tu / pimpinan)</span>
+            <span class="inline-flex items-center gap-1.5 text-muted"><UIcon name="i-lucide-lock" class="w-3.5 h-3.5" /> Akses berbasis peran (admin / staff / pimpinan)</span>
           </div>
         </div>
       </UCard>
@@ -224,7 +224,7 @@ const teknologi = [
           <p class="flex flex-wrap items-center gap-1.5">
             Peran:
             <UBadge size="xs" variant="subtle">admin</UBadge> <span class="text-xs">kelola user, klasifikasi &amp; sesi</span>
-            <UBadge size="xs" variant="subtle" color="success">staff_tu</UBadge> <span class="text-xs">persuratan harian &amp; ajukan surat</span>
+            <UBadge size="xs" variant="subtle" color="success">staff</UBadge> <span class="text-xs">persuratan harian &amp; ajukan surat</span>
             <UBadge size="xs" variant="subtle" color="warning">pimpinan</UBadge> <span class="text-xs">persetujuan &amp; disposisi</span>
           </p>
           <p class="text-xs">

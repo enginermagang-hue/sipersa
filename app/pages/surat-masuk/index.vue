@@ -5,7 +5,7 @@ import { h } from 'vue'
 const { user } = useAuth()
 const { confirm } = useConfirm()
 const toast = useToast()
-const canCreateMasuk = computed(() => user.value?.role === 'staff_tu')
+const canCreateMasuk = computed(() => user.value?.role === 'staff')
 
 const q = ref('')
 const qDebounced = ref('')

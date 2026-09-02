@@ -14,7 +14,7 @@
 | Peran | Akses utama |
 |-------|-------------|
 | admin | Kelola user, klasifikasi, sesi, log aktivitas |
-| staff_tu | Operasional harian surat & arsip, ajukan surat keluar |
+| staff | Operasional harian surat & arsip, ajukan surat keluar |
 | pimpinan | Persetujuan surat keluar, disposisi & kelola disposisi |
 
 Semua pengguna yang sudah login bisa membaca panduan ini.

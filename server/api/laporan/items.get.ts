@@ -3,7 +3,7 @@ import { parseLaporanQuery, validRange, queryLaporan } from '../../utils/laporan
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
-  if (!['admin', 'staff_tu'].includes(auth.role)) {
+  if (!['admin', 'staff'].includes(auth.role)) {
     throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan' })
   }
 

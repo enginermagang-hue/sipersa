@@ -80,7 +80,7 @@ export const userCreateSchema = z.object({
   username: z.string().min(1),
   email: z.string().email().optional().or(z.literal('')).nullable(),
   password: z.string().min(4),
-  role: z.enum(['admin', 'staff_tu', 'pimpinan']).default('staff_tu'),
+  role: z.enum(['admin', 'staff', 'pimpinan']).default('staff'),
   nip: z.string().optional().or(z.literal('')).nullable(),
   no_hp: z.string().optional().or(z.literal('')).nullable(),
   jabatan: z.string().optional().or(z.literal('')).nullable()
@@ -89,7 +89,7 @@ export const userCreateSchema = z.object({
 export const userUpdateSchema = z.object({
   nama: z.string().min(1).optional(),
   email: z.string().email().optional().or(z.literal('')).nullable(),
-  role: z.enum(['admin', 'staff_tu', 'pimpinan']).optional(),
+  role: z.enum(['admin', 'staff', 'pimpinan']).optional(),
   status: z.enum(['active', 'inactive']).optional(),
   password: z.string().min(4).optional(),
   nip: z.string().optional().or(z.literal('')).nullable(),

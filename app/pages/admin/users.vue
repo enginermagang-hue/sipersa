@@ -16,7 +16,7 @@ const { data, refresh, pending } = await useFetch('/api/admin/users', {
 
 const roleOptions = [
   { label: 'Admin', value: 'admin' },
-  { label: 'Staff TU', value: 'staff_tu' },
+  { label: 'Staff', value: 'staff' },
   { label: 'Pimpinan', value: 'pimpinan' }
 ]
 
@@ -25,10 +25,10 @@ const statusOptions = [
   { label: 'Nonaktif', value: 'inactive' }
 ]
 
-const roleColor: Record<string, string> = { admin: 'primary', staff_tu: 'neutral', pimpinan: 'warning' }
+const roleColor: Record<string, string> = { admin: 'primary', staff: 'neutral', pimpinan: 'warning' }
 
 const createOpen = ref(false)
-const form = reactive({ nama: '', username: '', email: '', password: '', role: 'staff_tu', nip: '', no_hp: '', jabatan: '' })
+const form = reactive({ nama: '', username: '', email: '', password: '', role: 'staff', nip: '', no_hp: '', jabatan: '' })
 const loading = ref(false)
 const error = ref('')
 
@@ -38,7 +38,7 @@ const editForm = reactive({
   nama: '',
   username: '',
   email: '',
-  role: 'staff_tu',
+  role: 'staff',
   status: 'active',
   password: '',
   nip: '',
@@ -68,7 +68,7 @@ async function simpan() {
   try {
     await $fetch('/api/admin/users', { method: 'POST', body: { ...form } })
     createOpen.value = false
-    Object.assign(form, { nama: '', username: '', email: '', password: '', role: 'staff_tu', nip: '', no_hp: '', jabatan: '' })
+    Object.assign(form, { nama: '', username: '', email: '', password: '', role: 'staff', nip: '', no_hp: '', jabatan: '' })
     await refresh()
   } catch (e: any) {
     error.value = e?.data?.statusMessage || 'Gagal'

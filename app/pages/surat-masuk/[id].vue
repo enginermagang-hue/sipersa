@@ -10,7 +10,7 @@ const { user } = useAuth()
 const isPenerima = computed(() => (data.value?.disposisi || []).some((d: any) => d.kepada_user_id === user.value?.id))
 const canDisposisi = computed(() => user.value?.role === 'pimpinan' || isPenerima.value)
 const canDelete = computed(() => user.value?.role === 'admin' || user.value?.id === data.value?.surat.created_by)
-const canArsip = computed(() => ['admin', 'staff_tu'].includes(user.value?.role))
+const canArsip = computed(() => ['admin', 'staff'].includes(user.value?.role))
 const isArchived = computed(() => !!data.value?.arsip)
 const arsipOpen = ref(false)
 const disposisiModalOpen = ref(false)
@@ -293,7 +293,7 @@ async function hapus() {
       <UButton :to="`/surat-masuk`" variant="ghost" size="sm" icon="i-lucide-arrow-left">Kembali</UButton>
       <h1 class="text-xl font-bold flex-1 min-w-40">{{ data.surat.no_surat }}</h1>
       <UButton v-if="!isArchived && canArsip" icon="i-lucide-archive" variant="soft" @click="arsipOpen = true">Arsipkan</UButton>
-      <UBadge v-else label="Sudah diarsipkan" color="success" variant="subtle" />
+      <UBadge v-else label="Sudah diarsipkan" color="success" variant="subtle" size="lg" icon="i-lucide-archive"/>
       <UButton variant="outline" icon="i-lucide-printer" @click="printLembar">Cetak Disposisi</UButton>
       <UButton v-if="canDelete" color="error" variant="soft" size="sm" icon="i-lucide-trash" @click="hapus">Hapus</UButton>
     </div>

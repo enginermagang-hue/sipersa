@@ -10,7 +10,7 @@ export async function migrate() {
       username TEXT UNIQUE NOT NULL,
       email TEXT,
       password_hash TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'staff_tu',
+      role TEXT NOT NULL DEFAULT 'staff',
       status TEXT NOT NULL DEFAULT 'active',
       last_login TEXT,
       deleted_at TEXT,
@@ -224,6 +224,9 @@ export async function migrate() {
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`)
   await db.execute('CREATE INDEX IF NOT EXISTS idx_wa_outbox_status ON wa_outbox(status)')
+
+  // Migrasi role: staff_tu -> staff (rename role)
+  try { await db.execute(`UPDATE users SET role='staff' WHERE role='staff_tu'`) } catch {}
 
   await seedAdmin()
 }

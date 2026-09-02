@@ -241,7 +241,7 @@ async function ensureUsers() {
   const ids = res.rows.map((r) => Number(r.id))
   if (ids.length >= 3) return ids
   for (let i = ids.length + 1; i <= 8; i++) {
-    const role = i % 2 === 0 ? 'pimpinan' : 'staff_tu'
+    const role = i % 2 === 0 ? 'pimpinan' : 'staff'
     const hash = await bcrypt.hash('seed123', 10)
     const r = await db.execute({
       sql: 'INSERT INTO users (nama, username, email, password_hash, role, status) VALUES (?, ?, ?, ?, ?, ?)',
@@ -440,7 +440,7 @@ async function main() {
       return acc
     }, {})
     const pimpinanIds = [...(byRole.pimpinan || []), ...(byRole.admin || [])]
-    const staffIds = byRole.staff_tu || []
+    const staffIds = byRole.staff || []
     const dariPool = pimpinanIds.length > 0 ? pimpinanIds : userIds
     const kepadaPool = staffIds.length > 0 ? staffIds : userIds
     const itemsDisposisi = Array.from({ length: COUNTS.disposisi }, () => {

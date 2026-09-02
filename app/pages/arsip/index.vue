@@ -5,7 +5,7 @@ import type { TableColumn } from '@nuxt/ui'
 
 const { user } = useAuth()
 const { confirm } = useConfirm()
-const canCreateArsip = computed(() => ['admin', 'staff_tu'].includes(user.value?.role))
+const canCreateArsip = computed(() => ['admin', 'staff'].includes(user.value?.role))
 
 const q = ref('')
 const qDebounced = ref('')

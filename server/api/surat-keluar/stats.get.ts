@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const ym = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit' }).format(now).slice(0, 7)
 
   let draftClause = ''
-  if (auth.role === 'staff_tu') {
+  if (auth.role === 'staff') {
     draftClause = `AND created_by = ${auth.userId}`
   } else if (auth.role === 'pimpinan') {
     draftClause = 'AND 1 = 0'
