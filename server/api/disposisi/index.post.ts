@@ -21,6 +21,11 @@ export default defineEventHandler(async (event) => {
   const ids: number[] = []
 
   for (const kepadaUserId of data.kepada_user_ids) {
+    const target = await db.execute({ sql: 'SELECT role FROM users WHERE id = ? AND deleted_at IS NULL', args: [kepadaUserId] })
+    if (target.rows.length === 0) throw createError({ statusCode: 404, statusMessage: 'Penerima tidak ditemukan' })
+    if (['admin', 'pimpinan'].includes((target.rows[0] as any).role)) {
+      throw createError({ statusCode: 403, statusMessage: 'Tidak dapat mendisposisikan ke administrator atau pimpinan' })
+    }
     const res = await db.execute({
       sql: `INSERT INTO disposisi (surat_masuk_id, dari_user_id, kepada_user_id, instruksi, instruksi_list, catatan, status, sifat_disposisi, batas_waktu, notify)
             VALUES (?, ?, ?, ?, ?, ?, 'baru', ?, ?, ?)`,

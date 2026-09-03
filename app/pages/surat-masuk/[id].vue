@@ -8,7 +8,12 @@ const { data: users } = await useFetch('/api/users')
 const { user } = useAuth()
 
 const isPenerima = computed(() => (data.value?.disposisi || []).some((d: any) => d.kepada_user_id === user.value?.id))
-const canDisposisi = computed(() => user.value?.role === 'pimpinan' || isPenerima.value)
+const isPenerimaAktif = computed(() => (data.value?.disposisi || []).some((d: any) => d.kepada_user_id === user.value?.id && d.status !== 'selesai'))
+const isPimpinan = computed(() => user.value?.role === 'pimpinan')
+const hasDisposisiAwal = computed(() => (data.value?.disposisi || []).some((d: any) => d.parent_id === null))
+const canDisposisi = computed(() => isPimpinan.value || isPenerimaAktif.value)
+const disposisiDisabled = computed(() => isPimpinan.value && hasDisposisiAwal.value)
+const disposisiLabel = computed(() => isPenerimaAktif.value ? 'Teruskan Disposisi' : 'Buat Disposisi')
 const canDelete = computed(() => user.value?.role === 'admin' || user.value?.id === data.value?.surat.created_by)
 const canArsip = computed(() => ['admin', 'staff'].includes(user.value?.role))
 const isArchived = computed(() => !!data.value?.arsip)
@@ -111,11 +116,16 @@ const sifatOptions = [
   { label: 'Rahasia', value: 'rahasia' }
 ]
 
+const initialRecipientIds = computed(() => new Set((data.value?.disposisi || []).filter((d: any) => d.parent_id === null).map((d: any) => d.kepada_user_id)))
+
 const recipientOptions = computed(() => {
   const all = (users.value || []) as any[]
-  const mapped = all.map((u: any) => ({ label: u.nama, value: u.id, role: u.role }))
-  const filtered = user.value?.role === 'pimpinan' ? mapped : mapped.filter((u) => !['pimpinan', 'admin'].includes(u.role))
-  return filtered.map(({ role, ...r }) => r)
+  const blocked = initialRecipientIds.value
+  return all
+    .filter((u: any) => !['admin', 'pimpinan'].includes(u.role))
+    .filter((u: any) => u.id !== user.value?.id)
+    .filter((u: any) => !blocked.has(u.id))
+    .map((u: any) => ({ label: u.nama, value: u.id }))
 })
 
 const dispForm = reactive({
@@ -139,6 +149,10 @@ function validate(): FormError[] {
 }
 
 async function submit(opts: { draft: boolean }) {
+  if (isPimpinan.value && hasDisposisiAwal.value) {
+    dispError.value = 'Disposisi sudah dibuat pimpinan'
+    return
+  }
   dispLoading.value = !opts.draft
   dispDraftLoading.value = opts.draft
   dispError.value = ''
@@ -158,7 +172,7 @@ async function submit(opts: { draft: boolean }) {
         }
       })
     } else {
-      const my = [...(data.value?.disposisi || [])].reverse().find((d: any) => d.kepada_user_id === user.value?.id)
+      const my = [...(data.value?.disposisi || [])].reverse().find((d: any) => d.kepada_user_id === user.value?.id && d.status !== 'selesai')
       if (!my) throw new Error('Anda bukan penerima disposisi surat ini')
       let count = 0
       for (const kepadaId of dispForm.recipients) {
@@ -315,7 +329,9 @@ async function hapus() {
                 size="md"
               />
               <span class="font-mono text-xs text-muted">{{ formatNoAgenda(data.surat.no_agenda, data.surat.tgl_terima) }}</span>
-              <UButton v-if="canDisposisi" icon="i-lucide-send" size="sm" class="ml-auto rounded-full" @click="disposisiModalOpen = true">Buat Disposisi</UButton>
+              <UTooltip v-if="canDisposisi" :text="disposisiDisabled ? 'Disposisi sudah dibuat' : undefined" :delay-duration="0">
+                <UButton icon="i-lucide-send" size="sm" class="ml-auto rounded-full" :disabled="disposisiDisabled" @click="() => { if (!disposisiDisabled) disposisiModalOpen = true }">{{ disposisiLabel }}</UButton>
+              </UTooltip>
             </div>
           </template>
             <dl class="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-[13px] text-muted">
@@ -335,7 +351,7 @@ async function hapus() {
                 <dt class="text-muted text-xs mb-0.5">TGL DITERIMA</dt>
                 <dd class="flex items-center gap-2 font-medium">
                   <span>{{ fmtTglWaktu(data.surat.tgl_terima) }}</span>
-                  <UBadge v-if="isNewSurat(data.surat.tgl_terima)" label="Baru" color="success" variant="subtle" size="2xs" />
+                  <UBadge v-if="isNewSurat(data.surat.tgl_terima)" label="Baru" color="success" variant="subtle" size="sm" />
                 </dd>
               </div>
               <div class="sm:col-span-2">

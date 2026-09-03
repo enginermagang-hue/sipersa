@@ -150,7 +150,7 @@ const quickActions = computed<DropdownMenuItem[][]>(() => {
       <template #footer="{ collapsed: c }">
         <UDropdownMenu v-if="user" :items="userItems" :content="{ align: c ? 'center' : 'end', side: 'top', collisionPadding: 12 }" :ui="{ content: 'min-w-52' }">
           <UButton color="neutral" variant="ghost" block :square="c" class="data-[state=open]:bg-elevated justify-start" aria-label="Menu pengguna">
-            <template #leading><UAvatar :src="avatarUrl" :alt="user.nama" size="xs" /></template>
+            <template #leading><UAvatar :src="avatarUrl" :alt="user.nama" size="2xs" /></template>
             <span v-if="!c" class="truncate text-left flex-1">{{ user.nama }}</span>
             <template v-if="!c" #trailing><UIcon name="i-lucide-chevrons-up-down" class="text-muted ms-auto" /></template>
           </UButton>

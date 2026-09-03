@@ -223,52 +223,79 @@ function getAksiItems(row: any) {
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
-      <div v-if="view === 'table'" class="overflow-x-auto custom-scrollbar-table">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-default text-left text-xs uppercase text-muted">
-              <th class="px-4 py-3 font-medium">Surat</th>
-              <th class="px-4 py-3 font-medium">Pengirim</th>
-              <th class="px-4 py-3 font-medium">Perihal</th>
-              <th class="px-4 py-3 font-medium">Disposisi</th>
-              <th class="px-4 py-3 font-medium text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="r in data?.data || []" :key="r.id" class="border-b border-default last:border-0 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.id}`)">
-              <td class="px-4 py-3">
-                <div class="flex items-center gap-1.5 font-medium">
-                  <span class="truncate">{{ r.no_surat }}</span>
-                  <UTooltip v-if="r.is_arsip" text="Diarsipkan" :delay-duration="0">
-                    <UIcon name="i-lucide-archive" class="w-4 h-4 text-success shrink-0" aria-label="Diarsipkan" />
-                  </UTooltip>
-                </div>
-                <div class="text-xs text-muted whitespace-nowrap">{{ fmtTgl(r.tgl_surat) }}</div>
-              </td>
-              <td class="px-4 py-3">
-                <div class="font-medium flex flex-row">{{ r.pengirim }}</div>
-                <div v-if="r.klasifikasi_nama" class="text-xs text-muted">{{ r.klasifikasi_nama }}</div>
-              </td>
-              <td class="px-4 py-3 max-w-[360px]">
-                <div class="truncate">{{ r.perihal }}</div>
-                <UBadge v-if="r.sifat" :label="sifatMeta[r.sifat]?.label || r.sifat" :color="sifatMeta[r.sifat]?.color || 'neutral'" variant="subtle" size="sm" class="mt-1.5 capitalize" />
-              </td>
-              <td class="px-4 py-3">
-                <UBadge v-if="r.disposisi_status" :label="statusMeta[r.disposisi_status]?.label || r.disposisi_status" :color="statusMeta[r.disposisi_status]?.color || 'neutral'" variant="subtle" />
-                <span v-else class="text-muted">—</span>
-              </td>
-              <td class="px-4 py-3 text-right" @click.stop>
-                <UDropdownMenu :items="getAksiItems(r)">
-                  <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
-                </UDropdownMenu>
-              </td>
-            </tr>
-            <tr v-if="!pending && !(data?.data || []).length">
-              <td colspan="5" class="px-4 py-12 text-center text-muted">Belum ada data</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <template v-if="view === 'table'">
+        <div class="hidden lg:block overflow-x-auto custom-scrollbar-table">
+          <table class="w-full text-sm min-w-[720px]">
+            <thead>
+              <tr class="border-b border-default text-left text-xs uppercase text-muted">
+                <th class="px-4 py-3 font-medium whitespace-nowrap">Surat</th>
+                <th class="px-4 py-3 font-medium whitespace-nowrap">Pengirim</th>
+                <th class="px-4 py-3 font-medium whitespace-nowrap">Perihal</th>
+                <th class="px-4 py-3 font-medium whitespace-nowrap">Disposisi</th>
+                <th class="px-4 py-3 font-medium text-right whitespace-nowrap">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in data?.data || []" :key="r.id" class="border-b border-default last:border-0 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.id}`)">
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-1.5 font-medium">
+                    <span class="truncate">{{ r.no_surat }}</span>
+                    <UTooltip v-if="r.is_arsip" text="Diarsipkan" :delay-duration="0">
+                      <UIcon name="i-lucide-archive" class="w-4 h-4 text-success shrink-0" aria-label="Diarsipkan" />
+                    </UTooltip>
+                  </div>
+                  <div class="text-xs text-muted whitespace-nowrap">{{ fmtTgl(r.tgl_surat) }}</div>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="font-medium flex flex-row">{{ r.pengirim }}</div>
+                  <div v-if="r.klasifikasi_nama" class="text-xs text-muted">{{ r.klasifikasi_nama }}</div>
+                </td>
+                <td class="px-4 py-3 max-w-[360px]">
+                  <div class="truncate">{{ r.perihal }}</div>
+                  <UBadge v-if="r.sifat" :label="sifatMeta[r.sifat]?.label || r.sifat" :color="sifatMeta[r.sifat]?.color || 'neutral'" variant="subtle" size="sm" class="mt-1.5 capitalize" />
+                </td>
+                <td class="px-4 py-3">
+                  <UBadge v-if="r.disposisi_status" :label="statusMeta[r.disposisi_status]?.label || r.disposisi_status" :color="statusMeta[r.disposisi_status]?.color || 'neutral'" variant="subtle" />
+                  <span v-else class="text-muted">—</span>
+                </td>
+                <td class="px-4 py-3 text-right" @click.stop>
+                  <UDropdownMenu :items="getAksiItems(r)">
+                    <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+                  </UDropdownMenu>
+                </td>
+              </tr>
+              <tr v-if="!pending && !(data?.data || []).length">
+                <td colspan="5" class="px-4 py-12 text-center text-muted">Belum ada data</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="lg:hidden divide-y divide-default">
+          <div v-for="r in data?.data || []" :key="r.id" class="flex gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.id}`)">
+            <div class="min-w-0 flex-1 flex flex-col gap-1.5">
+              <div class="flex items-center gap-1.5 font-semibold text-sm">
+                <span class="truncate">{{ r.no_surat }}</span>
+                <UTooltip v-if="r.is_arsip" text="Diarsipkan" :delay-duration="0">
+                  <UIcon name="i-lucide-archive" class="w-3.5 h-3.5 text-success shrink-0" aria-label="Diarsipkan" />
+                </UTooltip>
+              </div>
+              <div class="text-sm break-words line-clamp-2 leading-snug">{{ r.perihal }}</div>
+              <div class="text-xs text-muted break-words">{{ r.pengirim }}<span v-if="r.klasifikasi_nama"> • {{ r.klasifikasi_nama }}</span></div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <UBadge v-if="r.sifat" :label="sifatMeta[r.sifat]?.label || r.sifat" :color="sifatMeta[r.sifat]?.color || 'neutral'" variant="subtle" size="xs" class="capitalize" />
+                <UBadge v-if="r.disposisi_status" :label="statusMeta[r.disposisi_status]?.label || r.disposisi_status" :color="statusMeta[r.disposisi_status]?.color || 'neutral'" variant="subtle" size="xs" />
+                <span class="text-xs text-muted">{{ fmtTgl(r.tgl_surat) }}</span>
+              </div>
+            </div>
+            <div @click.stop class="shrink-0 self-start -mt-1 -mr-1">
+              <UDropdownMenu :items="getAksiItems(r)">
+                <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
+              </UDropdownMenu>
+            </div>
+          </div>
+          <div v-if="!pending && !(data?.data || []).length" class="py-12 text-center text-muted text-sm">Belum ada data</div>
+        </div>
+      </template>
 
       <div v-else-if="view === 'grid'" class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
         <div v-for="r in data?.data || []" :key="r.id" class="rounded-xl border border-default p-4 transition-colors hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.id}`)">
@@ -300,28 +327,29 @@ function getAksiItems(row: any) {
       </div>
 
       <div v-else class="divide-y divide-default">
-        <div v-for="r in data?.data || []" :key="r.id" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.id}`)">
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2">
-              <span class="font-medium text-sm whitespace-nowrap flex items-center gap-1">
-                {{ r.no_surat }}
-                <UTooltip v-if="r.is_arsip" text="Diarsipkan" :delay-duration="0">
-                  <UIcon name="i-lucide-archive" class="w-3.5 h-3.5 text-success shrink-0" aria-label="Diarsipkan" />
-                </UTooltip>
-              </span>
-              <span class="text-xs text-muted whitespace-nowrap">{{ r.pengirim }}</span>
+        <div v-for="r in data?.data || []" :key="r.id" class="flex gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.id}`)">
+          <div class="min-w-0 flex-1 flex flex-col gap-1.5">
+            <div class="flex items-center gap-1.5 font-semibold text-sm">
+              <span class="truncate">{{ r.no_surat }}</span>
+              <UTooltip v-if="r.is_arsip" text="Diarsipkan" :delay-duration="0">
+                <UIcon name="i-lucide-archive" class="w-3.5 h-3.5 text-success shrink-0" aria-label="Diarsipkan" />
+              </UTooltip>
             </div>
-            <div class="truncate text-sm text-muted">{{ r.perihal }}</div>
+            <div class="text-sm break-words line-clamp-2 leading-snug">{{ r.perihal }}</div>
+            <div class="text-xs text-muted break-words">{{ r.pengirim }}<span v-if="r.klasifikasi_nama"> • {{ r.klasifikasi_nama }}</span></div>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <UBadge v-if="r.sifat" :label="sifatMeta[r.sifat]?.label || r.sifat" :color="sifatMeta[r.sifat]?.color || 'neutral'" variant="subtle" size="xs" class="capitalize" />
+              <UBadge v-if="r.disposisi_status" :label="statusMeta[r.disposisi_status]?.label || r.disposisi_status" :color="statusMeta[r.disposisi_status]?.color || 'neutral'" variant="subtle" size="xs" />
+              <span class="text-xs text-muted">{{ fmtTgl(r.tgl_surat) }}</span>
+            </div>
           </div>
-          <span class="hidden text-xs text-muted whitespace-nowrap sm:inline">{{ fmtTgl(r.tgl_surat) }}</span>
-          <UBadge v-if="r.disposisi_status" :label="statusMeta[r.disposisi_status]?.label || r.disposisi_status" :color="statusMeta[r.disposisi_status]?.color || 'neutral'" variant="subtle" />
-          <div @click.stop>
+          <div @click.stop class="shrink-0 self-start -mt-1 -mr-1">
             <UDropdownMenu :items="getAksiItems(r)">
               <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
             </UDropdownMenu>
           </div>
         </div>
-        <div v-if="!pending && !(data?.data || []).length" class="py-12 text-center text-muted">Belum ada data</div>
+        <div v-if="!pending && !(data?.data || []).length" class="py-12 text-center text-muted text-sm">Belum ada data</div>
       </div>
       <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="text-sm text-muted min-w-0 truncate text-center sm:text-left">

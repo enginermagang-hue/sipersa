@@ -17,7 +17,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
     throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan mengakses Laporan — hanya Admin & Staff' })
   }
   // Disposisi (inbox) — hanya admin & staff; pimpinan dialihkan ke 403 agar tidak senyap ke dashboard
-  if (user.value && to.path.startsWith('/disposisi') && !to.path.startsWith('/disposisi/kelola') && !['admin', 'staff'].includes(user.value.role)) {
+  // Detail /disposisi/[id] tetap allow pimpinan/admin/penerima (dicek di API), jadi exclude dari guard list
+  if (user.value && to.path.startsWith('/disposisi') && !to.path.startsWith('/disposisi/kelola') && !/^\/disposisi\/\d+/.test(to.path) && !['admin', 'staff'].includes(user.value.role)) {
     throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan mengakses Disposisi — hanya Admin & Staff' })
   }
   // Kelola Disposisi — pimpinan & admin

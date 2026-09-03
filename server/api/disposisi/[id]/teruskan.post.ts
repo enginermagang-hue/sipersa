@@ -36,6 +36,13 @@ export default defineEventHandler(async (event) => {
   if (['pimpinan', 'admin'].includes((targetUser.rows[0] as any).role)) {
     throw createError({ statusCode: 403, statusMessage: 'Tidak dapat meneruskan ke pimpinan atau admin' })
   }
+  const dupInitial = await db.execute({
+    sql: `SELECT id FROM disposisi WHERE surat_masuk_id = ? AND kepada_user_id = ? AND deleted_at IS NULL AND parent_id IS NULL`,
+    args: [p.surat_masuk_id, kepadaUserId]
+  })
+  if (dupInitial.rows.length > 0) {
+    throw createError({ statusCode: 409, statusMessage: 'Pengguna tersebut sudah menerima disposisi dari pimpinan untuk surat ini' })
+  }
 
   const instruksiListJson = JSON.stringify((data as any).instruksi_list || [])
   const res = await db.execute({
