@@ -26,6 +26,7 @@ export const PANDUAN_BABS: PanduanBab[] = [
   { slug: 'appendix-a', file: 'appendix-a.md', title: 'Appendix A — Alur Kerja per Peran', desc: 'Staff, pimpinan & admin', icon: 'i-lucide-route', order: 14 },
   { slug: 'appendix-b', file: 'appendix-b.md', title: 'Appendix B — Glosarium', desc: 'Istilah & status', icon: 'i-lucide-book-marked', order: 15 },
   { slug: 'appendix-c', file: 'appendix-c.md', title: 'Appendix C — Referensi Teknis', desc: 'Env, deploy & migrasi DB', icon: 'i-lucide-wrench', order: 16 },
+  { slug: 'sop-alur', file: '14-sop-alur.md', title: 'Appendix D — SOP Alur Lengkap', desc: 'Gambar alur horizontal + unduhan', icon: 'i-lucide-map', order: 17 },
 ]
 
 export function getBab(slug: string): PanduanBab | undefined {

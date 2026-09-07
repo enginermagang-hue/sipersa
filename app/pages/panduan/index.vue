@@ -57,7 +57,7 @@ const appendix = computed(() => filteredBabs.value.filter((b: any) => (b.order ?
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <UBadge icon="i-lucide-book-open" variant="subtle" color="primary" size="md" class="rounded-full">16 bab</UBadge>
+            <UBadge icon="i-lucide-book-open" variant="subtle" color="primary" size="md" class="rounded-full">{{ babs.length }} bab</UBadge>
             <UBadge icon="i-lucide-users" variant="subtle" color="neutral" size="md" class="rounded-full">Untuk admin · staff · pimpinan</UBadge>
           </div>
 

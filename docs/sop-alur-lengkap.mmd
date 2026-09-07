@@ -1,0 +1,66 @@
+%% SOP Alur Lengkap SIPERSA — Sistem Persuratan (horizontal, kiri → kanan)
+%% Sumber editable. Render: flowchart LR. File turunan: public/sop-alur-lengkap.svg (.png)
+flowchart LR
+
+    subgraph K1["1 · AKSES"]
+        direction TB
+        L1["Login — username + password / Google OAuth"]
+        L2["Dashboard per peran — KPI · antrean approval · notifikasi"]
+        L1 --> L2
+    end
+
+    subgraph K2["2 · SURAT MASUK — Staff"]
+        direction TB
+        M1["Staff catat surat masuk — form + unggah pindaian"]
+        M2["Nomor otomatis NNN/SM-INST/Romawi/Tahun — file ke Dropbox"]
+        M3["Notifikasi pimpinan — in-app + WhatsApp"]
+        M1 --> M2 --> M3
+    end
+
+    subgraph K3["3 · DISPOSISI"]
+        direction TB
+        D1["Pimpinan buat disposisi ke staff — instruksi + batas waktu"]
+        D2["Staff terima & proses — baru → diproses"]
+        D3["Teruskan berantai — ke staff lain, parent–child tercatat"]
+        D4["Selesaikan — semua selesai → surat berstatus selesai"]
+        D1 --> D2 --> D3 --> D4
+        D2 -.selesai langsung (tanpa teruskan).-> D4
+    end
+
+    subgraph K4["4 · SURAT KELUAR"]
+        direction TB
+        S1["Staff tulis draft — editor / unggah file, nomor SK-INST otomatis"]
+        S2["Submit — draft/ditolak → menunggu persetujuan"]
+        S3["Pimpinan setujui → TERKIRIM — unggah PDF bertanda tangan"]
+        S4["Ditolak + catatan → revisi → kembali ke draft"]
+        S1 -- ajukan --> S2
+        S2 -- YA, setujui --> S3
+        S2 -.TIDAK, tolak + catatan.-> S4
+        S2 -.isi kurang → lengkapi.-> S2
+        S4 -.revisi & ajukan ulang.-> S1
+    end
+
+    subgraph K5["5 · ARSIP & LAPORAN — Admin & Staff"]
+        direction TB
+        A1["Arsipkan — 1 surat = 1 arsip (ref masuk / keluar)"]
+        A2["Laporan & export — Excel / cetak PDF (admin & staff)"]
+        A3["Kelola sistem — users · klasifikasi · sesi · log (admin)"]
+        A1 --> A2 --> A3
+    end
+
+    L2 -- catat surat masuk --> M1
+    L2 -- buat surat keluar --> S1
+    M3 -- disposisikan --> D1
+    D4 -- selesai → arsipkan --> A1
+    S3 -- terkirim → arsipkan --> A1
+
+    classDef staff fill:#dbeafe,stroke:#1d4ed8,stroke-width:2px;
+    classDef pimpinan fill:#fef3c7,stroke:#b45309,stroke-width:2px;
+    classDef sistem fill:#f1f5f9,stroke:#475569,stroke-width:2px;
+    classDef admin fill:#ede9fe,stroke:#7c3aed,stroke-width:2px;
+    class L1,L2,M2,M3 sistem;
+    class M1,S1,S2 staff;
+    class D1,S3,S4,D4 pimpinan;
+    class D2,D3 staff;
+    class A1,A2 staff;
+    class A3 admin;
