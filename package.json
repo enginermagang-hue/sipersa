@@ -8,6 +8,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
+    "migrate:fresh": "node scripts/migrate-fresh.mjs",
     "seed": "node scripts/seed.mjs"
   },
   "dependencies": {
