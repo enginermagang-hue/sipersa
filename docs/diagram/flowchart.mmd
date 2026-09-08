@@ -1,0 +1,28 @@
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1F4E78','primaryTextColor':'#fff','primaryBorderColor':'#1A3A5A','lineColor':'#333','fontSize':'17px'}}}%%
+flowchart TB
+
+    subgraph AsIs ["AS-IS (Kertas) — Manual"]
+        direction TB
+        A1["Terima surat"] --> A2["Tulis buku agenda"]
+        A2 --> A3["Fotokopi & cap"]
+        A3 --> A4["Disposisi kertas"]
+        A4 --> A5["Distribusi manual"]
+        A5 --> A6["Arsip rak"]
+        A6 --> A7{"Risiko: ganda<br/>hilang • lambat"}
+    end
+
+    subgraph ToBe ["TO-BE SIPERSA (Digital)"]
+        direction TB
+        B1["Input digital<br/>no_agenda + file"] --> B2["Auto-number<br/>NNN SM-INST Romawi Tahun"]
+        B2 --> B3["Disposisi chain<br/>parent_id self"]
+        B3 --> B4["Notifikasi / WA<br/>kepada_user_id"]
+        B4 --> B5["Arsip retensi<br/>file_drive_id"]
+        B5 --> B6["Dashboard 8 KPI<br/>log_aktivitas"]
+    end
+
+    A7 -.->|"Transformasi<br/>Digital"| B1
+
+    classDef asis fill:#FCE4EC,stroke:#B71C1C,stroke-width:2px,color:#333
+    classDef tobe fill:#E8F0F8,stroke:#1F4E78,stroke-width:2px,color:#333
+    class A1,A2,A3,A4,A5,A6 asis
+    class B1,B2,B3,B4,B5,B6 tobe

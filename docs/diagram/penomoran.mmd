@@ -1,0 +1,25 @@
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1F4E78','primaryTextColor':'#fff','primaryBorderColor':'#1A3A5A','lineColor':'#333','fontSize':'18px'}}}%%
+flowchart TB
+    Start([Input tgl_surat]) --> B{"Tahun dari tgl_surat"}
+    B --> C["SELECT MAX no_urut<br/>WHERE no_surat LIKE tahun"]
+    C --> D["no_urut = MAX + 1<br/>NNN = pad3 no_urut<br/>Romawi = toRoman bulan"]
+    D --> E1 & E2
+
+    subgraph Masuk ["SURAT MASUK"]
+    E1["Format Masuk<br/><b>NNN SM-INST Romawi Tahun</b><br/>001 SM-INST I 2026"]
+    end
+
+    subgraph Keluar ["SURAT KELUAR"]
+    E2["Format Keluar<br/><b>KODE NNN TU tekkomdik Romawi Tahun</b><br/>001 001 TU tekkomdik I 2026"]
+    end
+
+    E1 --> F1[("surat_masuk<br/>no_urut + no_surat")]
+    E2 --> F2[("surat_keluar<br/>no_urut + no_surat")]
+
+    F1 -.-> G["Reset tahunan<br/>tahun baru = 1 lagi"]
+    F2 -.-> G
+
+    style Masuk fill:#E8F0F8,stroke:#1F4E78,stroke-width:2px,color:#333
+    style Keluar fill:#E8F6E8,stroke:#2E7D32,stroke-width:2px,color:#333
+    style Start fill:#FFF9C4,stroke:#F9A825,color:#333
+    style G fill:#F3E5F5,stroke:#7B1FA2,color:#333

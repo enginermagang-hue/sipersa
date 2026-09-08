@@ -1,6 +1,15 @@
 // Seeder 1000 data contoh (campuran) + file dummy di-upload ke Dropbox.
 //   node scripts/seed.mjs          -> insert 1000 (abort bila tabel sudah berisi)
 //   node scripts/seed.mjs --reset  -> hapus data lama (+ file Dropbox terkait) lalu seed ulang
+//   Opsi jumlah (semua opsional, default 400/300/200/100):
+//     --masuk N | --surat-masuk N | --in N
+//     --keluar N | --surat-keluar N | --out N
+//     --arsip N | --archive N
+//     --disposisi N | --disposition N
+//     --total N                    -> skala proporsi 4:3:2:1
+//     --help                       -> tampil bantuan
+//   Env fallback: SEED_MASUK, SEED_KELUAR, SEED_ARSIP, SEED_DISPOSISI, SEED_TOTAL
+//   Contoh: npm run seed -- --reset --masuk 50 --keluar 30 --arsip 20 --disposisi 10
 // Butuh config Dropbox di .env: NUXT_DROPBOX_REFRESH_TOKEN atau NUXT_DROPBOX_TOKEN.
 
 import { createClient } from '@libsql/client'
@@ -13,9 +22,128 @@ const db = createClient({
   authToken: process.env.NUXT_TURSO_AUTH_TOKEN
 })
 
-const COUNTS = { surat_masuk: 400, surat_keluar: 300, arsip: 200, disposisi: 100 }
 const CONCURRENCY = 5
 const YEAR = new Date().getFullYear()
+
+// ---------- CLI: parse jumlah data ----------
+const DEFAULT_COUNTS = { surat_masuk: 400, surat_keluar: 300, arsip: 200, disposisi: 100 }
+const MAX_PER_TABLE = 5000
+
+function printHelp() {
+  console.log(`
+Seeder SIPERSA — generate data dummy + upload PDF ke Dropbox
+
+Usage:
+  node scripts/seed.mjs [opsi]
+  npm run seed -- [opsi]
+  npm run seed:small -- --reset   (preset kecil)
+
+Opsi:
+  --reset                          Hapus data lama + file Dropbox lalu seed ulang
+  --masuk N, --surat-masuk N, --in N
+  --keluar N, --surat-keluar N, --out N
+  --arsip N, --archive N
+  --disposisi N, --disposition N
+  --total N                        Skala proporsi 4:3:2:1 (dibulatkan, sisa ke surat_masuk)
+  --help, -h                       Tampilkan bantuan ini
+
+Env fallback (dipakai jika flag tidak ada):
+  SEED_MASUK, SEED_KELUAR, SEED_ARSIP, SEED_DISPOSISI, SEED_TOTAL
+
+Contoh:
+  node scripts/seed.mjs --reset --masuk 50 --keluar 30 --arsip 20 --disposisi 10
+  npm run seed -- --reset --total 100
+  npm run seed:small -- --reset
+
+Default: surat_masuk=400 surat_keluar=300 arsip=200 disposisi=100 (total 1000)
+Batas: max ${MAX_PER_TABLE} per tabel, warning jika total > 2000
+`)
+}
+
+function parseIntArg(raw, name) {
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n < 0) {
+    console.error(`[ERROR] --${name} harus integer >= 0 (dapat: ${raw})`)
+    process.exit(1)
+  }
+  if (n > MAX_PER_TABLE) {
+    console.error(`[ERROR] --${name}=${n} melebihi batas max ${MAX_PER_TABLE} per tabel`)
+    process.exit(1)
+  }
+  return n
+}
+
+function getFlagValue(args, names) {
+  for (let i = 0; i < args.length; i++) {
+    for (const name of names) {
+      const flag = `--${name}`
+      if (args[i] === flag && i + 1 < args.length) return args[i + 1]
+      if (args[i].startsWith(`${flag}=`)) return args[i].slice(flag.length + 1)
+    }
+  }
+  return undefined
+}
+
+function parseCounts() {
+  const args = process.argv.slice(2)
+  if (args.includes('--help') || args.includes('-h')) {
+    printHelp()
+    process.exit(0)
+  }
+
+  const envCounts = {
+    surat_masuk: process.env.SEED_MASUK ? parseIntArg(process.env.SEED_MASUK, 'SEED_MASUK') : undefined,
+    surat_keluar: process.env.SEED_KELUAR ? parseIntArg(process.env.SEED_KELUAR, 'SEED_KELUAR') : undefined,
+    arsip: process.env.SEED_ARSIP ? parseIntArg(process.env.SEED_ARSIP, 'SEED_ARSIP') : undefined,
+    disposisi: process.env.SEED_DISPOSISI ? parseIntArg(process.env.SEED_DISPOSISI, 'SEED_DISPOSISI') : undefined,
+  }
+  const envTotal = process.env.SEED_TOTAL ? parseIntArg(process.env.SEED_TOTAL, 'SEED_TOTAL') : undefined
+
+  const flagTotal = getFlagValue(args, ['total'])
+  const total = flagTotal !== undefined ? parseIntArg(flagTotal, 'total') : envTotal
+
+  // --total mode: distribusi proporsi 4:3:2:1
+  if (total !== undefined) {
+    const hasIndividualFlag = ['masuk', 'surat-masuk', 'in', 'keluar', 'surat-keluar', 'out', 'arsip', 'archive', 'disposisi', 'disposition']
+      .some((n) => getFlagValue(args, [n]) !== undefined)
+    const hasIndividualEnv = Object.values(envCounts).some((v) => v !== undefined)
+    if (hasIndividualFlag || hasIndividualEnv) {
+      console.warn('[WARN] --total diabaikan karena ada flag/env individual (--masuk/--keluar/--arsip/--disposisi)')
+    } else {
+      const ratio = [4, 3, 2, 1]
+      const sum = 10
+      const base = ratio.map((r) => Math.floor((total * r) / sum))
+      let remainder = total - base.reduce((a, b) => a + b, 0)
+      // sisa dibagikan ke surat_masuk dulu
+      let idx = 0
+      while (remainder > 0) { base[idx % 4]++; remainder--; idx++ }
+      return { surat_masuk: base[0], surat_keluar: base[1], arsip: base[2], disposisi: base[3] }
+    }
+  }
+
+  const resolve = (flagNames, envVal, def) => {
+    const v = getFlagValue(args, flagNames)
+    if (v !== undefined) return parseIntArg(v, flagNames[0])
+    if (envVal !== undefined) return envVal
+    return def
+  }
+
+  return {
+    surat_masuk: resolve(['masuk', 'surat-masuk', 'in'], envCounts.surat_masuk, DEFAULT_COUNTS.surat_masuk),
+    surat_keluar: resolve(['keluar', 'surat-keluar', 'out'], envCounts.surat_keluar, DEFAULT_COUNTS.surat_keluar),
+    arsip: resolve(['arsip', 'archive'], envCounts.arsip, DEFAULT_COUNTS.arsip),
+    disposisi: resolve(['disposisi', 'disposition'], envCounts.disposisi, DEFAULT_COUNTS.disposisi),
+  }
+}
+
+const COUNTS = parseCounts()
+const totalCounts = Object.values(COUNTS).reduce((a, b) => a + b, 0)
+if (totalCounts > 2000) {
+  console.warn(`[WARN] Total ${totalCounts} > 2000 — upload Dropbox akan lama & rawan rate-limit (429).`)
+}
+if (totalCounts === 0) {
+  console.warn('[WARN] Semua counts 0 — hanya ensure klasifikasi/users yang dijalankan.')
+}
 
 const ROMAWI = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -318,6 +446,7 @@ async function insertDisposisi(item) {
 // ---------- Main ----------
 async function main() {
   const reset = process.argv.includes('--reset')
+  console.log(`[seed] counts: surat_masuk=${COUNTS.surat_masuk} surat_keluar=${COUNTS.surat_keluar} arsip=${COUNTS.arsip} disposisi=${COUNTS.disposisi} (total ${totalCounts})`)
 
   let dropboxOk = true
   try {
@@ -412,7 +541,10 @@ async function main() {
   const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5)
   const masuShuf = shuffle(masuIds)
   const kelShuf = shuffle(keluarIds)
-  const arsipCount = Math.min(COUNTS.arsip, masuIds.length + keluarIds.length)
+  let arsipCount = Math.min(COUNTS.arsip, masuIds.length + keluarIds.length)
+  if (COUNTS.arsip > masuIds.length + keluarIds.length) {
+    console.warn(`[WARN] arsip diminta ${COUNTS.arsip} tapi hanya ${masuIds.length + keluarIds.length} surat tersedia — clamp ke ${arsipCount}`)
+  }
   const takeMasuk = Math.min(Math.floor(arsipCount * 0.6), masuIds.length)
   const itemsArsip = Array.from({ length: arsipCount }, (_, i) => {
     const isMasuk = i < takeMasuk
@@ -432,7 +564,13 @@ async function main() {
   poolSummary(resArsip, 'arsip')
 
   // -- Disposisi -- (butuh minimal 1 surat masuk)
+  if (COUNTS.disposisi > 0 && masuIds.length === 0) {
+    console.warn('[WARN] disposisi diminta tapi tidak ada surat_masuk — dilewati')
+  }
   if (masuIds.length > 0) {
+    if (COUNTS.disposisi === 0) {
+      console.log('Disposisi dilewati: COUNTS.disposisi=0')
+    } else {
     const users = await db.execute('SELECT id, role FROM users WHERE deleted_at IS NULL')
     const byRole = users.rows.reduce((acc, r) => {
       acc[r.role] = acc[r.role] || []
@@ -461,12 +599,13 @@ async function main() {
         selesai_at: status === 'selesai' ? randDate() : null
       }
     })
-    console.log(`Seed disposisi (${itemsDisposisi.length})...`)
-    const resDisposisi = await runPool(itemsDisposisi, insertDisposisi)
-    poolSummary(resDisposisi, 'disposisi')
-  } else {
-    console.log('Disposisi dilewati: tidak ada surat_masuk yang berhasil.')
-  }
+     console.log(`Seed disposisi (${itemsDisposisi.length})...`)
+     const resDisposisi = await runPool(itemsDisposisi, insertDisposisi)
+     poolSummary(resDisposisi, 'disposisi')
+     }
+   } else {
+     console.log('Disposisi dilewati: tidak ada surat_masuk yang berhasil.')
+   }
 
   console.log(`\nSelesai dalam ${((Date.now() - t0) / 1000).toFixed(1)}s.`)
   console.log(`Total record dibuat: ${COUNTS.surat_masuk + COUNTS.surat_keluar + COUNTS.arsip + COUNTS.disposisi} (per konstanta COUNTS; yang gagal di-skip).`)

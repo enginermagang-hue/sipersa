@@ -9,7 +9,9 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "migrate:fresh": "node scripts/migrate-fresh.mjs",
-    "seed": "node scripts/seed.mjs"
+    "seed": "node scripts/seed.mjs",
+    "seed:small": "node scripts/seed.mjs --masuk 20 --keluar 20 --arsip 10 --disposisi 10",
+    "seed:help": "node scripts/seed.mjs --help"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.123",

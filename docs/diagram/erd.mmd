@@ -1,0 +1,76 @@
+%%{init: {'er': {'layoutDirection': 'TB', 'minEntityWidth': 320, 'minEntityHeight': 180, 'entityPadding': 16}}}%%
+erDiagram
+    users ||--o{ sessions : "1—N"
+    users ||--o{ disposisi : "dari/kepada"
+    klasifikasi ||--o{ surat_masuk : "FK"
+    klasifikasi ||--o{ surat_keluar : "FK"
+    klasifikasi ||--o{ arsip : "FK"
+    surat_masuk ||--o{ disposisi : "surat_masuk_id"
+    disposisi ||--o{ disposisi : "parent_id (self)"
+    surat_masuk ||--o{ arsip : "ref_masuk_id"
+    surat_keluar ||--o{ arsip : "ref_keluar_id"
+
+    users {
+        int id PK
+        string nama
+        string username UK
+        string role "admin/staff/pimpinan"
+        string nip
+        string google_id UK
+        string deleted_at
+    }
+    sessions {
+        string id PK
+        int user_id FK
+        string token
+        string expires_at
+        int revoked
+    }
+    klasifikasi {
+        int id PK
+        string kode
+        string nama
+        int retensi_tahun
+    }
+    surat_masuk {
+        int id PK
+        string no_agenda
+        int no_urut
+        string no_surat
+        int klasifikasi_id FK
+        string tgl_surat
+        string pengirim
+        string sifat
+        string status
+        string file_drive_id
+    }
+    surat_keluar {
+        int id PK
+        int no_urut
+        string no_surat
+        int klasifikasi_id FK
+        string tgl_surat
+        string tujuan
+        string status "draft/diterima"
+        string file_drive_id
+    }
+    disposisi {
+        int id PK
+        int surat_masuk_id FK
+        int parent_id FK "self"
+        int dari_user_id FK
+        int kepada_user_id FK
+        string status "baru/diproses/selesai"
+        string prioritas
+        string batas_waktu
+    }
+    arsip {
+        int id PK
+        int ref_masuk_id FK "nullable"
+        int ref_keluar_id FK "nullable"
+        int klasifikasi_id FK
+        string nama_dokumen
+        int tahun
+        string sifat
+        string file_drive_id
+    }
