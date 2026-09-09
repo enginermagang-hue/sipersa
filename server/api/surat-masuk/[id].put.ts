@@ -2,6 +2,7 @@ import { useDb } from '../../utils/db'
 import { assertFilesSize, parseKeepIds, readFormWithFiles, toIntOrNull } from '../../utils/body'
 import { deleteDriveFile, DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { logActivity } from '../../utils/logger'
+import { convertHeicFilesIfNeeded } from '../../utils/heic'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
@@ -14,7 +15,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Hanya admin atau pembuat surat yang dapat mengubah' })
   }
 
-  const { fields, files } = await readFormWithFiles(event)
+  let { fields, files } = await readFormWithFiles(event)
+  files = await convertHeicFilesIfNeeded(files as any) as any
   // validasi & normalisasi no_surat jika dikirim (boleh kosong = keep existing)
   const rawNoSurat = fields.no_surat !== undefined ? String(fields.no_surat).trim() : ''
   let finalNoSurat = (exist.rows[0] as any).no_surat as string

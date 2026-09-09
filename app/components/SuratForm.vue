@@ -94,9 +94,40 @@ function validate(s: Partial<typeof state>): FormError[] {
   return errors
 }
 
+function isHeicFileClient(f: File) {
+  const name = (f.name || '').toLowerCase()
+  const type = (f.type || '').toLowerCase()
+  return name.endsWith('.heic') || name.endsWith('.heif') || type.includes('heic') || type.includes('heif')
+}
+async function convertHeicClientFiles(list: File[]): Promise<File[]> {
+  const out: File[] = []
+  for (const f of list) {
+    if (!isHeicFileClient(f)) { out.push(f); continue }
+    try {
+      // heic2any is browser-only, dynamic import
+      const mod: any = await import('heic2any').catch(() => null)
+      const heic2any = mod?.default || mod
+      if (!heic2any) throw new Error('heic2any not available')
+      const blob = await heic2any({ blob: f, toType: 'image/jpeg', quality: 0.92 })
+      const outBlob = Array.isArray(blob) ? blob[0] as Blob : blob as Blob
+      const newName = f.name.replace(/\.(heic|heif)$/i, '.jpg')
+      out.push(new File([outBlob], newName, { type: 'image/jpeg' }))
+      useToast().add({ title: `HEIC dikonversi: ${f.name} → ${newName}`, color: 'success' })
+    } catch (e: any) {
+      console.warn('[heic] client convert gagal, kirim as-is untuk server convert', e?.message || e)
+      out.push(f)
+    }
+  }
+  return out
+}
+
 async function submit() {
   emit('busy', true)
   error.value = ''
+  // client-side HEIC -> JPEG (hybrid C)
+  if (files.value.some(isHeicFileClient)) {
+    try { files.value = await convertHeicClientFiles(files.value) } catch {}
+  }
   const total = files.value.reduce((a,f)=>a+f.size,0)
   if (total > 25*1024*1024) { const m=`Total ukuran file terlalu besar (maks. 25 MB, total ${(total/1024/1024).toFixed(1)} MB)`; error.value=m; useToast().add({title:m, color:'error'}); emit('busy', false); return }
   const fd = new FormData()
@@ -188,7 +219,7 @@ async function submit() {
           <a :href="`/api/files/${ef.file_drive_id}`" target="_blank" class="text-primary text-xs underline">Unduh</a>
         </div>
       </div>
-      <FileUpload label="Unggah File Surat (multiple, total maks. 25 MB)" description="Format: PDF, JPG, PNG." :multiple="true" v-model:files="files" />
+      <FileUpload label="Unggah File Surat (multiple, total maks. 25 MB)" description="Format: PDF, JPG, PNG, HEIC (auto JPEG)." :multiple="true" v-model:files="files" />
     </div>
 
     <p v-if="error" class="text-sm text-error">{{ error }}</p>

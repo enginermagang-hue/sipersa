@@ -3,13 +3,15 @@ import { assertFilesSize, readFormWithFiles, toIntOrNull } from '../../utils/bod
 import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { arsipSchema } from '../../../lib/validations'
 import { logActivity } from '../../utils/logger'
+import { convertHeicFilesIfNeeded } from '../../utils/heic'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
   if (!['admin', 'staff'].includes(auth.role)) {
     throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan membuat Arsip — hanya Admin & Staff' })
   }
-  const { fields, files } = await readFormWithFiles(event)
+  let { fields, files } = await readFormWithFiles(event)
+  files = await convertHeicFilesIfNeeded(files as any) as any
 
   const parsed = arsipSchema.safeParse({
     nama_dokumen: fields.nama_dokumen,

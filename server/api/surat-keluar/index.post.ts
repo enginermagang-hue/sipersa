@@ -5,11 +5,13 @@ import { generateNoSuratKeluar } from '../../utils/no'
 import { suratKeluarSchema } from '../../../lib/validations'
 import { logActivity } from '../../utils/logger'
 import { notifyPimpinanSuratKeluar } from '../../utils/notify'
+import { convertHeicFilesIfNeeded } from '../../utils/heic'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
   if (auth.role !== 'staff') throw createError({ statusCode: 403, statusMessage: 'Hanya staff yang dapat membuat surat keluar' })
-  const { fields, files } = await readFormWithFiles(event)
+  let { fields, files } = await readFormWithFiles(event)
+  files = await convertHeicFilesIfNeeded(files as any) as any
   const rawKode = (fields.klasifikasi_kode ?? fields.klasifikasi_id ?? '').toString().trim()
 
   const parsed = suratKeluarSchema.safeParse({

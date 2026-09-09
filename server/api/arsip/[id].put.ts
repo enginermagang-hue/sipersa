@@ -2,6 +2,7 @@ import { useDb } from '../../utils/db'
 import { assertFilesSize, parseKeepIds, readFormWithFiles, toIntOrNull } from '../../utils/body'
 import { deleteDriveFile, DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { logActivity } from '../../utils/logger'
+import { convertHeicFilesIfNeeded } from '../../utils/heic'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
@@ -9,7 +10,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan mengubah Arsip — hanya Admin & Staff' })
   }
   const id = Number(event.context.params?.id)
-  const { fields, files } = await readFormWithFiles(event)
+  let { fields, files } = await readFormWithFiles(event)
+  files = await convertHeicFilesIfNeeded(files as any) as any
   const db = useDb()
 
   assertFilesSize(files)

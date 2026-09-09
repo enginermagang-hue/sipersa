@@ -45,9 +45,9 @@ function removeAt(i: number) {
 
 <template>
   <div class="space-y-1">
-    <UFileUpload v-if="!multiple" v-model="file" :label="label" :description="description" accept=".pdf,.jpg,.jpeg,.png" class="w-full" />
+    <UFileUpload v-if="!multiple" v-model="file" :label="label" :description="description" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" class="w-full" />
     <template v-else>
-      <UFileUpload v-model="files" :multiple="true" :label="label" :description="description ? `${description} (Total maks. ${Math.round(MAX/1024/1024)} MB)` : `Total maks. ${Math.round(MAX/1024/1024)} MB`" accept=".pdf,.jpg,.jpeg,.png" class="w-full" />
+      <UFileUpload v-model="files" :multiple="true" :label="label" :description="description ? `${description} (Total maks. ${Math.round(MAX/1024/1024)} MB)` : `Total maks. ${Math.round(MAX/1024/1024)} MB`" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" class="w-full" />
       <div v-if="files.length" class="space-y-1 mt-2">
         <div v-for="(f, i) in files" :key="i" class="flex items-center justify-between gap-2 rounded-lg border border-default px-3 py-2 text-sm">
           <span class="truncate">{{ f.name }} <span class="text-muted text-xs">({{ (f.size/1024).toFixed(0) }} KB)</span></span>

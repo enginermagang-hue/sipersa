@@ -3,6 +3,7 @@ import { assertFilesSize, parseKeepIds, readFormWithFiles } from '../../utils/bo
 import { deleteDriveFile, DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { logActivity } from '../../utils/logger'
 import { notifyPimpinanSuratKeluar } from '../../utils/notify'
+import { convertHeicFilesIfNeeded } from '../../utils/heic'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
@@ -16,7 +17,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Hanya pembuat atau admin yang dapat mengedit draft' })
   }
 
-  const { fields, files } = await readFormWithFiles(event)
+  let { fields, files } = await readFormWithFiles(event)
+  files = await convertHeicFilesIfNeeded(files as any) as any
   assertFilesSize(files)
   // handle keep_file_ids untuk multi-file
   const keepIds = parseKeepIds(fields.keep_file_ids)
