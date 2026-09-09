@@ -5,6 +5,7 @@ import { generateNo } from '../../utils/no'
 import { suratMasukSchema } from '../../../lib/validations'
 import { logActivity } from '../../utils/logger'
 import { convertHeicFilesIfNeeded } from '../../utils/heic'
+import { straightenImageFiles } from '../../utils/docscan'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
@@ -13,6 +14,7 @@ export default defineEventHandler(async (event) => {
   }
   let { fields, files } = await readFormWithFiles(event)
   files = await convertHeicFilesIfNeeded(files as any) as any
+  files = await straightenImageFiles(files as any) as any
 
   const parsed = suratMasukSchema.safeParse({
     tgl_surat: fields.tgl_surat,

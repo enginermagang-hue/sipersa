@@ -40,6 +40,7 @@ export default defineNuxtConfig({
     fonnteEnabled: process.env.NUXT_FONNTE_ENABLED || process.env.NUXT_FONTE_ENABLED || false,
     fonnteBaseUrl: process.env.NUXT_FONNTE_BASE_URL || 'https://api.fonnte.com/send',
     appUrl: process.env.NUXT_APP_URL || '',
+    docscanUrl: process.env.NUXT_DOCSCAN_URL || '',
     appName: process.env.NUXT_PUBLIC_APP_NAME || 'SIPERSA',
     public: {
       klasifikasiGoogleUrl: process.env.NUXT_KLASIFIKASI_GOOGLE_URL || 'https://script.google.com/macros/s/AKfycby4RoU3dPXZWfkofZ5wVkNRKyG_V4x23ypfl-bRyrx7ahZ3i_NvFJ4lBntAANhiXjFyQQ/exec',

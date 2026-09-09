@@ -3,6 +3,7 @@ import { assertFilesSize, parseKeepIds, readFormWithFiles, toIntOrNull } from '.
 import { deleteDriveFile, DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { logActivity } from '../../utils/logger'
 import { convertHeicFilesIfNeeded } from '../../utils/heic'
+import { straightenImageFiles } from '../../utils/docscan'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
@@ -17,6 +18,7 @@ export default defineEventHandler(async (event) => {
 
   let { fields, files } = await readFormWithFiles(event)
   files = await convertHeicFilesIfNeeded(files as any) as any
+  files = await straightenImageFiles(files as any) as any
   // validasi & normalisasi no_surat jika dikirim (boleh kosong = keep existing)
   const rawNoSurat = fields.no_surat !== undefined ? String(fields.no_surat).trim() : ''
   let finalNoSurat = (exist.rows[0] as any).no_surat as string

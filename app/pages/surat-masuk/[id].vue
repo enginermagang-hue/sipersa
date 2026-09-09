@@ -348,6 +348,22 @@ async function selesaikan(item: any) {
     } finally { updatingId.value = null }
   })
 }
+const repairing = ref(false)
+const hasImageToRepair = computed(() => {
+  const list: any[] = (data.value as any)?.files || []
+  if (list.length) return list.some((f:any)=> fileIsImage(f))
+  const s = (data.value as any)?.surat; return s?.file_drive_id && isImageName(s.file_name)
+})
+async function repairImage() {
+  const ok = await confirm({ title: 'Periksa dan Perbaiki Gambar', message: 'File asli akan diganti hasil scan. Lanjut?', okLabel: 'Perbaiki' })
+  if (!ok) return
+  repairing.value = true
+  try {
+    const res:any = await $fetch(`/api/surat-masuk/${id}/repair-image`, { method: 'POST' })
+    const parts:string[]=[]; if(res.repaired?.length) parts.push(`${res.repaired.length} diperbaiki`); if(res.skipped?.length) parts.push(`${res.skipped.length} dilewati`); if(res.failed?.length) parts.push(`${res.failed.length} gagal: ${res.failed.map((f:any)=>f.reason).join('; ').slice(0,180)}`)
+    toast.add({ title: parts.join(' • ') || 'Selesai', color: res.failed?.length?'warning':'success' }); await refresh()
+  } catch(e:any){ toast.add({ title: e?.data?.statusMessage || 'Gagal memperbaiki', color:'error' }) } finally { repairing.value=false }
+}
 async function hapus() {
   await confirm({ title: 'Hapus Surat', message: 'Hapus surat ini?', okLabel: 'Hapus', loadingTitle: 'Menghapus...' }, async () => {
     await $fetch(`/api/surat-masuk/${id}`, { method: 'DELETE' })
@@ -365,6 +381,7 @@ async function hapus() {
       <UButton v-if="!isArchived && canArsip" icon="i-lucide-archive" variant="soft" @click="arsipOpen = true">Arsipkan</UButton>
       <UBadge v-else label="Sudah diarsipkan" color="success" variant="subtle" size="lg" icon="i-lucide-archive"/>
       <UButton variant="outline" icon="i-lucide-printer" @click="printLembar">Cetak Disposisi</UButton>
+      <UButton v-if="canDelete && hasImageToRepair" variant="outline" size="sm" icon="i-lucide-scan-line" :loading="repairing" @click="repairImage">Periksa dan Perbaiki Gambar</UButton>
       <UButton v-if="canDelete" color="error" variant="soft" size="sm" icon="i-lucide-trash" @click="hapus">Hapus</UButton>
     </div>
 
