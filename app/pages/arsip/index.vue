@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
-import { UBadge, UButton, UDropdownMenu } from '#components'
+import { UBadge, UButton, UDropdownMenu, UTooltip } from '#components'
 import type { TableColumn } from '@nuxt/ui'
 
 const { user } = useAuth()
@@ -32,6 +32,7 @@ const { data, refresh, pending } = await useFetch('/api/arsip', {
 })
 const { data: stats } = await useFetch('/api/arsip/stats')
 
+const filterOpen = ref(false)
 const formOpen = ref(false)
 const editOpen = ref(false)
 const editTarget = ref<any>(null)
@@ -51,6 +52,12 @@ const refTypeOptions = [
   { label: 'Dari Surat Masuk', value: 'masuk' },
   { label: 'Dari Surat Keluar', value: 'keluar' },
   { label: 'Mandiri (upload)', value: 'manual' }
+]
+const arsipStatusTabs: { label: string; value: string | undefined }[] = [
+  { label: 'Semua', value: undefined },
+  { label: 'Aktif', value: 'aktif' },
+  { label: 'Menjelang', value: 'menjelang' },
+  { label: 'Kadaluarsa', value: 'kadaluarsa' }
 ]
 
 const kpiCards = computed(() => [
@@ -154,10 +161,13 @@ function getAksiItemsArsip(row: any) {
   {
     accessorKey: 'sumber',
     header: 'Sumber',
+    meta: { class: { th: 'max-w-[220px]', td: 'max-w-[220px] whitespace-normal' } },
     cell: ({ row }) => {
       const s = sumber(row.original)
       if (!s) return h('span', { class: 'text-muted' }, '-')
-      return h(resolveComponent('NuxtLink'), { to: s.to, class: 'hover:underline' }, s.label)
+      return h('div', { class: 'min-w-0 max-w-[220px]' }, [
+        h(resolveComponent('NuxtLink'), { to: s.to, class: 'hover:underline whitespace-normal break-all' }, s.label)
+      ])
     }
   },
   {
@@ -168,19 +178,9 @@ function getAksiItemsArsip(row: any) {
       const sisa = r.sisa_tahun
       return h('div', { class: 'flex items-center gap-1.5' }, [
         h(UBadge, { label: retensiLabel[r.status] || r.status, color: retensiColor[r.status] || 'neutral', variant: 'subtle' }),
-        sisa != null ? h('span', { class: 'text-xs text-muted' }, `${Math.abs(sisa)} th`) : h('span', { class: 'text-xs text-muted' }, 'tetap')
-      ])
-    }
-  },
-  {
-    accessorKey: 'file',
-    header: 'File',
-    cell: ({ row }) => {
-      const r = row.original
-      if (!r.file_drive_id) return h('span', { class: 'text-muted' }, '-')
-      return h('div', { class: 'flex gap-1' }, [
-        h(UButton, { href: `/api/files/${r.file_drive_id}`, target: '_blank', size: 'xs', variant: 'soft', icon: 'i-lucide-download' }, () => 'Unduh'),
-        h(UButton, { size: 'xs', variant: 'ghost', icon: 'i-lucide-eye', onClick: () => { previewTarget.value = r } })
+        sisa != null
+          ? h('span', { class: 'text-xs text-muted' }, `${Math.abs(sisa)} th`)
+          : h(UTooltip, { text: 'Tanpa jadwal retensi — disimpan permanen', delayDuration: 0 }, () => h(UBadge, { icon: 'i-lucide-infinity', color: 'neutral', variant: 'subtle', size: 'xs', 'aria-label': 'Permanen' }))
       ])
     }
   },
@@ -196,11 +196,14 @@ function getAksiItemsArsip(row: any) {
         return h(UButton, { size: 'xs', variant: 'soft', color: 'primary', icon: 'i-lucide-rotate-ccw', onClick: () => restore(r) }, () => 'Restore')
       }
       if (!canManage(r)) {
+        const roItems: any[] = [
+          { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/arsip/${r.id}`) },
+          ...(r.file_drive_id ? [{ label: 'Unduh File', icon: 'i-lucide-download', onSelect: () => window.open(`/api/files/${r.file_drive_id}`, '_blank') }] : []),
+          ...(r.file_drive_id ? [{ label: 'Preview', icon: 'i-lucide-eye', onSelect: () => { previewTarget.value = r } }] : [])
+        ]
         return h(UDropdownMenu, {
           content: { align: 'end' },
-          items: [
-            { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/arsip/${r.id}`) }
-          ],
+          items: roItems,
           'aria-label': 'Aksi'
         }, () => h(UButton, {
           icon: 'i-lucide-ellipsis-vertical',
@@ -212,6 +215,8 @@ function getAksiItemsArsip(row: any) {
       }
       const items: any[] = [
         { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/arsip/${r.id}`) },
+        ...(r.file_drive_id ? [{ label: 'Unduh File', icon: 'i-lucide-download', onSelect: () => window.open(`/api/files/${r.file_drive_id}`, '_blank') }] : []),
+        ...(r.file_drive_id ? [{ label: 'Preview', icon: 'i-lucide-eye', onSelect: () => { previewTarget.value = r } }] : []),
         { label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => { editTarget.value = r; editOpen.value = true } },
         { type: 'separator' },
         ...(r.status === 'kadaluarsa'
@@ -281,24 +286,21 @@ function getAksiItemsArsip(row: any) {
     </div>
 
     <!-- Search + Filter + View toggle -->
-    <div class="flex flex-col lg:flex-row lg:flex-nowrap gap-2 lg:items-center">
-      <UInput v-model="q" placeholder="Cari dokumen/lokasi" icon="i-lucide-search" class="w-full lg:flex-1 lg:min-w-[220px]" :ui="{ trailing: 'pr-8' }">
+    <div class="flex gap-2 items-center">
+      <UInput v-model="q" placeholder="Cari dokumen/lokasi" icon="i-lucide-search" class="flex-1 min-w-0" :ui="{ trailing: 'pr-8' }">
         <template v-if="q" #trailing>
           <UButton variant="ghost" size="xs" color="neutral" icon="i-lucide-x" aria-label="Hapus pencarian" @click="q = ''" />
         </template>
       </UInput>
-      <div class="flex items-center gap-2 w-full lg:w-auto">
-        <div class="flex flex-wrap lg:flex-nowrap gap-2 flex-1 lg:flex-none">
-          <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="flex-1 lg:w-44 min-w-0" />
-          <USelect v-model="refType" :items="refTypeOptions" value-key="value" label-key="label" placeholder="Sumber" class="flex-1 lg:w-52 min-w-0" />
-          <UInput v-model="tahun" placeholder="Tahun" type="number" class="flex-1 lg:w-28 min-w-0" />
-        </div>
-        <UFieldGroup class="border border-default p-1 rounded-lg shrink-0" size="sm">
-          <UButton icon="i-lucide-rows-3" :color="view === 'table' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan tabel" :ui="{ base: 'px-2' }" @click="view = 'table'" />
-          <UButton icon="i-lucide-layout-grid" :color="view === 'grid' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan grid" :ui="{ base: 'px-2' }" @click="view = 'grid'" />
-          <UButton icon="i-lucide-list" :color="view === 'compact' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan ringkas" :ui="{ base: 'px-2' }" @click="view = 'compact'" />
-        </UFieldGroup>
-      </div>
+      <UButton icon="i-lucide-sliders-horizontal" variant="outline" class="shrink-0" @click="filterOpen = true">
+        Filter
+        <UBadge v-if="activeFilterCount" :label="activeFilterCount" color="primary" variant="solid" size="xs" class="ml-1" />
+      </UButton>
+      <UFieldGroup class="border border-default p-1 rounded-lg shrink-0" size="sm">
+        <UButton icon="i-lucide-rows-3" :color="view === 'table' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan tabel" :ui="{ base: 'px-2' }" @click="view = 'table'" />
+        <UButton icon="i-lucide-layout-grid" :color="view === 'grid' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan grid" :ui="{ base: 'px-2' }" @click="view = 'grid'" />
+        <UButton icon="i-lucide-list" :color="view === 'compact' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan ringkas" :ui="{ base: 'px-2' }" @click="view = 'compact'" />
+      </UFieldGroup>
     </div>
     <div class="flex flex-wrap items-center gap-3 mt-1 p-2 rounded-lg border-2 transition-colors" :class="deleted ? 'border-warning bg-warning/5' : 'border-default bg-muted/20'">
       <UCheckbox v-model="deleted" label="Tampilkan terhapus" />
@@ -315,6 +317,43 @@ function getAksiItemsArsip(row: any) {
       <UBadge v-if="tahun" :label="tahun" variant="subtle" color="neutral" trailing-icon="i-lucide-x" size="sm" class="cursor-pointer" @click="tahun = ''" />
       <UButton v-if="activeFilterCount > 1" variant="link" size="xs" color="neutral" class="px-1" @click="resetFilters">Hapus semua</UButton>
     </div>
+    <!-- Status tabs (state filter di atas tabel) -->
+    <div class="overflow-x-auto -mx-1 px-1">
+      <div class="inline-flex items-center gap-1 p-1 rounded-full bg-muted border border-default w-max max-w-full">
+        <UButton
+          v-for="tab in arsipStatusTabs"
+          :key="String(tab.value ?? 'all')"
+          size="xs"
+          :color="status === tab.value ? 'primary' : 'neutral'"
+          :variant="status === tab.value ? 'solid' : 'ghost'"
+          class="rounded-full"
+          @click="status = tab.value"
+        >{{ tab.label }}</UButton>
+      </div>
+    </div>
+
+    <UModal v-model:open="filterOpen" title="Filter Arsip" description="Saring arsip berdasarkan status, sumber, dan tahun">
+      <template #body>
+        <div class="space-y-4">
+          <UFormField label="Status">
+            <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Semua Status" class="w-full" />
+          </UFormField>
+          <UFormField label="Sumber">
+            <USelect v-model="refType" :items="refTypeOptions" value-key="value" label-key="label" placeholder="Semua Sumber" class="w-full" />
+          </UFormField>
+          <UFormField label="Tahun">
+            <UInput v-model="tahun" placeholder="Tahun" type="number" class="w-full" />
+          </UFormField>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex gap-2 w-full">
+          <UButton variant="ghost" block @click="resetFilters">Reset</UButton>
+          <UButton block @click="filterOpen = false">Terapkan</UButton>
+        </div>
+      </template>
+    </UModal>
+
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
       <!-- Table view -->

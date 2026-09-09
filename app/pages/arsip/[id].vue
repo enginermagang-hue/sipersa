@@ -80,14 +80,14 @@ definePageMeta({ title: 'Detail Arsip' })
     </nav>
 
     <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div class="flex items-center gap-3 flex-wrap">
-        <h1 class="text-[22px] md:text-[24px] font-semibold tracking-tight text-slate-900 dark:text-white truncate">{{ (arsip as any).nama_dokumen }}</h1>
-        <UBadge :label="retensiLabel[(arsip as any).status] || (arsip as any).status" :color="retensiColor[(arsip as any).status] || 'neutral'" variant="subtle" />
-        <span v-if="(arsip as any).sisa_tahun != null" class="text-xs text-muted">{{ (arsip as any).sisa_tahun >= 0 ? `Sisa ${(arsip as any).sisa_tahun} th` : `Lewat ${Math.abs((arsip as any).sisa_tahun)} th` }}</span>
-        <span v-else class="text-xs text-muted">Tetap</span>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
+      <div class="flex items-center gap-3 flex-wrap min-w-0 flex-1">
+        <h1 class="text-[22px] md:text-[24px] font-semibold tracking-tight text-slate-900 dark:text-white truncate min-w-0 flex-1">{{ (arsip as any).nama_dokumen }}</h1>
+        <UBadge :label="retensiLabel[(arsip as any).status] || (arsip as any).status" :color="retensiColor[(arsip as any).status] || 'neutral'" variant="subtle" class="shrink-0" />
+        <span v-if="(arsip as any).sisa_tahun != null" class="text-xs text-muted shrink-0">{{ (arsip as any).sisa_tahun >= 0 ? `Sisa ${(arsip as any).sisa_tahun} th` : `Lewat ${Math.abs((arsip as any).sisa_tahun)} th` }}</span>
+        <UTooltip v-else text="Tanpa jadwal retensi — disimpan permanen" :delay-duration="0"><UBadge icon="i-lucide-infinity" color="neutral" variant="subtle" size="xs" aria-label="Permanen" class="shrink-0" /></UTooltip>
       </div>
-      <div class="flex items-center gap-2 flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap shrink-0 md:justify-end">
         <UButton to="/arsip" variant="outline" size="sm">Kembali</UButton>
         <UButton v-if="(arsip as any).file_drive_id" variant="outline" size="sm" icon="i-lucide-download" :href="`/api/files/${(arsip as any).file_drive_id}`" target="_blank">Unduh</UButton>
         <UButton v-if="(arsip as any).file_drive_id" variant="outline" size="sm" icon="i-lucide-eye" @click="previewOpen = true">Preview</UButton>
@@ -118,7 +118,7 @@ definePageMeta({ title: 'Detail Arsip' })
         </UCard>
 
         <UCard v-if="(arsip as any).file_drive_id">
-          <template #header><div class="flex items-center justify-between"><span class="text-[12px] font-medium text-slate-500 uppercase tracking-wide dark:text-slate-400">File Arsip</span><span class="text-[11px] text-slate-400">{{ (arsip as any).file_name || 'Dokumen' }}</span></div></template>
+          <template #header><div class="flex items-center justify-between gap-2 min-w-0"><span class="text-[12px] font-medium text-slate-500 uppercase tracking-wide dark:text-slate-400 shrink-0">File Arsip</span><span class="text-[11px] text-slate-400 truncate min-w-0 text-right">{{ (arsip as any).file_name || 'Dokumen' }}</span></div></template>
           <FilePreview :file-id="(arsip as any).file_drive_id" :file-name="(arsip as any).file_name" />
         </UCard>
         <UCard v-else>
@@ -133,7 +133,7 @@ definePageMeta({ title: 'Detail Arsip' })
           <template #header><h3 class="font-semibold text-slate-900 dark:text-white">Retensi & Status</h3></template>
           <div class="space-y-3 text-[13px]">
             <div class="flex items-center justify-between"><span class="text-slate-500">Status</span><UBadge :label="retensiLabel[(arsip as any).status]" :color="retensiColor[(arsip as any).status]" variant="subtle" /></div>
-            <div class="flex items-center justify-between"><span class="text-slate-500">Sisa</span><span class="font-medium">{{ (arsip as any).sisa_tahun != null ? `${Math.abs((arsip as any).sisa_tahun)} tahun` : 'Tetap' }}</span></div>
+            <div class="flex items-center justify-between"><span class="text-slate-500">Sisa</span><span v-if="(arsip as any).sisa_tahun != null" class="font-medium">{{ Math.abs((arsip as any).sisa_tahun) }} tahun</span><UTooltip v-else text="Tanpa jadwal retensi — disimpan permanen" :delay-duration="0"><UBadge icon="i-lucide-infinity" color="neutral" variant="subtle" size="xs" aria-label="Permanen" /></UTooltip></div>
             <div class="flex items-center justify-between"><span class="text-slate-500">Retensi</span><span class="font-medium">{{ (arsip as any).retensi_tahun ? `${(arsip as any).retensi_tahun} tahun` : 'Tanpa retensi' }}</span></div>
             <div class="flex items-center justify-between"><span class="text-slate-500">Tahun Musnah</span><span class="font-medium">{{ (arsip as any).tahun_musnah ?? '—' }}</span></div>
           </div>

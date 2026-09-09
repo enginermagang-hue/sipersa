@@ -258,11 +258,11 @@ const buatMenu = [
           </thead>
           <tbody>
             <tr v-for="r in data?.data || []" :key="r.id" class="border-b border-default last:border-0 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-keluar/${r.id}`)">
-              <td class="px-4 py-3">
-                <div class="flex items-center gap-2">
+              <td class="px-4 py-3 max-w-[320px]">
+                <div class="flex items-center gap-2 min-w-0">
                   <img v-if="getThumb(r,'small')" :src="getThumb(r,'small')!" class="w-10 h-10 rounded object-cover border border-default shrink-0" loading="lazy" />
-                  <div class="min-w-0">
-                    <div class="font-medium truncate flex items-center gap-1">{{ r.no_surat }}<UBadge v-if="(r.file_count||0)>1" :label="`+${r.file_count}`" size="xs" variant="subtle" /></div>
+                  <div class="min-w-0 max-w-[320px]">
+                    <div class="font-medium flex items-center gap-1 truncate min-w-0" :title="r.no_surat"><span class="truncate">{{ r.no_surat }}</span><UBadge v-if="(r.file_count||0)>1" :label="`+${r.file_count}`" size="xs" variant="subtle" class="shrink-0" /></div>
                     <div class="text-xs text-muted whitespace-nowrap">{{ fmtTgl(r.tgl_surat) }}</div>
                     <UBadge :label="statusMeta[r.status]?.label || r.status" :color="statusMeta[r.status]?.color || 'neutral'" variant="subtle" size="sm" class="mt-1" />
                   </div>
@@ -292,9 +292,9 @@ const buatMenu = [
       <div v-else-if="view === 'grid'" class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
         <div v-for="r in data?.data || []" :key="r.id" class="rounded-xl border border-default p-4 transition-colors hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-keluar/${r.id}`)">
           <img v-if="getThumb(r,'large')" :src="getThumb(r,'large')!" class="w-full h-28 object-cover rounded-lg border border-default mb-2" loading="lazy" />
-          <div class="flex items-start justify-between gap-2">
-            <div class="font-medium text-sm leading-tight flex items-center gap-1">{{ r.no_surat }}<UBadge v-if="(r.file_count||0)>1" :label="`+${r.file_count}`" size="xs" variant="subtle" /></div>
-            <div @click.stop>
+          <div class="flex items-start justify-between gap-2 min-w-0">
+            <div class="font-medium text-sm leading-tight flex items-center gap-1 min-w-0 flex-1"><span class="truncate min-w-0" :title="r.no_surat">{{ r.no_surat }}</span><UBadge v-if="(r.file_count||0)>1" :label="`+${r.file_count}`" size="xs" variant="subtle" class="shrink-0" /></div>
+            <div @click.stop class="shrink-0">
               <UDropdownMenu :items="getAksiItems(r)">
                 <UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" aria-label="Aksi" />
               </UDropdownMenu>

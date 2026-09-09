@@ -172,12 +172,16 @@ const recipientOptions = computed(() => {
     .map((u: any) => ({ label: u.nama, value: u.id }))
 })
 
+function defaultBatasWaktu(): string {
+  const d = new Date(Date.now() + 3 * 864e5)
+  return d.toISOString().slice(0, 10)
+}
 const dispForm = reactive({
   recipients: [] as number[],
   instruksi: [] as string[],
   instruksi_tambahan: '',
   sifat_disposisi: 'biasa',
-  batas_waktu: '2026-08-18',
+  batas_waktu: defaultBatasWaktu(),
   catatan: ''
 })
 const dispDraftLoading = ref(false)
@@ -238,7 +242,7 @@ async function submit(opts: { draft: boolean }) {
     dispForm.instruksi = []
     dispForm.instruksi_tambahan = ''
     dispForm.sifat_disposisi = 'biasa'
-    dispForm.batas_waktu = '2026-08-18'
+    dispForm.batas_waktu = defaultBatasWaktu()
     dispForm.catatan = ''
     await refresh()
     if (!opts.draft) {
@@ -288,8 +292,14 @@ const timelineItems = computed(() =>
       : ''
     const batasLabel = batasShort ? `Batas ${batasShort}` : ''
     const isOverdue = !!d.batas_waktu && new Date(d.batas_waktu) < new Date(new Date().setHours(0, 0, 0, 0)) && d.status !== 'selesai'
-    const description =
-      d.parent_id === null
+    const isSelesai = d.status === 'selesai'
+    const selesaiDate = d.selesai_at ? new Date(String(d.selesai_at).replace(' ', 'T')) : null
+    const selesaiLabel = selesaiDate && !isNaN(selesaiDate.getTime())
+      ? selesaiDate.toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : ''
+    const description = isSelesai
+      ? `${d.kepada_nama} menyelesaikan disposisi (dari ${d.dari_nama})`
+      : d.parent_id === null
         ? `${d.dari_nama} mendisposisikan ke ${d.kepada_nama}`
         : `${d.dari_nama} meneruskan ke ${d.kepada_nama}`
     return {
@@ -300,7 +310,9 @@ const timelineItems = computed(() =>
       description,
       sifatTag: sifatCap,
       batasLabel,
-      isOverdue
+      isOverdue,
+      isSelesai,
+      selesaiLabel
     }
   })
 )
@@ -347,9 +359,9 @@ async function hapus() {
 <template>
   <div v-if="data" class="space-y-4">
     <!-- Header -->
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2 min-w-0">
       <UButton :to="`/surat-masuk`" variant="ghost" size="sm" icon="i-lucide-arrow-left">Kembali</UButton>
-      <h1 class="text-xl font-bold flex-1 min-w-40">{{ data.surat.no_surat }}</h1>
+      <h1 class="text-xl font-bold flex-1 min-w-0 truncate">{{ data.surat.no_surat }}</h1>
       <UButton v-if="!isArchived && canArsip" icon="i-lucide-archive" variant="soft" @click="arsipOpen = true">Arsipkan</UButton>
       <UBadge v-else label="Sudah diarsipkan" color="success" variant="subtle" size="lg" icon="i-lucide-archive"/>
       <UButton variant="outline" icon="i-lucide-printer" @click="printLembar">Cetak Disposisi</UButton>
@@ -359,7 +371,7 @@ async function hapus() {
     <!-- Section: Main grid (mockup layout) -->
     <div class="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-5 md:gap-6 items-start">
       <!-- KOLOM KIRI -->
-      <div class="space-y-4">
+      <div class="space-y-4 min-w-0">
         <!-- Card Detail Surat -->
         <UCard>
           <template #header>
@@ -443,9 +455,9 @@ async function hapus() {
             <ImageGallery ref="galleryRef" :files="filesList" />
             <div class="mt-3 divide-y divide-default rounded-lg border border-default">
               <div class="px-3 py-2 text-xs font-medium text-muted">List file — klik pratinjau untuk gambar</div>
-              <div v-for="(f,i) in filesList" :key="f.id" class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                <span class="truncate">{{ f.file_name }}</span>
-                <div class="flex gap-1">
+              <div v-for="(f,i) in filesList" :key="f.id" class="flex items-center justify-between gap-2 px-3 py-2 text-sm min-w-0">
+                <span class="truncate min-w-0 flex-1">{{ f.file_name }}</span>
+                <div class="flex gap-1 shrink-0">
                   <UButton size="xs" variant="ghost" icon="i-lucide-eye" @click="openPreview(i)">Pratinjau</UButton>
                   <UButton :href="`/api/files/${f.file_drive_id}`" target="_blank" size="xs" variant="ghost" icon="i-lucide-download">Unduh</UButton>
                 </div>
@@ -453,14 +465,14 @@ async function hapus() {
             </div>
           </div>
           <div v-else-if="primaryFile">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400">
+            <div class="flex items-center justify-between gap-2 min-w-0">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 shrink-0">
                   <UIcon name="i-lucide-file-text" class="h-5 w-5" />
                 </span>
-                <div>
-                  <p class="text-sm font-medium text-muted">{{ primaryFile.file_name || 'Dokumen Surat' }}</p>
-                  <p class="text-xs text-muted">
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-medium text-muted truncate">{{ primaryFile.file_name || 'Dokumen Surat' }}</p>
+                  <p class="text-xs text-muted truncate">
                     <span v-if="filesList.length > 1">{{ filesList.length }} file<span v-if="totalSizeLabel"> • {{ totalSizeLabel }}</span></span>
                     <span v-else-if="primarySize">{{ badgeLabel }}</span>
                     <span v-else>{{ primaryExt }}</span>
@@ -468,7 +480,7 @@ async function hapus() {
                   </p>
                 </div>
               </div>
-              <div class="flex items-center gap-1.5">
+              <div class="flex items-center gap-1.5 shrink-0">
                 <UButton v-if="isViewable" :href="`/api/files/${primaryFile.file_drive_id}?inline=1`" target="_blank" size="xs" variant="ghost" icon="i-lucide-eye" />
                 <UButton :href="`/api/files/${primaryFile.file_drive_id}`" target="_blank" size="xs" variant="ghost" icon="i-lucide-download" />
                 <UButton v-if="filesList.length>1" size="xs" variant="soft" icon="i-lucide-archive" :href="`/api/surat-masuk/${id}/zip`" target="_blank">ZIP</UButton>
@@ -479,9 +491,9 @@ async function hapus() {
             </div>
             <div v-if="filesList.length" class="mt-3 divide-y divide-default rounded-lg border border-default">
               <div class="px-3 py-2 text-xs font-medium text-muted">Semua file ({{ filesList.length }}) — list file</div>
-              <div v-for="(f,i) in filesList" :key="f.id" class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                <span class="truncate">{{ f.file_name }}</span>
-                <div class="flex gap-1">
+              <div v-for="(f,i) in filesList" :key="f.id" class="flex items-center justify-between gap-2 px-3 py-2 text-sm min-w-0">
+                <span class="truncate min-w-0 flex-1">{{ f.file_name }}</span>
+                <div class="flex gap-1 shrink-0">
                   <UButton v-if="fileIsImage(f) || fileIsPdf(f)" size="xs" variant="ghost" icon="i-lucide-eye" @click="openPreview(i)">Pratinjau</UButton>
                   <UButton :href="`/api/files/${f.file_drive_id}`" target="_blank" size="xs" variant="ghost" icon="i-lucide-download">Unduh</UButton>
                 </div>
@@ -511,7 +523,7 @@ async function hapus() {
       </div>
 
       <!-- KOLOM KANAN (sticky) -->
-      <div class="lg:sticky lg:top-4 lg:self-start space-y-4">
+      <div class="lg:sticky lg:top-4 lg:self-start space-y-4 min-w-0">
 
         <!-- Card Riwayat Disposisi -->
         <UCard>
@@ -524,17 +536,17 @@ async function hapus() {
             <!-- Stepper -->
             <ol class="flex items-center justify-between mb-5 w-full">
               <template v-for="(s, i) in stepperSteps" :key="s.key">
-                <li class="flex flex-col items-center text-center relative z-10">
+                <li class="flex flex-col items-center text-center relative z-10 min-w-0">
                   <span class="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold transition-colors"
                     :class="stepperState[s.key as keyof typeof stepperState] ? 'bg-indigo-600 text-white' : 'bg-muted text-muted'">
                     {{ i + 1 }}
                   </span>
-                  <span class="mt-1 text-[10px] font-medium whitespace-nowrap transition-colors"
+                  <span class="mt-1 text-[10px] font-medium whitespace-normal break-words leading-tight transition-colors"
                     :class="stepperState[s.key as keyof typeof stepperState] ? 'text-indigo-600 font-semibold' : 'text-muted'">
                     {{ s.label }}
                   </span>
                 </li>
-                <li v-if="i < stepperSteps.length - 1" class="flex-1 h-0.5 mx-2 bg-muted transition-colors"
+                <li v-if="i < stepperSteps.length - 1" class="flex-1 h-0.5 mx-1 min-w-4 bg-muted transition-colors"
                   :class="{ 'bg-indigo-600': isLineActive(i) }" />
               </template>
             </ol>
@@ -546,15 +558,16 @@ async function hapus() {
                   :class="item.statusLabel === 'DIDISPOSISIKAN' ? 'bg-indigo-600 text-white' : 'bg-inverted text-inverted'">
                   {{ item.initials }}
                 </span>
-                <div class="rounded-xl border border-default bg-muted p-3">
+                <div class="rounded-xl border border-default p-3" :class="item.isSelesai ? 'border-success/40 bg-success/5 dark:bg-success/10' : 'bg-muted'">
                   <div class="flex flex-wrap items-center gap-2 mb-1">
                     <span class="text-[11px] font-medium text-muted">{{ item.timestamp }}</span>
                     <UBadge :label="item.statusLabel" size="sm"
                       :color="statusBadgeColor[item.statusLabel] || 'neutral'"
                       :variant="statusBadgeVariant[item.statusLabel] || 'subtle'" />
+                    <UBadge v-if="item.isSelesai" :label="item.selesaiLabel ? `Selesai • ${item.selesaiLabel}` : 'Selesai'" size="sm" color="success" variant="subtle" icon="i-lucide-check-check" />
                   </div>
-                  <p class="text-sm font-medium text-highlighted">{{ item.description }}</p>
-                  <div v-if="item.instruksi" class="mt-2 bg-default border border-default rounded-lg p-2 text-xs text-muted italic">
+                  <p class="text-sm font-medium text-highlighted break-words">{{ item.description }}</p>
+                  <div v-if="item.instruksi" class="mt-2 bg-default border border-default rounded-lg p-2 text-xs text-muted italic break-words">
                     "{{ item.instruksi }}"
                   </div>
                   <div v-if="item.sifatTag || item.batasLabel" class="flex flex-wrap gap-1.5 mt-2">

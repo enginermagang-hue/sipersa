@@ -259,8 +259,8 @@ const sheetStyle = computed(() => {
     </nav>
 
     <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div class="flex items-center gap-3 flex-wrap">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
+      <div class="flex items-center gap-3 flex-wrap min-w-0 flex-1">
         <h1 class="text-[22px] md:text-[24px] font-semibold tracking-tight text-slate-900 dark:text-white">Detail Surat Keluar</h1>
         <span
           v-if="statusMeta[status]"
@@ -282,7 +282,7 @@ const sheetStyle = computed(() => {
           <span class="text-[12px] font-medium text-emerald-700">Diarsipkan</span>
         </span>
       </div>
-      <div class="flex items-center gap-2 flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap shrink-0 md:justify-end">
         <UButton :to="`/surat-keluar`" variant="outline" size="sm">Kembali</UButton>
         <UButton
           v-if="canSubmit"

@@ -38,10 +38,14 @@ const initialRecipientIds = computed(() => {
   return new Set(all.filter((d: any) => d.parent_id === null).map((d: any) => d.kepada_user_id))
 })
 
+function defaultBatasWaktuForward(): string {
+  const d = new Date(Date.now() + 3 * 864e5)
+  return d.toISOString().slice(0, 10)
+}
 const forwardForm = reactive({
   kepada_user_id: null as number | null,
   sifat_disposisi: 'biasa',
-  batas_waktu: '',
+  batas_waktu: defaultBatasWaktuForward(),
   instruksi: '',
   catatan: ''
 })
@@ -57,7 +61,9 @@ const recipientOptions = computed(() => {
 })
 
 watch(forwardOpen, (v) => {
-  if (!v) { forwardError.value = ''; forwardForm.kepada_user_id = null }
+  if (v) {
+    forwardForm.batas_waktu = defaultBatasWaktuForward()
+  } else { forwardError.value = ''; forwardForm.kepada_user_id = null }
 })
 
 function fmtTgl(s?: string) {

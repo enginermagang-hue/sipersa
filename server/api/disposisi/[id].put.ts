@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   await db.execute({
     sql: `UPDATE disposisi SET
             status = ?,
-            diproses_at = CASE WHEN ? = 'diproses' THEN COALESCE(diproses_at, datetime('now')) ELSE NULL END,
+            diproses_at = CASE WHEN ? = 'diproses' THEN COALESCE(diproses_at, datetime('now')) ELSE diproses_at END,
             selesai_at = CASE WHEN ? = 'selesai' THEN datetime('now') ELSE NULL END,
             catatan = COALESCE(?, catatan)
           WHERE id = ? AND kepada_user_id = ? AND deleted_at IS NULL`,
