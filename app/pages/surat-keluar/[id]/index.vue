@@ -95,18 +95,6 @@ function onArsipSaved() {
   refresh()
 }
 
-const repairing = ref(false)
-function isImgLikeSK(name?: string, mime?: string){ return /\.(png|jpe?g|gif|webp|heic|heif)$/i.test(name||'') || String(mime||'').startsWith('image/') }
-const hasImageToRepair = computed(()=>{
-  const list:any[]=(data.value as any)?.files||[]
-  if(list.length) return list.some((f:any)=>isImgLikeSK(f.file_name,f.mime_type))
-  const d=data.value as any; return d?.file_drive_id && isImgLikeSK(d.file_name,'')
-})
-async function repairImage(){
-  const ok=await confirm({ title:'Periksa dan Perbaiki Gambar', message:'File asli akan diganti hasil scan. Lanjut?', okLabel:'Perbaiki' })
-  if(!ok) return; repairing.value=true
-  try{ const res:any=await $fetch(`/api/surat-keluar/${id}/repair-image`,{method:'POST'}); const parts:string[]=[]; if(res.repaired?.length) parts.push(`${res.repaired.length} diperbaiki`); if(res.skipped?.length) parts.push(`${res.skipped.length} dilewati`); if(res.failed?.length) parts.push(`${res.failed.length} gagal: ${res.failed.map((f:any)=>f.reason).join('; ').slice(0,180)}`); toast.add({title:parts.join(' • ')||'Selesai', color:res.failed?.length?'warning':'success'}); await refresh() } catch(e:any){ toast.add({title:e?.data?.statusMessage||'Gagal memperbaiki', color:'error'}) } finally{ repairing.value=false }
-}
 async function hapus() {
   await confirm({ title: 'Hapus Surat', message: 'Hapus surat ini?', okLabel: 'Hapus', loadingTitle: 'Menghapus...' }, async () => {
     await $fetch(`/api/surat-keluar/${id}`, { method: 'DELETE' })
@@ -309,7 +297,6 @@ const sheetStyle = computed(() => {
           <UButton color="success" size="sm" icon="i-lucide-check" :loading="approving" @click="approveSurat">Setujui</UButton>
           <UButton color="error" variant="soft" size="sm" icon="i-lucide-x" :disabled="approving" @click="rejectOpen = true">Tolak</UButton>
         </template>
-        <UButton v-if="hasImageToRepair && isAdminOrCreator" variant="outline" size="sm" icon="i-lucide-scan-line" :loading="repairing" @click="repairImage">Periksa dan Perbaiki Gambar</UButton>
         <UButton v-if="data.file_drive_id" variant="outline" size="sm" icon="i-lucide-download" @click="unduhPdf">Unduh PDF</UButton>
         <UButton v-if="canEdit" variant="outline" size="sm" icon="i-lucide-pen" :to="`/surat-keluar/${id}/edit`">Edit</UButton>
         <UButton v-if="isAdminOrCreator" color="error" variant="soft" size="sm" icon="i-lucide-trash" @click="hapus">Hapus</UButton>

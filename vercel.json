@@ -1,6 +1,3 @@
 {
-  "buildCommand": "nuxt build",
-  "functions": {
-    "api/scan.py": { "maxDuration": 30, "memory": 1024 }
-  }
+  "buildCommand": "nuxt build"
 }

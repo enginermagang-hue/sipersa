@@ -18,31 +18,6 @@ const destroyOpen = ref(false)
 const destroyReason = ref('')
 const destroyLoading = ref(false)
 
-const repairing = ref(false)
-function isImgLike(name?: string, mime?: string) { return /\.(png|jpe?g|gif|webp|heic|heif)$/i.test(name||'') || String(mime||'').startsWith('image/') }
-const hasImageToRepair = computed(() => {
-  const r = arsip.value as any
-  if (!r) return false
-  const list: any[] = r.files || []
-  if (list.length) return list.some((f:any)=>isImgLike(f.file_name, f.mime_type))
-  return isImgLike(r.file_name, '')
-})
-async function repairImage() {
-  const ok = await confirm({ title: 'Periksa dan Perbaiki Gambar', message: 'File asli di Dropbox akan diganti hasil scan (perspektif diluruskan). Lanjut?', okLabel: 'Perbaiki' })
-  if (!ok) return
-  repairing.value = true
-  try {
-    const res: any = await $fetch(`/api/arsip/${id}/repair-image`, { method: 'POST' })
-    const parts: string[] = []
-    if (res.repaired?.length) parts.push(`${res.repaired.length} diperbaiki`)
-    if (res.skipped?.length) parts.push(`${res.skipped.length} dilewati`)
-    if (res.failed?.length) parts.push(`${res.failed.length} gagal: ${res.failed.map((f:any)=>f.reason).join('; ').slice(0,180)}`)
-    toast.add({ title: parts.join(' • ') || 'Selesai', color: res.failed?.length ? 'warning' : 'success' })
-    await refresh()
-  } catch (e:any) { toast.add({ title: e?.data?.statusMessage || 'Gagal memperbaiki', color: 'error' }) }
-  finally { repairing.value = false }
-}
-
 const retensiColor: Record<string, string> = { aktif: 'success', menjelang: 'warning', kadaluarsa: 'error' }
 const retensiLabel: Record<string, string> = { aktif: 'Aktif', menjelang: 'Menjelang', kadaluarsa: 'Kadaluarsa' }
 
@@ -116,7 +91,6 @@ definePageMeta({ title: 'Detail Arsip' })
         <UButton to="/arsip" variant="outline" size="sm">Kembali</UButton>
         <UButton v-if="(arsip as any).file_drive_id" variant="outline" size="sm" icon="i-lucide-download" :href="`/api/files/${(arsip as any).file_drive_id}`" target="_blank">Unduh</UButton>
         <UButton v-if="(arsip as any).file_drive_id" variant="outline" size="sm" icon="i-lucide-eye" @click="previewOpen = true">Preview</UButton>
-        <UButton v-if="canManage && hasImageToRepair" variant="outline" size="sm" icon="i-lucide-scan-line" :loading="repairing" @click="repairImage">Periksa dan Perbaiki Gambar</UButton>
         <UButton v-if="canManage" variant="outline" size="sm" icon="i-lucide-pen" @click="editOpen = true">Edit</UButton>
         <UButton v-if="canManage && (arsip as any).status === 'kadaluarsa'" color="error" variant="soft" size="sm" icon="i-lucide-flame" @click="destroyOpen = true">Pemusnahan</UButton>
         <UButton v-if="canManage" color="error" variant="soft" size="sm" icon="i-lucide-trash" @click="hapus">Hapus</UButton>
@@ -168,7 +142,6 @@ definePageMeta({ title: 'Detail Arsip' })
         <UCard v-if="canManage">
           <template #header><h3 class="font-semibold text-slate-900 dark:text-white">Aksi</h3></template>
           <div class="flex flex-col gap-2">
-            <UButton v-if="hasImageToRepair" block variant="outline" icon="i-lucide-scan-line" :loading="repairing" @click="repairImage">Periksa dan Perbaiki Gambar</UButton>
             <UButton block variant="outline" icon="i-lucide-pen" @click="editOpen=true">Edit Arsip</UButton>
             <UButton v-if="(arsip as any).status==='kadaluarsa'" block color="error" variant="soft" icon="i-lucide-flame" @click="destroyOpen=true">Pemusnahan</UButton>
             <UButton block color="error" variant="soft" icon="i-lucide-trash" @click="hapus">Hapus</UButton>
