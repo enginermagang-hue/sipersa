@@ -12,7 +12,8 @@ export default defineEventHandler(async (event) => {
   const d = parsed.data
 
   const db = useDb()
-  const exist = await db.execute({ sql: 'SELECT id FROM users WHERE username = ? AND deleted_at IS NULL', args: [d.username] })
+  const usernameNorm = d.username.trim().toLowerCase()
+  const exist = await db.execute({ sql: 'SELECT id FROM users WHERE LOWER(TRIM(username)) = ? AND deleted_at IS NULL LIMIT 1', args: [usernameNorm] })
   if (exist.rows.length > 0) throw createError({ statusCode: 409, statusMessage: 'Username sudah dipakai' })
 
   const emailNorm = d.email ? d.email.trim().toLowerCase() : null
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
   const hash = await bcrypt.hash(d.password, 10)
   const res = await db.execute({
     sql: 'INSERT INTO users (nama, username, email, password_hash, role, status, nip, no_hp, jabatan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    args: [d.nama, d.username, emailNorm, hash, d.role, 'active', d.nip || null, d.no_hp || null, d.jabatan || null]
+    args: [d.nama, usernameNorm, emailNorm, hash, d.role, 'active', d.nip || null, d.no_hp || null, d.jabatan || null]
   })
   await logActivity({ userId: auth.userId, action: 'CREATE_USER', entity: 'users', entityId: Number(res.lastInsertRowid), ip: getRequestIP(event, { xForwardedFor: true }) })
   return { id: Number(res.lastInsertRowid) }

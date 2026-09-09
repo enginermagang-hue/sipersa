@@ -98,7 +98,7 @@ async function simpanEdit() {
   loading.value = true
   error.value = ''
   try {
-    const body: any = { nama: editForm.nama, email: editForm.email, role: editForm.role, status: editForm.status, nip: editForm.nip, no_hp: editForm.no_hp, jabatan: editForm.jabatan }
+    const body: any = { nama: editForm.nama, username: editForm.username, email: editForm.email, role: editForm.role, status: editForm.status, nip: editForm.nip, no_hp: editForm.no_hp, jabatan: editForm.jabatan }
     if (editForm.password) body.password = editForm.password
     await $fetch(`/api/admin/users/${editForm.id}`, { method: 'PUT', body })
     editOpen.value = false

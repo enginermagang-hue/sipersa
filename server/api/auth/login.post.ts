@@ -10,9 +10,10 @@ export default defineEventHandler(async (event) => {
   const db = useDb()
 
   const ident = String(body.username).trim()
+  const identLower = ident.toLowerCase()
   const res = await db.execute({
-    sql: 'SELECT * FROM users WHERE (username = ? OR nip = ?) AND deleted_at IS NULL',
-    args: [ident, ident]
+    sql: 'SELECT * FROM users WHERE (LOWER(TRIM(username)) = ? OR nip = ?) AND deleted_at IS NULL',
+    args: [identLower, ident]
   })
   if (res.rows.length === 0) {
     throw createError({ statusCode: 401, statusMessage: 'Username/NIP atau password salah' })

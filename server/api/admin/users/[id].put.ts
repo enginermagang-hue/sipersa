@@ -16,6 +16,13 @@ export default defineEventHandler(async (event) => {
   const sets: string[] = []
   const args: any[] = []
   if (d.nama) { sets.push('nama = ?'); args.push(d.nama) }
+  if (d.username !== undefined) {
+    const usernameNorm = d.username ? d.username.trim().toLowerCase() : ''
+    if (!usernameNorm) throw createError({ statusCode: 422, statusMessage: 'Username wajib diisi' })
+    const dup = await db.execute({ sql: `SELECT id FROM users WHERE LOWER(TRIM(username)) = ? AND id != ? AND deleted_at IS NULL LIMIT 1`, args: [usernameNorm, id] })
+    if (dup.rows.length > 0) throw createError({ statusCode: 409, statusMessage: 'Username sudah dipakai' })
+    sets.push('username = ?'); args.push(usernameNorm)
+  }
   if (d.email !== undefined) {
     const emailNorm = d.email ? d.email.trim().toLowerCase() : null
     if (emailNorm) {
