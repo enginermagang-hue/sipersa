@@ -47,7 +47,9 @@ export default defineEventHandler(async (event) => {
     sql: `SELECT a.*, k.kode as klasifikasi_kode, k.nama as klasifikasi_nama,
           COALESCE(k.retensi_tahun, 0) as retensi_tahun,
           ${musnahExpr} as tahun_musnah,
-          sm.no_surat as no_surat_masuk, sk.no_surat as no_surat_keluar
+          sm.no_surat as no_surat_masuk, sk.no_surat as no_surat_keluar,
+          COALESCE((SELECT file_drive_id FROM arsip_files af WHERE af.arsip_id = a.id ORDER BY af.id ASC LIMIT 1), a.file_drive_id) as first_file_id,
+          COALESCE((SELECT file_name FROM arsip_files af WHERE af.arsip_id = a.id ORDER BY af.id ASC LIMIT 1), a.file_name) as first_file_name
           FROM arsip a
           LEFT JOIN klasifikasi k ON k.id = a.klasifikasi_id
           LEFT JOIN surat_masuk sm ON sm.id = a.ref_masuk_id

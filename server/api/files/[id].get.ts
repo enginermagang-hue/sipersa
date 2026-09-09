@@ -28,13 +28,55 @@ export default defineEventHandler(async (event) => {
   const meta = res.rows[0] as any
 
   const inline = getQuery(event).inline === '1'
-  const driveRes = await getDriveFile(id as string, meta.file_name)
+  const q = getQuery(event) as any
+  const wantThumb = q.thumb === '1' || q.w || q.h
+  let w = Math.min(800, Math.max(32, Number(q.w) || 0))
+  let h = Math.min(800, Math.max(32, Number(q.h) || 0))
+  if (wantThumb && !w && !h) { w = 320; h = 320 }
+  const qQuality = Math.min(90, Math.max(30, Number(q.q) || 72))
+  const wantWebp = String(q.format || 'webp').toLowerCase() === 'webp' || !q.format
 
-  setHeader(event, 'Content-Type', (driveRes.headers['content-type'] as string) || 'application/octet-stream')
-  setHeader(event, 'Content-Disposition', safeDisposition(meta.file_name, inline))
-  if (driveRes.headers['content-length']) {
-    setHeader(event, 'Content-Length', driveRes.headers['content-length'] as string)
+  let driveRes = await getDriveFile(id as string, meta.file_name)
+  let data: Buffer = driveRes.data as Buffer
+  let ct: string = (driveRes.headers['content-type'] as string) || 'application/octet-stream'
+
+  if (wantThumb && ct.startsWith('image/')) {
+    try {
+      const sharpMod: any = await import('sharp').catch(() => null)
+      const sharp = sharpMod?.default || sharpMod
+      if (sharp) {
+        let pipeline = sharp(data).resize({ width: w || undefined, height: h || undefined, fit: 'inside', withoutEnlargement: true }).sharpen({ sigma: 0.6 })
+        if (wantWebp) {
+          const resized = await pipeline.webp({ quality: qQuality }).toBuffer()
+          data = resized as Buffer
+          ct = 'image/webp'
+        } else {
+          const resized = await pipeline.jpeg({ quality: qQuality, mozjpeg: true }).toBuffer()
+          data = resized as Buffer
+          ct = 'image/jpeg'
+        }
+      }
+    } catch (e) {
+      console.warn('[thumb] resize gagal', (e as any)?.message || e)
+    }
   }
-  setHeader(event, 'Cache-Control', 'no-store')
-  return driveRes.data
+
+  setHeader(event, 'Content-Type', ct)
+  setHeader(event, 'Content-Disposition', safeDisposition(meta.file_name, inline))
+  setHeader(event, 'Content-Length', String(data.length))
+  if (wantThumb && ct.startsWith('image/')) {
+    const etag = `W/"${id}-${w}x${h}-q${qQuality}-${wantWebp?'webp':'jpg'}"`
+    setHeader(event, 'ETag', etag)
+    setHeader(event, 'Cache-Control', 'public, max-age=604800, immutable')
+    setHeader(event, 'Vary', 'Accept')
+    // handle If-None-Match
+    const inm = getHeader(event, 'if-none-match')
+    if (inm && inm === etag) {
+      setResponseStatus(event, 304)
+      return null as any
+    }
+  } else {
+    setHeader(event, 'Cache-Control', 'no-store')
+  }
+  return data
 })

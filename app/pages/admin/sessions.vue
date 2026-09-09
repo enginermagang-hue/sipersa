@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { h } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 import { UBadge, UButton } from '#components'
 import type { TableColumn } from '@nuxt/ui'
 
 const { data: users } = await useFetch('/api/admin/users', { query: { limit: 1000 } })
 
+type ViewMode='table'|'grid'|'compact'
+const view = useLocalStorage<ViewMode>('sipersa.sessions.view','table')
 const pageSize = ref(50)
 const page = ref(1)
 const filters = reactive({ user_id: '', revoked: '' })
@@ -61,20 +64,18 @@ const columns: TableColumn<any>[] = [
   {
     accessorKey: 'nama',
     header: 'User',
-    cell: ({ row }) => h('span', null, [
-      row.getValue('nama'),
-      ' ',
-      h('span', { class: 'text-muted' }, `(${row.original.username})`)
-    ])
+    meta: { class: { th: 'max-w-[180px]', td: 'max-w-[180px] whitespace-normal' } },
+    cell: ({ row }) => h('span', { class: 'break-words whitespace-normal line-clamp-3 leading-snug block max-w-[170px]', title: `${row.getValue('nama')} (${row.original.username})` }, `${row.getValue('nama')} (${row.original.username})`)
   },
-  { accessorKey: 'role', header: 'Role' },
-  { accessorKey: 'ip_address', header: 'IP' },
+  { accessorKey: 'role', header: 'Role', meta: { class: { td: 'whitespace-nowrap' } } },
+  { accessorKey: 'ip_address', header: 'IP', meta: { class: { td: 'whitespace-nowrap' } } },
   {
     accessorKey: 'user_agent',
     header: 'User Agent',
-    cell: ({ row }) => h('span', { class: 'max-w-xs truncate block' }, row.getValue('user_agent'))
+    meta: { class: { th: 'max-w-[280px]', td: 'max-w-[280px] whitespace-normal' } },
+    cell: ({ row }) => h('span', { class: 'break-words whitespace-normal line-clamp-3 leading-snug block max-w-[260px]', title: String(row.getValue('user_agent')||'') }, row.getValue('user_agent') as string)
   },
-  { accessorKey: 'last_active', header: 'Last Active' },
+  { accessorKey: 'last_active', header: 'Last Active', meta: { class: { td: 'whitespace-nowrap' } } },
   {
     accessorKey: 'revoked',
     header: 'Status',
@@ -122,9 +123,45 @@ const columns: TableColumn<any>[] = [
       </div>
     </UCard>
 
+    <div class="flex justify-end mb-2">
+      <UFieldGroup class="border border-default p-1 rounded-lg shrink-0" size="sm">
+        <UButton icon="i-lucide-rows-3" :color="view === 'table' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan tabel" :ui="{ base: 'px-2' }" @click="view = 'table'" />
+        <UButton icon="i-lucide-layout-grid" :color="view === 'grid' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan grid" :ui="{ base: 'px-2' }" @click="view = 'grid'" />
+        <UButton icon="i-lucide-list" :color="view === 'compact' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan ringkas" :ui="{ base: 'px-2' }" @click="view = 'compact'" />
+      </UFieldGroup>
+    </div>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
-      <UTable :data="rows" :columns="columns" empty="Tidak ada sesi" :ui="{ root: 'custom-scrollbar-table' }" />
+      <template v-if="view==='table'">
+        <UTable :data="rows" :columns="columns" empty="Tidak ada sesi" :ui="{ root: 'custom-scrollbar-table' }" />
+      </template>
+      <div v-else-if="view==='grid'" class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-for="r in rows" :key="r.id" class="rounded-xl border border-default p-4 flex flex-col hover:bg-muted/30">
+          <div class="flex items-center gap-2">
+            <span class="font-medium text-sm truncate">{{ r.nama }} <span class="text-muted">({{ r.username }})</span></span>
+            <UBadge :label="r.role" variant="subtle" size="xs" />
+            <UBadge :label="r.revoked ? 'Revoked' : 'Aktif'" :color="r.revoked?'error':'success'" variant="subtle" size="xs" class="ml-auto" />
+          </div>
+          <div class="text-xs text-muted mt-1">IP: {{ r.ip_address || '-' }} • {{ r.last_active || '-' }}</div>
+          <div class="text-xs mt-2 break-words whitespace-normal line-clamp-3 leading-snug" :title="r.user_agent">{{ r.user_agent || '-' }}</div>
+          <div class="mt-3 flex justify-end" v-if="!r.revoked"><UButton size="xs" variant="ghost" color="error" icon="i-lucide-ban" @click="revoke(r.id)">Revoke</UButton></div>
+        </div>
+        <div v-if="!pending && !rows.length" class="col-span-full py-12 text-center text-muted">Tidak ada sesi</div>
+      </div>
+      <div v-else class="divide-y divide-default">
+        <div v-for="r in rows" :key="r.id" class="flex gap-3 px-4 py-3 hover:bg-muted/30">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="font-medium text-sm truncate">{{ r.nama }} ({{ r.username }})</span>
+              <UBadge :label="r.revoked ? 'Revoked' : 'Aktif'" :color="r.revoked?'error':'success'" variant="subtle" size="xs" />
+            </div>
+            <div class="text-xs text-muted truncate">{{ r.ip_address }} • {{ r.role }} • {{ r.last_active }}</div>
+            <div class="text-xs truncate" :title="r.user_agent">{{ r.user_agent }}</div>
+          </div>
+          <UButton v-if="!r.revoked" size="xs" variant="ghost" color="error" icon="i-lucide-ban" @click="revoke(r.id)" />
+        </div>
+        <div v-if="!pending && !rows.length" class="py-12 text-center text-muted text-sm">Tidak ada sesi</div>
+      </div>
       <template v-if="total > 0" #footer>
         <div class="flex flex-wrap items-center justify-between gap-2 px-2 py-1">
           <div class="flex items-center gap-2">

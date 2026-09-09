@@ -87,12 +87,13 @@ function fmtTgl(s: string) {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 function isImageName(n?: string) { return /\.(png|jpe?g|gif|webp)$/i.test(n || '') }
-function getThumb(r:any) {
+function getThumb(r:any, size: 'small'|'medium'|'large' = 'small') {
   const id = r.first_file_id || r.file_drive_id
   const name = r.first_file_name || r.file_name
   if (!id || !name) return null
   if (!isImageName(name)) return null
-  return `/api/files/${id}?inline=1`
+  const p = size === 'small' ? 'w=160&h=160&q=70&format=webp' : size === 'medium' ? 'w=240&h=240&q=70&format=webp' : 'w=400&h=400&q=72&format=webp'
+  return `/api/files/${id}?inline=1&thumb=1&${p}`
 }
 
 function canManage(row: any) {
@@ -257,7 +258,7 @@ const buatMenu = [
             <tr v-for="r in data?.data || []" :key="r.id" class="border-b border-default last:border-0 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-keluar/${r.id}`)">
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2">
-                  <img v-if="getThumb(r)" :src="getThumb(r)!" class="w-8 h-8 rounded object-cover border border-default shrink-0" loading="lazy" />
+                  <img v-if="getThumb(r,'small')" :src="getThumb(r,'small')!" class="w-10 h-10 rounded object-cover border border-default shrink-0" loading="lazy" />
                   <div class="min-w-0">
                     <div class="font-medium truncate flex items-center gap-1">{{ r.no_surat }}<UBadge v-if="(r.file_count||0)>1" :label="`+${r.file_count}`" size="xs" variant="subtle" /></div>
                     <div class="text-xs text-muted whitespace-nowrap">{{ fmtTgl(r.tgl_surat) }}</div>
@@ -288,7 +289,7 @@ const buatMenu = [
 
       <div v-else-if="view === 'grid'" class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
         <div v-for="r in data?.data || []" :key="r.id" class="rounded-xl border border-default p-4 transition-colors hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-keluar/${r.id}`)">
-          <img v-if="getThumb(r)" :src="getThumb(r)!" class="w-full h-28 object-cover rounded-lg border border-default mb-2" loading="lazy" />
+          <img v-if="getThumb(r,'large')" :src="getThumb(r,'large')!" class="w-full h-28 object-cover rounded-lg border border-default mb-2" loading="lazy" />
           <div class="flex items-start justify-between gap-2">
             <div class="font-medium text-sm leading-tight flex items-center gap-1">{{ r.no_surat }}<UBadge v-if="(r.file_count||0)>1" :label="`+${r.file_count}`" size="xs" variant="subtle" /></div>
             <div @click.stop>

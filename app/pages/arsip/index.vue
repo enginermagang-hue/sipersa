@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 import { UBadge, UButton, UDropdownMenu } from '#components'
 import type { TableColumn } from '@nuxt/ui'
 
@@ -17,6 +18,8 @@ const refType = ref<string | undefined>(undefined)
 const deleted = ref(false)
 const page = ref(1)
 const perPage = ref(20)
+type ViewMode = 'table' | 'grid' | 'compact'
+const view = useLocalStorage<ViewMode>('sipersa.arsip.view', 'table')
 const activeFilterCount = computed(() => [status.value, refType.value, tahun.value].filter(Boolean).length)
 function resetFilters() { status.value = undefined; refType.value = undefined; tahun.value = ''; page.value = 1 }
 watch([status, refType, tahun], () => { page.value = 1 })
@@ -103,9 +106,42 @@ function sumber(row: any): { label: string; to: string } | null {
   if (row.no_surat_keluar) return { label: row.no_surat_keluar, to: `/surat-keluar/${row.ref_keluar_id}` }
   return null
 }
+function getAksiItemsArsip(row: any) {
+  const items: any[] = [
+    { label: 'Lihat Detail', icon: 'i-lucide-eye', onSelect: () => navigateTo(`/arsip/${row.id}`) }
+  ]
+  if (row.first_file_id || row.file_drive_id) {
+    const fid = row.first_file_id || row.file_drive_id
+    items.push({ label: 'Unduh File', icon: 'i-lucide-download', onSelect: () => window.open(`/api/files/${fid}`) })
+    items.push({ label: 'Preview', icon: 'i-lucide-eye', onSelect: () => { previewTarget.value = { file_drive_id: fid, file_name: row.first_file_name || row.file_name } } })
+  }
+  if (canManage(row)) {
+    items.push({ label: 'Edit', icon: 'i-lucide-pencil', onSelect: () => { editTarget.value = row; editOpen.value = true } })
+    if (row.status === 'kadaluarsa') items.push({ label: 'Pemusnahan', icon: 'i-lucide-flame', color: 'error', onSelect: () => { destroyTarget.value = row; destroyReason.value = '' } })
+    items.push({ label: 'Hapus', icon: 'i-lucide-trash', color: 'error', onSelect: () => hapus(row) })
+  }
+  return items
+}
 
-const columns: TableColumn<any>[] = [
-  { accessorKey: 'nama_dokumen', header: 'Dokumen' },
+  function isImageName(n?: string) { return /\.(png|jpe?g|gif|webp)$/i.test(n || '') }
+  function getArsipThumb(r:any, size: 'small'|'medium'|'large' = 'small') {
+    const id = r.first_file_id || r.file_drive_id
+    const name = r.first_file_name || r.file_name
+    if (!id || !name || !isImageName(name)) return null
+    const p = size === 'small' ? 'w=160&h=160&q=70&format=webp' : size === 'medium' ? 'w=240&h=240&q=70&format=webp' : 'w=400&h=400&q=72&format=webp'
+    return `/api/files/${id}?inline=1&thumb=1&${p}`
+  }
+  const columns: TableColumn<any>[] = [
+  { accessorKey: 'nama_dokumen', header: 'Dokumen',
+    meta: { class: { th: 'max-w-[320px] whitespace-nowrap', td: 'max-w-[320px] whitespace-normal align-top' } },
+    cell: ({ row }) => {
+      const r = row.original
+      const thumb = getArsipThumb(r)
+      return h('div', { class: 'flex items-start gap-2 min-w-0 max-w-full' }, [
+        thumb ? h('img', { src: thumb, class: 'w-10 h-10 rounded object-cover border border-default shrink-0 mt-0.5', loading: 'lazy' } as any) : null,
+        h('span', { class: 'break-words whitespace-normal line-clamp-2 leading-snug max-w-[260px] block', title: r.nama_dokumen }, r.nama_dokumen)
+      ])
+    } },
   {
     accessorKey: 'klasifikasi_kode',
     header: 'Klasifikasi',
@@ -242,17 +278,24 @@ const columns: TableColumn<any>[] = [
       </UButton>
     </div>
 
-    <!-- Search + Filter dalam 1 baris (Desain A: wrap responsif) -->
+    <!-- Search + Filter + View toggle -->
     <div class="flex flex-col lg:flex-row lg:flex-nowrap gap-2 lg:items-center">
       <UInput v-model="q" placeholder="Cari dokumen/lokasi" icon="i-lucide-search" class="w-full lg:flex-1 lg:min-w-[220px]" :ui="{ trailing: 'pr-8' }">
         <template v-if="q" #trailing>
           <UButton variant="ghost" size="xs" color="neutral" icon="i-lucide-x" aria-label="Hapus pencarian" @click="q = ''" />
         </template>
       </UInput>
-      <div class="flex flex-wrap lg:flex-nowrap gap-2 w-full lg:w-auto">
-        <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="flex-1 lg:flex-none lg:w-44 min-w-0" />
-        <USelect v-model="refType" :items="refTypeOptions" value-key="value" label-key="label" placeholder="Sumber" class="flex-1 lg:flex-none lg:w-52 min-w-0" />
-        <UInput v-model="tahun" placeholder="Tahun" type="number" class="w-full sm:flex-1 lg:flex-none lg:w-28 min-w-0" />
+      <div class="flex items-center gap-2 w-full lg:w-auto">
+        <div class="flex flex-wrap lg:flex-nowrap gap-2 flex-1 lg:flex-none">
+          <USelect v-model="status" :items="statusOptions" value-key="value" label-key="label" placeholder="Status" class="flex-1 lg:w-44 min-w-0" />
+          <USelect v-model="refType" :items="refTypeOptions" value-key="value" label-key="label" placeholder="Sumber" class="flex-1 lg:w-52 min-w-0" />
+          <UInput v-model="tahun" placeholder="Tahun" type="number" class="flex-1 lg:w-28 min-w-0" />
+        </div>
+        <UFieldGroup class="border border-default p-1 rounded-lg shrink-0" size="sm">
+          <UButton icon="i-lucide-rows-3" :color="view === 'table' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan tabel" :ui="{ base: 'px-2' }" @click="view = 'table'" />
+          <UButton icon="i-lucide-layout-grid" :color="view === 'grid' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan grid" :ui="{ base: 'px-2' }" @click="view = 'grid'" />
+          <UButton icon="i-lucide-list" :color="view === 'compact' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan ringkas" :ui="{ base: 'px-2' }" @click="view = 'compact'" />
+        </UFieldGroup>
       </div>
     </div>
     <div class="flex flex-wrap items-center gap-3 mt-1 p-2 rounded-lg border-2 transition-colors" :class="deleted ? 'border-warning bg-warning/5' : 'border-default bg-muted/20'">
@@ -272,7 +315,53 @@ const columns: TableColumn<any>[] = [
     </div>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
-      <UTable :data="data?.data || []" :columns="columns" :loading="pending" empty="Belum ada data" :ui="{ root: 'custom-scrollbar-table' }" />
+      <!-- Table view -->
+      <template v-if="view === 'table'">
+        <UTable :data="data?.data || []" :columns="columns" :loading="pending" empty="Belum ada data" :ui="{ root: 'custom-scrollbar-table' }" />
+      </template>
+      <!-- Grid view -->
+      <div v-else-if="view === 'grid'" class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-for="r in data?.data || []" :key="r.id" class="rounded-xl border border-default p-4 hover:bg-muted/30 cursor-pointer flex flex-col" @click="navigateTo(`/arsip/${r.id}`)">
+          <img v-if="getArsipThumb(r,'large')" :src="getArsipThumb(r,'large')!" class="w-full h-28 object-cover rounded-lg border border-default mb-3" loading="lazy" />
+          <div v-else class="w-full h-28 rounded-lg border border-dashed border-default flex items-center justify-center mb-3 bg-muted/30">
+            <UIcon name="i-lucide-file-text" class="w-8 h-8 text-muted" />
+          </div>
+          <div class="flex items-start justify-between gap-2">
+            <h3 class="font-medium text-sm leading-tight line-clamp-2 flex-1">{{ r.nama_dokumen }}</h3>
+            <div @click.stop><UDropdownMenu :items="getAksiItemsArsip(r)"><UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" /></UDropdownMenu></div>
+          </div>
+          <div class="mt-1 text-xs text-muted truncate">{{ r.klasifikasi_kode ? `${r.klasifikasi_kode} - ${r.klasifikasi_nama}` : '-' }} • {{ r.lokasi || '-' }}</div>
+          <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+            <UBadge :label="retensiLabel[r.status] || r.status" :color="retensiColor[r.status] || 'neutral'" variant="subtle" size="xs" />
+            <span class="text-xs text-muted">{{ r.tahun || '-' }}</span>
+            <span v-if="sumber(r)" class="text-xs text-primary truncate">→ {{ sumber(r)!.label }}</span>
+          </div>
+          <div class="mt-3 flex items-center justify-between border-t border-default pt-3">
+            <span class="text-xs text-muted">{{ r.tahun || '-' }}</span>
+            <div class="flex gap-1" @click.stop>
+              <UButton v-if="r.first_file_id || r.file_drive_id" :href="`/api/files/${r.first_file_id || r.file_drive_id}`" target="_blank" size="xs" variant="soft" icon="i-lucide-download">Unduh</UButton>
+            </div>
+          </div>
+        </div>
+        <div v-if="!pending && !(data?.data || []).length" class="col-span-full py-12 text-center text-muted">Belum ada data</div>
+      </div>
+      <!-- Compact view -->
+      <div v-else class="divide-y divide-default">
+        <div v-for="r in data?.data || []" :key="r.id" class="flex gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/arsip/${r.id}`)">
+          <img v-if="getArsipThumb(r,'small')" :src="getArsipThumb(r,'small')!" class="w-10 h-10 rounded object-cover border border-default shrink-0" loading="lazy" />
+          <div v-else class="w-10 h-10 rounded border border-dashed border-default flex items-center justify-center shrink-0 bg-muted/30"><UIcon name="i-lucide-archive" class="w-4 h-4 text-muted" /></div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5">
+              <span class="font-medium text-sm truncate">{{ r.nama_dokumen }}</span>
+              <UBadge :label="retensiLabel[r.status] || r.status" :color="retensiColor[r.status] || 'neutral'" variant="subtle" size="xs" />
+            </div>
+            <div class="text-xs text-muted truncate">{{ r.klasifikasi_kode ? `${r.klasifikasi_kode} - ${r.klasifikasi_nama}` : '-' }} • {{ r.lokasi || '-' }} • {{ r.tahun || '-' }}</div>
+            <div v-if="sumber(r)" class="text-xs text-primary truncate">{{ sumber(r)!.label }}</div>
+          </div>
+          <div @click.stop class="shrink-0 self-start"><UDropdownMenu :items="getAksiItemsArsip(r)"><UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" /></UDropdownMenu></div>
+        </div>
+        <div v-if="!pending && !(data?.data || []).length" class="py-12 text-center text-muted text-sm">Belum ada data</div>
+      </div>
       <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between border-t border-default">
         <div class="text-sm text-muted min-w-0 truncate text-center sm:text-left">
           Menampilkan {{ data?.data?.length ? ((data!.page - 1) * (data!.limit) + 1).toLocaleString('id-ID') : 0 }}–{{ ((data!.page - 1) * data!.limit + (data?.data || []).length).toLocaleString('id-ID') }} dari {{ (data?.total ?? 0).toLocaleString('id-ID') }}

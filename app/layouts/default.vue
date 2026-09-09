@@ -158,7 +158,7 @@ const quickActions = computed<DropdownMenuItem[][]>(() => {
       </template>
     </UDashboardSidebar>
 
-    <UDashboardPanel id="main" :ui="{ body: 'custom-scrollbar-main' }">
+    <UDashboardPanel id="main" :ui="{ body: 'flex flex-col custom-scrollbar-main' }">
       <template #header>
         <UDashboardNavbar :title="String(route.meta.title || 'Dashboard')" :ui="{ right: 'gap-3' }">
           <template #leading>
@@ -175,17 +175,19 @@ const quickActions = computed<DropdownMenuItem[][]>(() => {
       </template>
 
       <template #body>
-        <div class="p-4">
-          <slot />
-        </div>
-        <footer class="shrink-0 border-t border-default px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted mt-4">
-          <div>© {{ currentYear }} {{ config.public.appName || 'SIPERSA' }}</div>
-          <div class="flex items-center gap-2">
-            <span>v{{ appConfig.app.version }}</span>
-            <span class="hidden sm:inline">•</span>
-            <span>Sistem Informasi Persuratan dan Arsip</span>
+        <div class="flex flex-col min-h-[calc(100vh-64px)]">
+          <div class="p-4 flex-1">
+            <slot />
           </div>
-        </footer>
+          <footer class="shrink-0 border-t border-default bg-default px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted mt-auto">
+            <div>© {{ currentYear }} {{ config.public.appName || 'SIPERSA' }}</div>
+            <div class="flex items-center gap-2">
+              <span>v{{ appConfig.app.version }}</span>
+              <span class="hidden sm:inline">•</span>
+              <span>Sistem Informasi Persuratan dan Arsip</span>
+            </div>
+          </footer>
+        </div>
       </template>
     </UDashboardPanel>
   </UDashboardGroup>

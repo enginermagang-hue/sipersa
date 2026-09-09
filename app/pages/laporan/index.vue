@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { h } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 import { UBadge } from '#components'
 import type { TableColumn } from '@nuxt/ui'
 import type { Row } from '@tanstack/vue-table'
@@ -14,6 +15,8 @@ const qInput = ref('')
 const q = ref('')
 const page = ref(1)
 const limit = 20
+type ViewMode = 'table' | 'grid' | 'compact'
+const view = useLocalStorage<ViewMode>('sipersa.laporan.view', 'table')
 const loading = ref(false)
 let searchTimer: any = null
 
@@ -98,26 +101,38 @@ const columns: TableColumn<any>[] = [
   {
     accessorKey: 'jenis',
     header: 'Jenis',
+    meta: { class: { th: 'whitespace-nowrap', td: 'whitespace-nowrap' } },
     cell: ({ row }: { row: Row<any> }) => {
       const j = row.getValue('jenis') as string
       const color = (j === 'masuk' ? 'info' : j === 'keluar' ? 'success' : 'neutral') as any
       return h(UBadge, { label: j, color, variant: 'subtle', size: 'md' })
     }
   },
-  { accessorKey: 'no_surat', header: 'No. Surat', cell: ({ row }: { row: Row<any> }) => h('span', { class: 'font-medium' }, row.getValue('no_surat')) },
-  { accessorKey: 'tgl_surat', header: 'Tgl', cell: ({ row }: { row: Row<any> }) => h('span', { class: 'whitespace-nowrap' }, String(row.getValue('tgl_surat')).slice(0, 10)) },
-  { accessorKey: 'asal_tujuan', header: 'Asal / Tujuan' },
-  { accessorKey: 'perihal', header: 'Perihal' },
+  { accessorKey: 'no_surat', header: 'No. Surat',
+    meta: { class: { th: 'max-w-[180px] whitespace-nowrap', td: 'max-w-[180px]' } },
+    cell: ({ row }: { row: Row<any> }) => h('span', { class: 'font-medium truncate block max-w-[170px]', title: String(row.getValue('no_surat')) }, row.getValue('no_surat') as string) },
+  { accessorKey: 'tgl_surat', header: 'Tgl',
+    meta: { class: { th: 'whitespace-nowrap', td: 'whitespace-nowrap' } },
+    cell: ({ row }: { row: Row<any> }) => h('span', { class: 'whitespace-nowrap' }, String(row.getValue('tgl_surat')).slice(0, 10)) },
+  { accessorKey: 'asal_tujuan', header: 'Asal / Tujuan',
+    meta: { class: { th: 'max-w-[220px]', td: 'max-w-[220px] whitespace-normal align-top' } },
+    cell: ({ row }: { row: Row<any> }) => h('span', { class: 'break-words whitespace-normal line-clamp-3 leading-snug block max-w-[210px]', title: String(row.getValue('asal_tujuan')||'') }, row.getValue('asal_tujuan') as string) },
+  { accessorKey: 'perihal', header: 'Perihal',
+    meta: { class: { th: 'max-w-[300px]', td: 'max-w-[300px] whitespace-normal align-top' } },
+    cell: ({ row }: { row: Row<any> }) => h('span', { class: 'break-words whitespace-normal line-clamp-3 leading-snug block max-w-[290px]', title: String(row.getValue('perihal')||'') }, row.getValue('perihal') as string) },
   {
     accessorKey: 'status',
     header: 'Status',
+    meta: { class: { th: 'whitespace-nowrap', td: 'whitespace-nowrap' } },
     cell: ({ row }: { row: Row<any> }) => {
       const st = row.getValue('status') as string
       const color = ({ baru: 'warning', diproses: 'primary', selesai: 'success', 'Belum Disposisi': 'neutral', Diarsipkan: 'neutral', Terkirim: 'success' } as const)[st] ?? 'neutral'
       return h(UBadge, { label: st, variant: 'subtle', color })
     }
   },
-  { accessorKey: 'lokasi', header: 'Lokasi Arsip' }
+  { accessorKey: 'lokasi', header: 'Lokasi Arsip',
+    meta: { class: { th: 'max-w-[160px]', td: 'max-w-[160px] whitespace-normal align-top' } },
+    cell: ({ row }: { row: Row<any> }) => h('span', { class: 'break-words whitespace-normal line-clamp-3 leading-snug block max-w-[150px]', title: String(row.getValue('lokasi')||'-') }, row.getValue('lokasi') ? String(row.getValue('lokasi')) : '-') }
 ]
 
 const periodeLabel = computed(() => {
@@ -291,20 +306,59 @@ function cetak() {
           {{ titleLabel }}
           <span class="ml-2 text-xs font-normal text-muted">({{ items?.total || 0 }} data)</span>
         </h2>
-        <UInput v-model="qInput" placeholder="Cari no. surat, perihal, asal..." icon="i-lucide-search" class="w-full md:w-72" />
+        <div class="flex items-center gap-2 w-full md:w-auto">
+          <UInput v-model="qInput" placeholder="Cari no. surat, perihal, asal..." icon="i-lucide-search" class="flex-1 md:w-72" />
+          <UFieldGroup class="border border-default p-1 rounded-lg shrink-0" size="sm">
+            <UButton icon="i-lucide-rows-3" :color="view === 'table' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan tabel" :ui="{ base: 'px-2' }" @click="view = 'table'" />
+            <UButton icon="i-lucide-layout-grid" :color="view === 'grid' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan grid" :ui="{ base: 'px-2' }" @click="view = 'grid'" />
+            <UButton icon="i-lucide-list" :color="view === 'compact' ? 'primary' : 'neutral'" variant="soft" aria-label="Tampilan ringkas" :ui="{ base: 'px-2' }" @click="view = 'compact'" />
+          </UFieldGroup>
+        </div>
       </div>
       <div v-if="pending" class="h-0.5 w-full overflow-hidden bg-muted"><div class="h-full w-1/3 bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" /></div>
-      <UTable :data="items?.data || []" :columns="columns" :loading="pending" empty="Tidak ada data untuk filter ini." :ui="{ root: 'custom-scrollbar-table' }" />
-      <div class="p-4 flex flex-wrap items-center justify-between gap-3">
+      <!-- Table -->
+      <template v-if="view === 'table'">
+        <div class="overflow-x-auto custom-scrollbar-table">
+          <UTable :data="items?.data || []" :columns="columns" :loading="pending" empty="Tidak ada data untuk filter ini." :ui="{ root: 'custom-scrollbar-table' }" />
+        </div>
+      </template>
+      <!-- Grid -->
+      <div v-else-if="view === 'grid'" class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-for="r in items?.data || []" :key="`${r.jenis}-${r.no_surat}-${r.tgl_surat}`" class="rounded-xl border border-default p-4 flex flex-col hover:bg-muted/30 transition">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <UBadge :label="r.jenis" :color="r.jenis==='masuk'?'info':r.jenis==='keluar'?'success':'neutral'" variant="subtle" size="sm" />
+            <UBadge :label="r.status" :color="({baru:'warning',diproses:'primary',selesai:'success',Diarsipkan:'neutral',Terkirim:'success'} as any)[r.status]||'neutral'" variant="subtle" size="xs" />
+            <span class="ml-auto text-xs text-muted whitespace-nowrap">{{ String(r.tgl_surat).slice(0,10) }}</span>
+          </div>
+          <p class="font-medium text-sm mt-2 truncate" :title="r.no_surat">{{ r.no_surat }}</p>
+          <p class="text-xs text-muted truncate" :title="r.asal_tujuan">{{ r.asal_tujuan }}</p>
+          <p class="text-sm mt-2 break-words whitespace-normal line-clamp-3 leading-snug" :title="r.perihal">{{ r.perihal }}</p>
+          <p class="text-xs text-muted mt-2 break-words whitespace-normal line-clamp-3 leading-snug" :title="r.lokasi||'-'">{{ r.lokasi || '-' }}</p>
+        </div>
+        <div v-if="!pending && !(items?.data||[]).length" class="col-span-full py-12 text-center text-muted">Tidak ada data</div>
+      </div>
+      <!-- Compact -->
+      <div v-else class="divide-y divide-default">
+        <div v-for="r in items?.data || []" :key="`${r.jenis}-${r.no_surat}-${r.tgl_surat}-c`" class="flex gap-3 px-4 py-3 hover:bg-muted/30">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="font-medium text-sm truncate max-w-[180px]" :title="r.no_surat">{{ r.no_surat }}</span>
+              <UBadge :label="r.jenis" :color="r.jenis==='masuk'?'info':r.jenis==='keluar'?'success':'neutral'" variant="subtle" size="xs" />
+              <UBadge :label="r.status" :color="({baru:'warning',diproses:'primary',selesai:'success',Diarsipkan:'neutral',Terkirim:'success'} as any)[r.status]||'neutral'" variant="subtle" size="xs" />
+            </div>
+            <p class="text-sm break-words whitespace-normal line-clamp-3 leading-snug mt-1" :title="r.perihal">{{ r.perihal }}</p>
+            <p class="text-xs text-muted break-words whitespace-normal line-clamp-2 leading-snug" :title="`${r.asal_tujuan} • ${r.lokasi||'-'}`">{{ r.asal_tujuan }} • {{ r.lokasi || '-' }}</p>
+          </div>
+          <span class="text-xs text-muted whitespace-nowrap shrink-0">{{ String(r.tgl_surat).slice(0,10) }}</span>
+        </div>
+        <div v-if="!pending && !(items?.data||[]).length" class="py-12 text-center text-muted text-sm">Tidak ada data</div>
+      </div>
+      <div class="p-4 flex flex-wrap items-center justify-between gap-3 border-t border-default">
         <p class="text-xs text-muted">
           Menampilkan {{ items?.data?.length || 0 }} dari {{ items?.total || 0 }} surat • {{ periodeLabel }}
         </p>
         <UPagination v-model:page="page" :items-per-page="limit" :total="items?.total || 0" />
       </div>
     </UCard>
-
-    <p class="text-xs text-muted text-center py-2">
-      Laporan otomatis SIPAS • Data terverifikasi • Dicetak sistem pada {{ new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}
-    </p>
   </div>
 </template>

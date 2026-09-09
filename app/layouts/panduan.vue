@@ -73,7 +73,7 @@ const isPanduan = computed(() => route.path.startsWith('/panduan'))
     </main>
 
     <!-- Footer -->
-    <footer class="shrink-0 border-t border-default px-4 py-3">
+    <footer class="shrink-0 border-t border-default bg-default px-4 py-3 mt-auto">
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted">
         <div>© {{ currentYear }} {{ config.public.appName || 'SIPERSA' }} — Sistem Informasi Persuratan dan Arsip</div>
         <div class="flex items-center gap-2">
