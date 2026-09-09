@@ -33,5 +33,6 @@ export default defineEventHandler(async (event) => {
     else if (sisa <= 1) status = 'menjelang'
   }
 
-  return { ...r, status, sisa_tahun: sisa }
+  const files = await db.execute({ sql: `SELECT id, file_drive_id, file_name, mime_type, size FROM arsip_files WHERE arsip_id = ? ORDER BY id ASC`, args: [id] })
+  return { ...r, status, sisa_tahun: sisa, files: files.rows }
 })

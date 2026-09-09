@@ -50,7 +50,10 @@ export default defineEventHandler(async (event) => {
           (SELECT d.status FROM disposisi d
            WHERE d.surat_masuk_id = sm.id AND d.deleted_at IS NULL
            ORDER BY d.created_at DESC LIMIT 1) as disposisi_status,
-          EXISTS (SELECT 1 FROM arsip a WHERE a.ref_masuk_id = sm.id AND a.deleted_at IS NULL) as is_arsip
+          EXISTS (SELECT 1 FROM arsip a WHERE a.ref_masuk_id = sm.id AND a.deleted_at IS NULL) as is_arsip,
+          (SELECT COUNT(*) FROM surat_files sf WHERE sf.surat_masuk_id = sm.id) as file_count,
+          (SELECT file_drive_id FROM surat_files sf WHERE sf.surat_masuk_id = sm.id ORDER BY sf.id ASC LIMIT 1) as first_file_id,
+          (SELECT file_name FROM surat_files sf WHERE sf.surat_masuk_id = sm.id ORDER BY sf.id ASC LIMIT 1) as first_file_name
           FROM surat_masuk sm
           LEFT JOIN klasifikasi k ON k.id = sm.klasifikasi_id
           WHERE ${where}

@@ -22,10 +22,35 @@ const state = reactive({
   klasifikasi_kode: s.klasifikasi_kode ?? s.klasifikasiKode ?? '',
   klasifikasi_id: (s.klasifikasi_id ?? null) as number | null,
   no_agenda: s.no_agenda ?? null as string | null,
+  no_surat: s.no_surat || '',
   ringkasan: s.ringkasan || ''
 })
-const file = ref<File | null>(null)
+const files = ref<File[]>([])
 const error = ref('')
+const existingFiles = ref<any[]>([])
+const keepIds = ref<Set<number>>(new Set())
+
+// load existing files untuk edit
+if (props.suratId) {
+  // preload from props.surat.files jika ada, else fetch
+  if (Array.isArray(s.files) && s.files.length) {
+    existingFiles.value = s.files
+    keepIds.value = new Set(s.files.map((f:any)=>f.id))
+  } else if (props.surat?.files) {
+    existingFiles.value = props.surat.files
+    keepIds.value = new Set(props.surat.files.map((f:any)=>f.id))
+  }
+  // jika props tidak bawa files, fetch via API sudah di parent, tapi fallback fetch sendiri
+  if (!existingFiles.value.length && props.suratId) {
+    $fetch(`/api/surat-${props.type === 'masuk' ? 'masuk' : 'keluar'}/${props.suratId}`).then((res:any)=>{
+      const arr = res?.files || res?.surat?.files || []
+      if (arr.length) { existingFiles.value = arr; keepIds.value = new Set(arr.map((f:any)=>f.id)) }
+    }).catch(()=>{})
+  }
+}
+function toggleKeep(id:number, keep:boolean) {
+  if (keep) keepIds.value.add(id); else keepIds.value.delete(id)
+}
 
 const pihak = computed({
   get: () => (props.type === 'masuk' ? state.pengirim : state.tujuan),
@@ -72,12 +97,19 @@ function validate(s: Partial<typeof state>): FormError[] {
 async function submit() {
   emit('busy', true)
   error.value = ''
-  if (file.value && file.value.size > 25*1024*1024) { const m='Ukuran file terlalu besar (maks. 25 MB)'; error.value=m; useToast().add({title:m, color:'error'}); emit('busy', false); return }
+  const total = files.value.reduce((a,f)=>a+f.size,0)
+  if (total > 25*1024*1024) { const m=`Total ukuran file terlalu besar (maks. 25 MB, total ${(total/1024/1024).toFixed(1)} MB)`; error.value=m; useToast().add({title:m, color:'error'}); emit('busy', false); return }
   const fd = new FormData()
   const fields: Record<string, any> = { ...state }
-  if (props.type === 'masuk') fields.no_agenda = state.no_agenda ?? ''
+  if (props.type === 'masuk') {
+    fields.no_agenda = state.no_agenda ?? ''
+    fields.no_surat = state.no_surat?.trim() ?? ''
+  }
   Object.entries(fields).forEach(([k, v]) => fd.append(k, v == null ? '' : String(v)))
-  if (file.value) fd.append('file', file.value)
+  if (props.suratId && existingFiles.value.length) {
+    fd.append('keep_file_ids', Array.from(keepIds.value).join(','))
+  }
+  for (const f of files.value) fd.append('file', f)
   try {
     const base = props.type === 'masuk' ? '/api/surat-masuk' : '/api/surat-keluar'
     const url = props.suratId ? `${base}/${props.suratId}` : base
@@ -103,6 +135,9 @@ async function submit() {
           <UInput v-model="state.tgl_terima" class="w-full" type="date" />
         </UFormField>
       </div>
+      <UFormField label="No. Surat" name="no_surat" v-if="type === 'masuk'" hint="Kosongkan untuk generate otomatis">
+        <UInput v-model="state.no_surat" class="w-full" placeholder="mis. 123/UND/VI/2026 — kosongkan = auto NNN/SM-INST/..." />
+      </UFormField>
       <UFormField :label="type === 'masuk' ? 'Pengirim' : 'Tujuan'" name="pihak">
         <UInput v-model="pihak" class="w-full" />
       </UFormField>
@@ -145,7 +180,15 @@ async function submit() {
     </div>
 
     <div class="space-y-2">
-      <FileUpload label="Unggah File Surat" description="Format: PDF, JPG, PNG. Maks. 25 MB." v-model:file="file" />
+      <div v-if="existingFiles.length && suratId" class="space-y-2">
+        <p class="text-sm font-medium">File existing (centang untuk pertahankan, total maks. 25 MB)</p>
+        <div v-for="ef in existingFiles" :key="ef.id" class="flex items-center gap-2 rounded-lg border border-default px-3 py-2 text-sm">
+          <input type="checkbox" :checked="keepIds.has(ef.id)" @change="toggleKeep(ef.id, ($event.target as HTMLInputElement).checked)" class="accent-primary" />
+          <span class="flex-1 truncate">{{ ef.file_name }} <span class="text-muted text-xs">({{ ef.file_drive_id }})</span></span>
+          <a :href="`/api/files/${ef.file_drive_id}`" target="_blank" class="text-primary text-xs underline">Unduh</a>
+        </div>
+      </div>
+      <FileUpload label="Unggah File Surat (multiple, total maks. 25 MB)" description="Format: PDF, JPG, PNG." :multiple="true" v-model:files="files" />
     </div>
 
     <p v-if="error" class="text-sm text-error">{{ error }}</p>

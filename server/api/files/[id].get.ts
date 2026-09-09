@@ -10,15 +10,19 @@ function safeDisposition(fileName: string | null, inline: boolean) {
 export default defineEventHandler(async (event) => {
   const id = event.context.params?.id
   const db = useDb()
-  // cari file_drive_id dari surat masuk/keluar berdasar id file
+  // cari file_drive_id dari surat masuk/keluar berdasar id file (legacy + multi)
   const res = await db.execute({
     sql: `SELECT file_drive_id, file_name FROM surat_masuk WHERE file_drive_id = ? AND deleted_at IS NULL
           UNION ALL
           SELECT file_drive_id, file_name FROM surat_keluar WHERE file_drive_id = ? AND deleted_at IS NULL
           UNION ALL
           SELECT file_drive_id, file_name FROM arsip WHERE file_drive_id = ? AND deleted_at IS NULL
+          UNION ALL
+          SELECT file_drive_id, file_name FROM surat_files WHERE file_drive_id = ?
+          UNION ALL
+          SELECT file_drive_id, file_name FROM arsip_files WHERE file_drive_id = ?
           LIMIT 1`,
-    args: [id as string, id as string, id as string]
+    args: [id as string, id as string, id as string, id as string, id as string]
   })
   if (res.rows.length === 0) throw createError({ statusCode: 404, statusMessage: 'File tidak ditemukan' })
   const meta = res.rows[0] as any

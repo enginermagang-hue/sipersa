@@ -1,5 +1,5 @@
 import { useDb } from '../../utils/db'
-import { assertFileSize, readFormWithFile, toIntOrNull } from '../../utils/body'
+import { assertFilesSize, readFormWithFiles, toIntOrNull } from '../../utils/body'
 import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { generateNo } from '../../utils/no'
 import { suratMasukSchema } from '../../../lib/validations'
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   if (auth.role !== 'staff') {
     throw createError({ statusCode: 403, statusMessage: 'Tidak diizinkan membuat Surat Masuk — hanya Staff' })
   }
-  const { fields, file } = await readFormWithFile(event)
+  const { fields, files } = await readFormWithFiles(event)
 
   const parsed = suratMasukSchema.safeParse({
     tgl_surat: fields.tgl_surat,
@@ -19,26 +19,42 @@ export default defineEventHandler(async (event) => {
     perihal: fields.perihal,
     sifat: fields.sifat,
     klasifikasi_id: toIntOrNull(fields.klasifikasi_id),
-    no_agenda: fields.no_agenda || null
+    no_agenda: fields.no_agenda || null,
+    no_surat: fields.no_surat ? String(fields.no_surat).trim() || null : null
   })
   if (!parsed.success) {
     throw createError({ statusCode: 422, statusMessage: 'Data tidak valid', data: parsed.error.issues })
   }
   const data = parsed.data
 
+  const db = useDb()
   const year = new Date(data.tgl_surat).getFullYear()
-  const { no_urut, no_surat } = await generateNo('surat_masuk', 'SM-INST', year)
-
-  let fileDriveId: string | null = null
-  let fileName: string | null = null
-  assertFileSize(file)
-  if (file) {
-    const up = await uploadToDrive(`${no_surat}_${file.filename}`, file.type, file.data, DROPBOX_FOLDERS.SM)
-    fileDriveId = up.id as string
-    fileName = file.filename
+  let no_urut: number
+  let no_surat: string
+  const manualNo = data.no_surat ? String(data.no_surat).trim() : ''
+  if (manualNo) {
+    const dup = await db.execute({ sql: `SELECT id FROM surat_masuk WHERE LOWER(TRIM(no_surat)) = ? AND deleted_at IS NULL LIMIT 1`, args: [manualNo.toLowerCase()] })
+    if (dup.rows.length > 0) throw createError({ statusCode: 409, statusMessage: 'No. Surat sudah dipakai' })
+    const maxRes = await db.execute({ sql: `SELECT MAX(no_urut) as m FROM surat_masuk WHERE no_surat LIKE ?`, args: [`%/${year}`] })
+    const max = (maxRes.rows[0] as any).m as number | null
+    no_urut = (max ?? 0) + 1
+    no_surat = manualNo
+  } else {
+    const gen = await generateNo('surat_masuk', 'SM-INST', year)
+    no_urut = gen.no_urut
+    no_surat = gen.no_surat
   }
 
-  const db = useDb()
+  assertFilesSize(files)
+  // upload multiple (bebas jumlah, total 25MB)
+  const uploaded: { id: string, name: string, type: string, size: number }[] = []
+  for (const f of files) {
+    const up = await uploadToDrive(`${no_surat}_${f.filename}`, f.type, f.data, DROPBOX_FOLDERS.SM)
+    uploaded.push({ id: up.id as string, name: f.filename, type: f.type, size: f.data.length })
+  }
+  const fileDriveId = uploaded[0]?.id || null
+  const fileName = uploaded[0]?.name || null
+
   const res = await db.execute({
     sql: `INSERT INTO surat_masuk
       (no_agenda, no_urut, no_surat, klasifikasi_id, tgl_surat, tgl_terima, pengirim, perihal, sifat, file_drive_id, file_name, created_by)
@@ -60,6 +76,11 @@ export default defineEventHandler(async (event) => {
   })
 
   const id = Number((res.rows[0] as any)?.id ?? res.lastInsertRowid)
+  if (uploaded.length) {
+    for (const u of uploaded) {
+      await db.execute({ sql: `INSERT INTO surat_files (surat_masuk_id, file_drive_id, file_name, mime_type, size) VALUES (?, ?, ?, ?, ?)`, args: [id, u.id, u.name, u.type, u.size] })
+    }
+  }
   try {
     const pims = await db.execute({ sql: `SELECT id FROM users WHERE role = 'pimpinan' AND deleted_at IS NULL` })
     const perihalShort = data.perihal.length > 120 ? `${data.perihal.slice(0, 120)}…` : data.perihal

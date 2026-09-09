@@ -9,10 +9,9 @@ const props = withDefaults(
     hideActions: false
   }
 )
-const isViewable = computed(() => {
-  const n = (props.fileName || '').toLowerCase()
-  return n.endsWith('.pdf') || /\.(png|jpe?g|gif|webp)$/.test(n)
-})
+const isPdf = computed(() => (props.fileName || '').toLowerCase().endsWith('.pdf'))
+const isImage = computed(() => /\.(png|jpe?g|gif|webp)$/i.test(props.fileName || ''))
+const isViewable = computed(() => isPdf.value || isImage.value)
 </script>
 
 <template>
@@ -32,8 +31,15 @@ const isViewable = computed(() => {
         Lihat
       </UButton>
     </div>
+    <img
+      v-if="isImage"
+      :src="`/api/files/${fileId}?inline=1`"
+      :alt="fileName || 'preview'"
+      class="w-full max-h-[70vh] object-contain border border-default rounded-md bg-muted"
+      loading="lazy"
+    />
     <iframe
-      v-if="isViewable"
+      v-else-if="isPdf"
       :src="`/api/files/${fileId}?inline=1`"
       class="w-full h-[70vh] border border-default rounded-md"
       title="Preview"

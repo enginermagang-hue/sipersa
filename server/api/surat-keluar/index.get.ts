@@ -42,7 +42,10 @@ export default defineEventHandler(async (event) => {
           sk.perihal, sk.sifat, sk.status, sk.penandatangan, sk.file_drive_id, sk.file_name,
           sk.created_by, sk.created_at, sk.deleted_at,
           k.kode as klasifikasi_kode, k.nama as klasifikasi_nama,
-          EXISTS (SELECT 1 FROM arsip a WHERE a.ref_keluar_id = sk.id AND a.deleted_at IS NULL) as is_arsip
+          EXISTS (SELECT 1 FROM arsip a WHERE a.ref_keluar_id = sk.id AND a.deleted_at IS NULL) as is_arsip,
+          (SELECT COUNT(*) FROM surat_files sf WHERE sf.surat_keluar_id = sk.id) as file_count,
+          (SELECT file_drive_id FROM surat_files sf WHERE sf.surat_keluar_id = sk.id ORDER BY sf.id ASC LIMIT 1) as first_file_id,
+          (SELECT file_name FROM surat_files sf WHERE sf.surat_keluar_id = sk.id ORDER BY sf.id ASC LIMIT 1) as first_file_name
           FROM surat_keluar sk
           LEFT JOIN klasifikasi k ON k.id = sk.klasifikasi_id
           WHERE ${where}

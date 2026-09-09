@@ -25,8 +25,37 @@ const extractionError = ref('')
 const sifatLabel: Record<string, string> = { biasa: 'Biasa', segera: 'Segera', sangat_segera: 'Sangat Segera', rahasia: 'Rahasia' }
 
 const ringkasanText = computed(() => data.value?.surat?.ringkasan || '')
-const hasPdf = computed(() => !!data.value?.surat?.file_drive_id)
+const filesList = computed(() => (data.value as any)?.files || [])
+const primaryFile = computed(() => filesList.value[0] || (data.value?.surat?.file_drive_id ? { file_drive_id: data.value.surat.file_drive_id, file_name: data.value.surat.file_name } : null))
+const hasPdf = computed(() => !!primaryFile.value?.file_drive_id)
 const needsExtraction = computed(() => hasPdf.value && !ringkasanText.value)
+function isImageName(n?: string) { return /\.(png|jpe?g|gif|webp)$/i.test(n || '') }
+function isPdfName(n?: string) { return /\.pdf$/i.test(n || '') }
+function fileIsImage(f:any) { return isImageName(f?.file_name) || String(f?.mime_type||'').startsWith('image/') }
+function fileIsPdf(f:any) { return isPdfName(f?.file_name) || String(f?.mime_type||'').includes('pdf') }
+const allImages = computed(() => filesList.value.length > 0 && filesList.value.every(fileIsImage))
+const isViewable = computed(() => {
+  const n = (primaryFile.value?.file_name || '').toLowerCase()
+  return n.endsWith('.pdf') || /\.(png|jpe?g|gif|webp)$/.test(n)
+})
+const galleryRef = ref<any>(null)
+const previewIdx = ref<number|null>(null)
+const isPreviewOpen = computed({
+  get: () => previewIdx.value !== null,
+  set: (v:boolean) => { if (!v) previewIdx.value = null }
+})
+const previewFile = computed(() => previewIdx.value !== null ? filesList.value[previewIdx.value] : null)
+const isPreviewImage = computed(() => fileIsImage(previewFile.value))
+function openPreview(i:number) {
+  if (fileIsImage(filesList.value[i])) {
+    if (allImages.value && galleryRef.value?.open) galleryRef.value.open(i)
+    else previewIdx.value = i
+  } else if (fileIsPdf(filesList.value[i])) {
+    previewIdx.value = i
+  } else {
+    window.open(`/api/files/${filesList.value[i].file_drive_id}`, '_blank')
+  }
+}
 
 watch(needsExtraction, (val) => {
   if (val) {
@@ -79,12 +108,27 @@ function onInstruksiInput() {
   // gunakan untuk trigger validasi tambahan jika nanti dibutuhkan
 }
 const isUrgent = computed(() => ['segera', 'sangat_segera'].includes(dispForm.sifat_disposisi))
-const isViewable = computed(() => {
-  const n = (data.value?.surat?.file_name || '').toLowerCase()
-  return n.endsWith('.pdf') || /\.(png|jpe?g|gif|webp)$/.test(n)
+function formatBytes(n?: number | null) {
+  if (!n || n <= 0) return ''
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+  return `${(n / 1024 / 1024).toFixed(n > 5 * 1024 * 1024 ? 1 : 2)} MB`
+}
+const primarySize = computed(() => (primaryFile.value as any)?.size ?? null)
+const primaryExt = computed(() => {
+  const name: string = (primaryFile.value as any)?.file_name || ''
+  const ext = name.split('.').pop()?.toUpperCase() || ''
+  return ext || 'FILE'
 })
-const safeSize = '1.2 MB'
-const safePages = '3'
+const badgeLabel = computed(() => {
+  const ext = primaryExt.value
+  const sz = formatBytes(primarySize.value)
+  return sz ? `${ext} • ${sz}` : ext
+})
+const totalSizeLabel = computed(() => {
+  const total = filesList.value.reduce((a: number, f: any) => a + (Number(f.size) || 0), 0)
+  return formatBytes(total)
+})
 const stepperSteps = [
   { key: 'diterima', label: 'Diterima' },
   { key: 'didisposisikan', label: 'Didisposisikan' },
@@ -388,32 +432,81 @@ async function hapus() {
                 <UIcon name="i-lucide-file-text" class="h-4 w-4" />
               </span>
               <h3 class="font-semibold text-highlighted">Pratinjau Surat</h3>
-              <UBadge v-if="hasPdf" :label="`PDF • ${safeSize}`" color="neutral" variant="subtle" size="sm" class="ml-auto" />
+              <UBadge v-if="primaryFile" :label="badgeLabel" color="neutral" variant="subtle" size="sm" class="ml-auto" />
             </div>
           </template>
-          <div v-if="data.surat.file_drive_id">
+          <div v-if="allImages">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-sm font-medium">Galeri Gambar ({{ filesList.length }})</p>
+              <UButton size="xs" variant="soft" icon="i-lucide-download" :href="`/api/surat-masuk/${id}/zip`" target="_blank">Unduh semua (ZIP)</UButton>
+            </div>
+            <ImageGallery ref="galleryRef" :files="filesList" />
+            <div class="mt-3 divide-y divide-default rounded-lg border border-default">
+              <div class="px-3 py-2 text-xs font-medium text-muted">List file — klik pratinjau untuk gambar</div>
+              <div v-for="(f,i) in filesList" :key="f.id" class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                <span class="truncate">{{ f.file_name }}</span>
+                <div class="flex gap-1">
+                  <UButton size="xs" variant="ghost" icon="i-lucide-eye" @click="openPreview(i)">Pratinjau</UButton>
+                  <UButton :href="`/api/files/${f.file_drive_id}`" target="_blank" size="xs" variant="ghost" icon="i-lucide-download">Unduh</UButton>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="primaryFile">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400">
                   <UIcon name="i-lucide-file-text" class="h-5 w-5" />
                 </span>
                 <div>
-                  <p class="text-sm font-medium text-muted">{{ data.surat.file_name || 'Dokumen Surat' }}</p>
-                  <p class="text-xs text-muted">{{ safePages }} halaman • dipindai {{ fmtTglWaktu(data.surat.tgl_terima) }}</p>
+                  <p class="text-sm font-medium text-muted">{{ primaryFile.file_name || 'Dokumen Surat' }}</p>
+                  <p class="text-xs text-muted">
+                    <span v-if="filesList.length > 1">{{ filesList.length }} file<span v-if="totalSizeLabel"> • {{ totalSizeLabel }}</span></span>
+                    <span v-else-if="primarySize">{{ badgeLabel }}</span>
+                    <span v-else>{{ primaryExt }}</span>
+                    • dipindai {{ fmtTglWaktu(data.surat.tgl_terima) }}
+                  </p>
                 </div>
               </div>
               <div class="flex items-center gap-1.5">
-                <UButton v-if="isViewable" :href="`/api/files/${data.surat.file_drive_id}?inline=1`" target="_blank" size="xs" variant="ghost" icon="i-lucide-eye" />
-                <UButton :href="`/api/files/${data.surat.file_drive_id}`" target="_blank" size="xs" variant="ghost" icon="i-lucide-download" />
+                <UButton v-if="isViewable" :href="`/api/files/${primaryFile.file_drive_id}?inline=1`" target="_blank" size="xs" variant="ghost" icon="i-lucide-eye" />
+                <UButton :href="`/api/files/${primaryFile.file_drive_id}`" target="_blank" size="xs" variant="ghost" icon="i-lucide-download" />
+                <UButton v-if="filesList.length>1" size="xs" variant="soft" icon="i-lucide-archive" :href="`/api/surat-masuk/${id}/zip`" target="_blank">ZIP</UButton>
               </div>
             </div>
             <div v-if="isViewable" class="mt-3 rounded-lg border border-default overflow-hidden">
-              <FilePreview :file-id="data.surat.file_drive_id" :file-name="data.surat.file_name" :hide-actions="true" />
+              <FilePreview :file-id="primaryFile.file_drive_id" :file-name="primaryFile.file_name" :hide-actions="true" />
+            </div>
+            <div v-if="filesList.length" class="mt-3 divide-y divide-default rounded-lg border border-default">
+              <div class="px-3 py-2 text-xs font-medium text-muted">Semua file ({{ filesList.length }}) — list file</div>
+              <div v-for="(f,i) in filesList" :key="f.id" class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                <span class="truncate">{{ f.file_name }}</span>
+                <div class="flex gap-1">
+                  <UButton v-if="fileIsImage(f) || fileIsPdf(f)" size="xs" variant="ghost" icon="i-lucide-eye" @click="openPreview(i)">Pratinjau</UButton>
+                  <UButton :href="`/api/files/${f.file_drive_id}`" target="_blank" size="xs" variant="ghost" icon="i-lucide-download">Unduh</UButton>
+                </div>
+              </div>
             </div>
           </div>
           <div v-else>
             <p class="text-sm text-muted">Tidak ada file terlampir.</p>
           </div>
+          <!-- Lightbox untuk mixed (preview per file) -->
+          <UModal v-model:open="isPreviewOpen" :ui="{ content: 'sm:max-w-4xl' }">
+            <template #content v-if="previewFile">
+              <div class="p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                  <p class="text-sm font-medium truncate">{{ previewFile.file_name }}</p>
+                  <UButton size="xs" variant="ghost" icon="i-lucide-x" @click="previewIdx=null" />
+                </div>
+                <img v-if="isPreviewImage" :src="`/api/files/${previewFile.file_drive_id}?inline=1`" :alt="previewFile.file_name" class="w-full max-h-[70vh] object-contain rounded border border-default bg-muted" />
+                <iframe v-else-if="fileIsPdf(previewFile)" :src="`/api/files/${previewFile.file_drive_id}?inline=1`" class="w-full h-[70vh] border border-default rounded" />
+                <div class="flex justify-end gap-2">
+                  <UButton :href="`/api/files/${previewFile.file_drive_id}`" target="_blank" size="sm" icon="i-lucide-download">Unduh</UButton>
+                </div>
+              </div>
+            </template>
+          </UModal>
         </UCard>
       </div>
 

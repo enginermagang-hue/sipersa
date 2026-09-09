@@ -228,6 +228,54 @@ export async function migrate() {
   // Migrasi role: staff_tu -> staff (rename role)
   try { await db.execute(`UPDATE users SET role='staff' WHERE role='staff_tu'`) } catch {}
 
+  // Validasi unik no_surat surat_masuk (case-insensitive, hanya yang belum dihapus)
+  try {
+    await db.execute(`CREATE UNIQUE INDEX IF NOT EXISTS idx_surmasuk_nosurat_unique ON surat_masuk(LOWER(TRIM(no_surat))) WHERE deleted_at IS NULL`)
+  } catch {}
+
+  // Tabel multi-file untuk surat masuk/keluar dan arsip
+  await db.execute(`CREATE TABLE IF NOT EXISTS surat_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    surat_masuk_id INTEGER,
+    surat_keluar_id INTEGER,
+    file_drive_id TEXT NOT NULL,
+    file_name TEXT,
+    mime_type TEXT,
+    size INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (surat_masuk_id) REFERENCES surat_masuk(id) ON DELETE CASCADE,
+    FOREIGN KEY (surat_keluar_id) REFERENCES surat_keluar(id) ON DELETE CASCADE
+  )`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_surfiles_masuk ON surat_files(surat_masuk_id)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_surfiles_keluar ON surat_files(surat_keluar_id)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_surfiles_drive ON surat_files(file_drive_id)`)
+
+  await db.execute(`CREATE TABLE IF NOT EXISTS arsip_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    arsip_id INTEGER NOT NULL,
+    file_drive_id TEXT NOT NULL,
+    file_name TEXT,
+    mime_type TEXT,
+    size INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (arsip_id) REFERENCES arsip(id) ON DELETE CASCADE
+  )`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_arsipfiles_arsip ON arsip_files(arsip_id)`)
+
+  // Migrasi data lama single file ke tabel multi-file (idempotent)
+  try {
+    await db.execute(`INSERT INTO surat_files (surat_masuk_id, file_drive_id, file_name)
+      SELECT id, file_drive_id, file_name FROM surat_masuk WHERE file_drive_id IS NOT NULL AND TRIM(file_drive_id) != '' AND id NOT IN (SELECT surat_masuk_id FROM surat_files WHERE surat_masuk_id IS NOT NULL)`)
+  } catch {}
+  try {
+    await db.execute(`INSERT INTO surat_files (surat_keluar_id, file_drive_id, file_name)
+      SELECT id, file_drive_id, file_name FROM surat_keluar WHERE file_drive_id IS NOT NULL AND TRIM(file_drive_id) != '' AND id NOT IN (SELECT surat_keluar_id FROM surat_files WHERE surat_keluar_id IS NOT NULL)`)
+  } catch {}
+  try {
+    await db.execute(`INSERT INTO arsip_files (arsip_id, file_drive_id, file_name)
+      SELECT id, file_drive_id, file_name FROM arsip WHERE file_drive_id IS NOT NULL AND TRIM(file_drive_id) != '' AND id NOT IN (SELECT arsip_id FROM arsip_files)`)
+  } catch {}
+
   await seedAdmin()
 }
 

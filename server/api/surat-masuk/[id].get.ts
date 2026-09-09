@@ -34,7 +34,12 @@ export default defineEventHandler(async (event) => {
     args: [id]
   })
 
-  const payload = { surat, disposisi: disp.rows, arsip: ars.rows[0] || null }
+  const files = await db.execute({
+    sql: `SELECT id, file_drive_id, file_name, mime_type, size, created_at FROM surat_files WHERE surat_masuk_id = ? ORDER BY id ASC`,
+    args: [id]
+  })
+
+  const payload = { surat, disposisi: disp.rows, arsip: ars.rows[0] || null, files: files.rows }
 
   if (needsRingkasan) {
     const fileDriveId = surat.file_drive_id as string

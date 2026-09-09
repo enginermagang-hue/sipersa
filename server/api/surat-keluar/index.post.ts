@@ -1,5 +1,5 @@
 import { useDb } from '../../utils/db'
-import { assertFileSize, readFormWithFile } from '../../utils/body'
+import { assertFilesSize, readFormWithFiles } from '../../utils/body'
 import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { generateNoSuratKeluar } from '../../utils/no'
 import { suratKeluarSchema } from '../../../lib/validations'
@@ -9,7 +9,7 @@ import { notifyPimpinanSuratKeluar } from '../../utils/notify'
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
   if (auth.role !== 'staff') throw createError({ statusCode: 403, statusMessage: 'Hanya staff yang dapat membuat surat keluar' })
-  const { fields, file } = await readFormWithFile(event)
+  const { fields, files } = await readFormWithFiles(event)
   const rawKode = (fields.klasifikasi_kode ?? fields.klasifikasi_id ?? '').toString().trim()
 
   const parsed = suratKeluarSchema.safeParse({
@@ -47,14 +47,14 @@ export default defineEventHandler(async (event) => {
     no_surat = gen.no_surat
   }
 
-  let fileDriveId: string | null = null
-  let fileName: string | null = null
-  assertFileSize(file)
-  if (file) {
-    const up = await uploadToDrive(`${no_surat}_${file.filename}`, file.type, file.data, DROPBOX_FOLDERS.SK)
-    fileDriveId = up.id as string
-    fileName = file.filename
+  assertFilesSize(files)
+  const uploaded: { id: string, name: string, type: string, size: number }[] = []
+  for (const f of files) {
+    const up = await uploadToDrive(`${no_surat}_${f.filename}`, f.type, f.data, DROPBOX_FOLDERS.SK)
+    uploaded.push({ id: up.id as string, name: f.filename, type: f.type, size: f.data.length })
   }
+  const fileDriveId = uploaded[0]?.id || null
+  const fileName = uploaded[0]?.name || null
 
   const db = useDb()
   const res = await db.execute({
@@ -63,6 +63,11 @@ export default defineEventHandler(async (event) => {
     args: [ no_urut, no_surat, kode, data.tgl_surat, data.tujuan, data.perihal, data.sifat, data.status, data.penandatangan, (data as any).penandatangan_id || null, data.html_content, data.render_config, fileDriveId, fileName, auth.userId ]
   })
   const id = Number((res.rows[0] as any)?.id ?? res.lastInsertRowid)
+  if (uploaded.length) {
+    for (const u of uploaded) {
+      await db.execute({ sql: `INSERT INTO surat_files (surat_keluar_id, file_drive_id, file_name, mime_type, size) VALUES (?, ?, ?, ?, ?)`, args: [id, u.id, u.name, u.type, u.size] })
+    }
+  }
   if (data.status === 'menunggu_persetujuan') await notifyPimpinanSuratKeluar(db, { id, no_surat, tujuan: data.tujuan, perihal: data.perihal })
   await logActivity({ userId: auth.userId, action: 'CREATE_SURAT_KELUAR', entity: 'surat_keluar', entityId: id, detail: { no_surat }, ip: getRequestIP(event, { xForwardedFor: true }) })
   return { id, no_surat }

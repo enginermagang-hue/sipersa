@@ -1,6 +1,6 @@
 import { useDb } from '../../utils/db'
-import { assertFileSize, readFormWithFile } from '../../utils/body'
-import { DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
+import { assertFilesSize, parseKeepIds, readFormWithFiles } from '../../utils/body'
+import { deleteDriveFile, DROPBOX_FOLDERS, uploadToDrive } from '../../utils/dropbox'
 import { logActivity } from '../../utils/logger'
 import { notifyPimpinanSuratKeluar } from '../../utils/notify'
 
@@ -16,14 +16,33 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Hanya pembuat atau admin yang dapat mengedit draft' })
   }
 
-  const { fields, file } = await readFormWithFile(event)
-  let fileDriveId: string | null = (exist.rows[0] as any).file_drive_id
-  let fileName: string | null = (exist.rows[0] as any).file_name
-  assertFileSize(file)
-  if (file) {
-    const up = await uploadToDrive(`${(exist.rows[0] as any).no_surat}_${file.filename}`, file.type, file.data, DROPBOX_FOLDERS.SK)
-    fileDriveId = up.id as string
-    fileName = file.filename
+  const { fields, files } = await readFormWithFiles(event)
+  assertFilesSize(files)
+  // handle keep_file_ids untuk multi-file
+  const keepIds = parseKeepIds(fields.keep_file_ids)
+  if (fields.keep_file_ids !== undefined) {
+    const existingFiles = await db.execute({ sql: `SELECT id, file_drive_id FROM surat_files WHERE surat_keluar_id = ?`, args: [id] })
+    const toDelete = (existingFiles.rows as any[]).filter(r => !keepIds.includes(r.id))
+    for (const r of toDelete) {
+      try { await deleteDriveFile(r.file_drive_id) } catch {}
+      await db.execute({ sql: `DELETE FROM surat_files WHERE id = ?`, args: [r.id] })
+    }
+  }
+  const uploaded: { id: string, name: string, type: string, size: number }[] = []
+  for (const f of files) {
+    const up = await uploadToDrive(`${(exist.rows[0] as any).no_surat}_${f.filename}`, f.type, f.data, DROPBOX_FOLDERS.SK)
+    uploaded.push({ id: up.id as string, name: f.filename, type: f.type, size: f.data.length })
+  }
+  for (const u of uploaded) {
+    await db.execute({ sql: `INSERT INTO surat_files (surat_keluar_id, file_drive_id, file_name, mime_type, size) VALUES (?, ?, ?, ?, ?)`, args: [id, u.id, u.name, u.type, u.size] })
+  }
+  const remaining = await db.execute({ sql: `SELECT file_drive_id, file_name FROM surat_files WHERE surat_keluar_id = ? ORDER BY id ASC LIMIT 1`, args: [id] })
+  let fileDriveId: string | null = (remaining.rows[0] as any)?.file_drive_id ?? null
+  let fileName: string | null = (remaining.rows[0] as any)?.file_name ?? null
+  // if no files in surat_files yet but legacy exists, keep legacy until migrated
+  if (!fileDriveId) {
+    fileDriveId = (exist.rows[0] as any).file_drive_id
+    fileName = (exist.rows[0] as any).file_name
   }
 
   const kode = (fields.klasifikasi_kode ?? fields.klasifikasi_id ?? (exist.rows[0] as any).klasifikasi_kode ?? '').toString().trim()

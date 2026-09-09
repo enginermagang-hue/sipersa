@@ -80,6 +80,14 @@ function fmtTgl(s: string) {
   if (Number.isNaN(d.getTime())) return s
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 }
+function isImageName(n?: string) { return /\.(png|jpe?g|gif|webp)$/i.test(n || '') }
+function getThumb(r:any) {
+  const id = r.first_file_id || r.file_drive_id
+  const name = r.first_file_name || r.file_name
+  if (!id || !name) return null
+  if (!isImageName(name)) return null
+  return `/api/files/${id}?inline=1`
+}
 
 function canManage(row: any) {
   return user.value?.role === 'admin' || user.value?.id === row.created_by
@@ -238,13 +246,19 @@ function getAksiItems(row: any) {
             <tbody>
               <tr v-for="r in data?.data || []" :key="r.id" class="border-b border-default last:border-0 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.id}`)">
                 <td class="px-4 py-3">
-                  <div class="flex items-center gap-1.5 font-medium">
-                    <span class="truncate">{{ r.no_surat }}</span>
-                    <UTooltip v-if="r.is_arsip" text="Diarsipkan" :delay-duration="0">
-                      <UIcon name="i-lucide-archive" class="w-4 h-4 text-success shrink-0" aria-label="Diarsipkan" />
-                    </UTooltip>
+                  <div class="flex items-center gap-2">
+                    <img v-if="getThumb(r)" :src="getThumb(r)!" :alt="r.first_file_name" class="w-8 h-8 rounded object-cover border border-default shrink-0" loading="lazy" />
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-1.5 font-medium">
+                        <span class="truncate">{{ r.no_surat }}</span>
+                        <UTooltip v-if="r.is_arsip" text="Diarsipkan" :delay-duration="0">
+                          <UIcon name="i-lucide-archive" class="w-4 h-4 text-success shrink-0" aria-label="Diarsipkan" />
+                        </UTooltip>
+                        <UBadge v-if="(r.file_count||0)>1" :label="`+${r.file_count}`" size="xs" variant="subtle" />
+                      </div>
+                      <div class="text-xs text-muted whitespace-nowrap">{{ fmtTgl(r.tgl_surat) }}</div>
+                    </div>
                   </div>
-                  <div class="text-xs text-muted whitespace-nowrap">{{ fmtTgl(r.tgl_surat) }}</div>
                 </td>
                 <td class="px-4 py-3">
                   <div class="font-medium flex flex-row">{{ r.pengirim }}</div>
@@ -272,9 +286,11 @@ function getAksiItems(row: any) {
         </div>
         <div class="lg:hidden divide-y divide-default">
           <div v-for="r in data?.data || []" :key="r.id" class="flex gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.id}`)">
+            <img v-if="getThumb(r)" :src="getThumb(r)!" class="w-12 h-12 rounded object-cover border border-default shrink-0" loading="lazy" />
             <div class="min-w-0 flex-1 flex flex-col gap-1.5">
               <div class="flex items-center gap-1.5 font-semibold text-sm">
                 <span class="truncate">{{ r.no_surat }}</span>
+                <UBadge v-if="(r.file_count||0)>1" :label="`+${r.file_count}`" size="xs" variant="subtle" />
                 <UTooltip v-if="r.is_arsip" text="Diarsipkan" :delay-duration="0">
                   <UIcon name="i-lucide-archive" class="w-3.5 h-3.5 text-success shrink-0" aria-label="Diarsipkan" />
                 </UTooltip>
@@ -299,9 +315,11 @@ function getAksiItems(row: any) {
 
       <div v-else-if="view === 'grid'" class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
         <div v-for="r in data?.data || []" :key="r.id" class="rounded-xl border border-default p-4 transition-colors hover:bg-muted/30 cursor-pointer" @click="navigateTo(`/surat-masuk/${r.id}`)">
+          <img v-if="getThumb(r)" :src="getThumb(r)!" class="w-full h-28 object-cover rounded-lg border border-default mb-2" loading="lazy" />
           <div class="flex items-start justify-between gap-2">
             <div class="flex items-center gap-1.5 font-medium text-sm leading-tight">
               <span>{{ r.no_surat }}</span>
+              <UBadge v-if="(r.file_count||0)>1" :label="`+${r.file_count}`" size="xs" variant="subtle" />
               <UTooltip v-if="r.is_arsip" text="Diarsipkan" :delay-duration="0">
                 <UIcon name="i-lucide-archive" class="w-3.5 h-3.5 text-success shrink-0" aria-label="Diarsipkan" />
               </UTooltip>

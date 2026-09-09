@@ -14,7 +14,8 @@ export const suratMasukSchema = z.object({
   status: z.enum(['diterima', 'didisposisikan', 'ditindaklanjuti', 'selesai']).default('diterima'),
   klasifikasi_kode: z.string().optional().nullable(),
   klasifikasi_id: z.number().int().positive().optional().nullable(),
-  no_agenda: z.string().optional().nullable()
+  no_agenda: z.string().optional().nullable(),
+  no_surat: z.string().optional().nullable()
 })
 
 export const suratKeluarSchema = z.object({

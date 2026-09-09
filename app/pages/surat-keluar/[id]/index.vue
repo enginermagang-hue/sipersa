@@ -66,6 +66,30 @@ function fmtDateTime(iso: string): string {
 }
 
 const sifatLabel: Record<string, string> = { biasa: 'Biasa', segera: 'Segera', rahasia: 'Rahasia', penting: 'Penting' }
+function isImageName(n?: string) { return /\.(png|jpe?g|gif|webp)$/i.test(n || '') }
+function isPdfName(n?: string) { return /\.pdf$/i.test(n || '') }
+function fileIsImage(f:any) { return isImageName(f?.file_name) || String(f?.mime_type||'').startsWith('image/') }
+function fileIsPdf(f:any) { return isPdfName(f?.file_name) || String(f?.mime_type||'').includes('pdf') }
+const filesList = computed(() => (data.value as any)?.files || [])
+const allImages = computed(() => filesList.value.length > 0 && filesList.value.every(fileIsImage))
+const galleryRef = ref<any>(null)
+const previewIdx = ref<number|null>(null)
+const isPreviewOpen = computed({
+  get: () => previewIdx.value !== null,
+  set: (v:boolean) => { if (!v) previewIdx.value = null }
+})
+const previewFile = computed(() => previewIdx.value !== null ? filesList.value[previewIdx.value] : null)
+const isPreviewImage = computed(() => fileIsImage(previewFile.value))
+function openPreview(i:number) {
+  if (fileIsImage(filesList.value[i])) {
+    if (allImages.value && galleryRef.value?.open) galleryRef.value.open(i)
+    else previewIdx.value = i
+  } else if (fileIsPdf(filesList.value[i])) {
+    previewIdx.value = i
+  } else {
+    window.open(`/api/files/${filesList.value[i].file_drive_id}`, '_blank')
+  }
+}
 
 function onArsipSaved() {
   refresh()
@@ -336,8 +360,21 @@ const sheetStyle = computed(() => {
             </div>
             <div>
               <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wide mb-1 dark:text-slate-400">Lampiran</p>
-              <p v-if="data.file_drive_id" class="text-slate-700 dark:text-slate-300">1 Berkas</p>
+              <p v-if="(data.files?.length || data.file_drive_id)" class="text-slate-700 dark:text-slate-300">{{ (data.files?.length || 1) }} Berkas</p>
               <p v-else class="text-slate-400 dark:text-slate-500">Tidak ada</p>
+            </div>
+            <div v-if="data.files?.length" class="sm:col-span-2">
+              <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wide mb-1 dark:text-slate-400">Daftar File</p>
+              <div class="space-y-1">
+                <div v-for="(f,i) in data.files" :key="f.id" class="flex items-center justify-between gap-2 rounded-lg border border-default px-2 py-1.5 text-xs">
+                  <span class="truncate">{{ f.file_name }}</span>
+                  <div class="flex gap-1">
+                    <UButton v-if="fileIsImage(f) || fileIsPdf(f)" size="xs" variant="ghost" icon="i-lucide-eye" @click="openPreview(i)">Pratinjau</UButton>
+                    <a :href="`/api/files/${f.file_drive_id}`" target="_blank" class="text-primary underline">Unduh</a>
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-muted mt-1">Klik pratinjau — gambar tampil lightbox</p>
             </div>
           </div>
         </UCard>
@@ -347,27 +384,57 @@ const sheetStyle = computed(() => {
           <template #header>
             <div class="flex items-center justify-between">
               <span class="text-[12px] font-medium text-slate-500 uppercase tracking-wide dark:text-slate-400">Preview Isi Surat</span>
-              <span v-if="data.file_drive_id || previewHtml" class="text-[11px] text-slate-400 dark:text-slate-500">1 halaman • A4</span>
+              <div class="flex items-center gap-2">
+                <UButton v-if="allImages" size="xs" variant="soft" icon="i-lucide-archive" :href="`/api/surat-keluar/${id}/zip`" target="_blank">ZIP</UButton>
+                <span v-if="data.file_drive_id || previewHtml" class="text-[11px] text-slate-400 dark:text-slate-500">1 halaman • A4</span>
+              </div>
             </div>
           </template>
-          <!-- Surat disetujui → PDF final bertanda tangan -->
-          <FilePreview
-            v-if="data.file_drive_id && ['terkirim', 'selesai'].includes(status)"
-            :file-id="data.file_drive_id"
-            :file-name="data.file_name"
-          />
-          <!-- Sebelum approve → pratinjau HTML inline -->
-          <div v-else-if="previewHtml" class="overflow-auto">
-            <div :style="sheetStyle" v-html="previewHtml" />
+          <ImageGallery v-if="allImages" ref="galleryRef" :files="filesList" />
+          <template v-else>
+            <!-- Surat disetujui → PDF final bertanda tangan -->
+            <FilePreview
+              v-if="data.file_drive_id && ['terkirim', 'selesai'].includes(status)"
+              :file-id="data.file_drive_id"
+              :file-name="data.file_name"
+            />
+            <!-- Sebelum approve → pratinjau HTML inline -->
+            <div v-else-if="previewHtml" class="overflow-auto">
+              <div :style="sheetStyle" v-html="previewHtml" />
+            </div>
+            <!-- Fallback: file tanpa html_content (surat upload) -->
+            <FilePreview
+              v-else-if="data.file_drive_id"
+              :file-id="data.file_drive_id"
+              :file-name="data.file_name"
+            />
+            <p v-else class="py-10 text-center text-sm text-slate-400 dark:text-slate-500">Tidak ada isi surat untuk dipratinjau</p>
+          </template>
+          <div v-if="!allImages && filesList.length" class="mt-3 divide-y divide-default rounded-lg border border-default">
+            <div class="px-3 py-2 text-xs font-medium text-muted flex justify-between"><span>Semua file ({{ filesList.length }})</span><a :href="`/api/surat-keluar/${id}/zip`" target="_blank" class="text-primary underline text-xs">Unduh ZIP</a></div>
+            <div v-for="(f,i) in filesList" :key="f.id" class="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+              <span class="truncate">{{ f.file_name }}</span>
+              <div class="flex gap-1">
+                <UButton v-if="fileIsImage(f) || fileIsPdf(f)" size="xs" variant="ghost" icon="i-lucide-eye" @click="openPreview(i)">Pratinjau</UButton>
+                <a :href="`/api/files/${f.file_drive_id}`" target="_blank" class="text-primary underline text-xs">Unduh</a>
+              </div>
+            </div>
           </div>
-          <!-- Fallback: file tanpa html_content (surat upload) -->
-          <FilePreview
-            v-else-if="data.file_drive_id"
-            :file-id="data.file_drive_id"
-            :file-name="data.file_name"
-          />
-          <p v-else class="py-10 text-center text-sm text-slate-400 dark:text-slate-500">Tidak ada isi surat untuk dipratinjau</p>
         </UCard>
+        <!-- Lightbox mixed -->
+        <UModal v-model:open="isPreviewOpen" :ui="{ content: 'sm:max-w-4xl' }">
+          <template #content v-if="previewFile">
+            <div class="p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium truncate">{{ previewFile.file_name }}</p>
+                <UButton size="xs" variant="ghost" icon="i-lucide-x" @click="previewIdx=null" />
+              </div>
+              <img v-if="isPreviewImage" :src="`/api/files/${previewFile.file_drive_id}?inline=1`" :alt="previewFile.file_name" class="w-full max-h-[70vh] object-contain rounded border border-default bg-muted" />
+              <iframe v-else-if="fileIsPdf(previewFile)" :src="`/api/files/${previewFile.file_drive_id}?inline=1`" class="w-full h-[70vh] border border-default rounded" />
+              <div class="flex justify-end"><UButton :href="`/api/files/${previewFile.file_drive_id}`" target="_blank" size="sm" icon="i-lucide-download">Unduh</UButton></div>
+            </div>
+          </template>
+        </UModal>
       </div>
 
       <!-- KOLOM KANAN (sticky) -->

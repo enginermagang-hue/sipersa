@@ -30,5 +30,10 @@ export default defineEventHandler(async (event) => {
     args: [id]
   })
 
-  return { ...res.rows[0], arsip: ars.rows[0] || null, approvals: approvals.rows }
+  const files = await db.execute({
+    sql: `SELECT id, file_drive_id, file_name, mime_type, size, created_at FROM surat_files WHERE surat_keluar_id = ? ORDER BY id ASC`,
+    args: [id]
+  })
+
+  return { ...res.rows[0], arsip: ars.rows[0] || null, approvals: approvals.rows, files: files.rows }
 })
