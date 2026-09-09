@@ -124,10 +124,12 @@ function getAksiItemsArsip(row: any) {
 }
 
   function isImageName(n?: string) { return /\.(png|jpe?g|gif|webp)$/i.test(n || '') }
+  function isPdfName(n?: string) { return /\.pdf$/i.test(n || '') }
+  function isThumbable(n?: string) { return isImageName(n) || isPdfName(n) }
   function getArsipThumb(r:any, size: 'small'|'medium'|'large' = 'small') {
     const id = r.first_file_id || r.file_drive_id
     const name = r.first_file_name || r.file_name
-    if (!id || !name || !isImageName(name)) return null
+    if (!id || !name || !isThumbable(name)) return null
     const p = size === 'small' ? 'w=160&h=160&q=70&format=webp' : size === 'medium' ? 'w=240&h=240&q=70&format=webp' : 'w=400&h=400&q=72&format=webp'
     return `/api/files/${id}?inline=1&thumb=1&${p}`
   }

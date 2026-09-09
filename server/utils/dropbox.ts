@@ -9,7 +9,7 @@ function norm(v?: string): string {
   return v.trim().replace(/^["']|["']$/g, '')
 }
 
-async function getAccessToken(): Promise<string> {
+export async function getAccessToken(): Promise<string> {
   const config = useRuntimeConfig()
   const refreshToken = norm(config.dropboxRefreshToken as string)
   const staticToken = norm(config.dropboxToken as string)
