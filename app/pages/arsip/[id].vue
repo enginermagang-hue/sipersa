@@ -128,7 +128,7 @@ definePageMeta({ title: 'Detail Arsip' })
       </div>
 
       <!-- Kanan -->
-      <div class="space-y-3 lg:sticky lg:top-[80px]">
+      <div class="space-y-3 lg:sticky lg:top-4">
         <UCard>
           <template #header><h3 class="font-semibold text-slate-900 dark:text-white">Retensi & Status</h3></template>
           <div class="space-y-3 text-[13px]">

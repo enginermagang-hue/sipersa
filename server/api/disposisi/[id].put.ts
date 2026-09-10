@@ -60,6 +60,10 @@ export default defineEventHandler(async (event) => {
     const sisa = await db.execute({ sql: `SELECT COUNT(*) as c FROM disposisi WHERE surat_masuk_id=? AND status!='selesai' AND deleted_at IS NULL`, args: [cur.surat_masuk_id] })
     if ((sisa.rows[0] as any).c === 0) {
       await db.execute({ sql: `UPDATE surat_masuk SET status='selesai' WHERE id=?`, args: [cur.surat_masuk_id] })
+      try {
+        const { autoArsipFromMasuk } = await import('../../utils/arsip-auto')
+        await autoArsipFromMasuk(db, cur.surat_masuk_id)
+      } catch {}
     }
   }
 

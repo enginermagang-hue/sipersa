@@ -27,7 +27,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'File PDF hasil persetujuan tidak ditemukan. Muat ulang halaman dan coba lagi.' })
   }
   await db.execute({ sql: `UPDATE surat_keluar SET status = ?, approved_at = datetime('now'), approved_by = ?, catatan_tolak = ?, file_drive_id = ?, file_name = ? WHERE id = ?`, args: [status === 'approved' ? 'terkirim' : 'ditolak', auth.userId, status === 'rejected' ? catatan : null, fileDriveId, fileName, id] })
+  if (fileDriveId && status === 'approved') {
+    await db.execute({ sql: `INSERT OR IGNORE INTO surat_files (surat_keluar_id, file_drive_id, file_name) VALUES (?, ?, ?)`, args: [id, fileDriveId, fileName] })
+  }
   await db.execute({ sql: `INSERT INTO surat_keluar_approval (surat_keluar_id, reviewed_by, status, catatan) VALUES (?, ?, ?, ?)`, args: [id, auth.userId, status, catatan] })
+  if (status === 'approved') {
+    try {
+      const { autoArsipFromKeluar } = await import('../../../utils/arsip-auto')
+      await autoArsipFromKeluar(db, id)
+    } catch {}
+  }
   await logActivity({ userId: auth.userId, action: status === 'approved' ? 'APPROVE_SURAT_KELUAR' : 'REJECT_SURAT_KELUAR', entity: 'surat_keluar', entityId: id, detail: { no_surat: surat.no_surat, catatan }, ip: getRequestIP(event, { xForwardedFor: true }) })
   return { ok: true, status: status === 'approved' ? 'terkirim' : 'ditolak' }
 })

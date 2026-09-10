@@ -148,7 +148,7 @@ function getAksiItemsArsip(row: any) {
       const thumb = getArsipThumb(r)
       return h('div', { class: 'flex items-start gap-2 min-w-0 max-w-full' }, [
         thumb ? h('img', { src: thumb, class: 'w-10 h-10 rounded object-cover border border-default shrink-0 mt-0.5', loading: 'lazy' } as any) : null,
-        h('span', { class: 'break-words whitespace-normal line-clamp-2 leading-snug max-w-[260px] block', title: r.nama_dokumen }, r.nama_dokumen)
+        h(resolveComponent('NuxtLink'), { to: `/arsip/${r.id}`, class: 'break-words whitespace-normal line-clamp-2 leading-snug max-w-[260px] block hover:underline hover:text-primary', title: r.nama_dokumen }, () => r.nama_dokumen)
       ])
     } },
   {
@@ -368,7 +368,7 @@ function getAksiItemsArsip(row: any) {
             <UIcon name="i-lucide-file-text" class="w-8 h-8 text-muted" />
           </div>
           <div class="flex items-start justify-between gap-2">
-            <h3 class="font-medium text-sm leading-tight line-clamp-2 flex-1">{{ r.nama_dokumen }}</h3>
+            <NuxtLink :to="`/arsip/${r.id}`" class="font-medium text-sm leading-tight line-clamp-2 flex-1 hover:underline hover:text-primary" :title="r.nama_dokumen" @click.stop>{{ r.nama_dokumen }}</NuxtLink>
             <div @click.stop><UDropdownMenu :items="getAksiItemsArsip(r)"><UButton icon="i-lucide-ellipsis-vertical" color="neutral" variant="ghost" size="xs" /></UDropdownMenu></div>
           </div>
           <div class="mt-1 text-xs text-muted truncate">{{ r.klasifikasi_kode ? `${r.klasifikasi_kode} - ${r.klasifikasi_nama}` : '-' }} • {{ r.lokasi || '-' }}</div>
@@ -393,7 +393,7 @@ function getAksiItemsArsip(row: any) {
           <div v-else class="w-10 h-10 rounded border border-dashed border-default flex items-center justify-center shrink-0 bg-muted/30"><UIcon name="i-lucide-archive" class="w-4 h-4 text-muted" /></div>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-1.5">
-              <span class="font-medium text-sm truncate">{{ r.nama_dokumen }}</span>
+              <NuxtLink :to="`/arsip/${r.id}`" class="font-medium text-sm truncate hover:underline hover:text-primary" :title="r.nama_dokumen" @click.stop>{{ r.nama_dokumen }}</NuxtLink>
               <UBadge :label="retensiLabel[r.status] || r.status" :color="retensiColor[r.status] || 'neutral'" variant="subtle" size="xs" />
             </div>
             <div class="text-xs text-muted truncate">{{ r.klasifikasi_kode ? `${r.klasifikasi_kode} - ${r.klasifikasi_nama}` : '-' }} • {{ r.lokasi || '-' }} • {{ r.tahun || '-' }}</div>
