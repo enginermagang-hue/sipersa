@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { FormError } from '@nuxt/ui'
 import { CalendarDate } from '@internationalized/date'
+import { isImageFile, compressTo1MB } from '~/utils/compressImage'
+import { DROPBOX_FOLDERS } from '~/composables/useDirectDropboxUpload'
 
 const props = defineProps<{ type: 'masuk' | 'keluar'; suratId?: number; surat?: any }>()
 const emit = defineEmits<{ close: []; busy: [boolean] }>()
@@ -86,6 +88,7 @@ const uploading = ref(false)
 const uploadProgress = ref<number | null>(null)
 const uploadStatus = ref('')
 const activeFileIndex = ref<number | null>(null)
+const compressedMap = ref<Record<string, { original: number; compressed: number }>>({})
 const existingFiles = ref<any[]>([])
 const keepIds = ref<Set<number>>(new Set())
 
@@ -185,6 +188,7 @@ async function submit() {
   emit('busy', true)
   error.value = ''
   errorDetails.value = ''
+  compressedMap.value = {}
   const hasHeic = files.value.some(isHeicFileClient)
   if (hasHeic) {
     uploading.value = true
@@ -194,13 +198,70 @@ async function submit() {
     uploadProgress.value = 15
     uploadStatus.value = 'Konversi selesai'
   }
-  const total = files.value.reduce((a,f)=>a+f.size,0)
-  if (total > 25*1024*1024) {
-    const m=`Total ukuran file terlalu besar (maks. 25 MB, total ${(total/1024/1024).toFixed(1)} MB)`
-    error.value=m; errorDetails.value=m
-    useToast().add({ title: 'File terlalu besar', description: m, color: 'error', duration: 6000 })
-    uploading.value=false; uploadProgress.value=null; uploadStatus.value=''; activeFileIndex.value=null
+  // compress foto to <=1MB
+  const fotoRaw = files.value.filter(f => isImageFile(f))
+  const pdfRaw = files.value.filter(f => !isImageFile(f))
+  let compressedFoto: File[] = []
+  if (fotoRaw.length) {
+    uploading.value = true
+    uploadStatus.value = `Mengompres foto 1/${fotoRaw.length}…`
+    for (let i = 0; i < fotoRaw.length; i++) {
+      activeFileIndex.value = i
+      uploadStatus.value = `Mengompres foto ${i + 1}/${fotoRaw.length}…`
+      const res = await compressTo1MB(fotoRaw[i], { maxWidth: 1920, maxSizeMB: 1 })
+      compressedFoto.push(res.file)
+      compressedMap.value[res.file.name] = { original: res.originalSize, compressed: res.compressedSize }
+      if (res.compressedSize < res.originalSize) {
+        uploadProgress.value = Math.round(((i + 1) / fotoRaw.length) * 20)
+      }
+    }
+    // replace foto part with compressed
+    const fotoNames = new Set(fotoRaw.map(f => f.name))
+    // keep non-foto + compressed
+    files.value = [...pdfRaw, ...compressedFoto]
+  }
+  // check PDF limit for Vercel Hobby (4.5 MB per request) — foto sudah bypass
+  const pdfTotal = pdfRaw.reduce((a, f) => a + f.size, 0)
+  if (pdfTotal > 4.5 * 1024 * 1024) {
+    const m = `PDF melebihi batas Vercel Hobby 4.5 MB (total ${(pdfTotal / 1024 / 1024).toFixed(1)} MB). Kompres PDF atau upload 1 per 1 / gunakan foto (bypass).`
+    error.value = 'PDF terlalu besar untuk Vercel Hobby'; errorDetails.value = m
+    useToast().add({ title: 'PDF terlalu besar untuk Vercel Hobby', description: m, color: 'error', duration: 6000 })
+    uploading.value = false; uploadProgress.value = null; uploadStatus.value = ''; activeFileIndex.value = null
     emit('busy', false); return
+  }
+  const total = files.value.reduce((a, f) => a + f.size, 0)
+  if (total > 25 * 1024 * 1024) {
+    const m = `Total ukuran file terlalu besar (maks. 25 MB, total ${(total / 1024 / 1024).toFixed(1)} MB)`
+    error.value = m; errorDetails.value = m
+    useToast().add({ title: 'File terlalu besar', description: m, color: 'error', duration: 6000 })
+    uploading.value = false; uploadProgress.value = null; uploadStatus.value = ''; activeFileIndex.value = null
+    emit('busy', false); return
+  }
+  // direct upload foto to Dropbox bypassing Vercel
+  const directIds: { id: string; name: string }[] = []
+  if (compressedFoto.length) {
+    try {
+      const { uploadFotoDirect } = await import('~/composables/useDirectDropboxUpload')
+      const folder = props.type === 'masuk' ? DROPBOX_FOLDERS.SM : DROPBOX_FOLDERS.SK
+      const noSuratPrefix = state.no_surat?.trim() || ''
+      for (let i = 0; i < compressedFoto.length; i++) {
+        activeFileIndex.value = i
+        uploadProgress.value = 20 + Math.round((i / compressedFoto.length) * 10)
+        uploadStatus.value = `Upload foto ${i + 1}/${compressedFoto.length} — ${compressedFoto[i].name}…`
+        const res = await uploadFotoDirect(compressedFoto[i], folder as any, (pct, st) => {
+          uploadStatus.value = st
+          uploadProgress.value = 20 + Math.round((i / compressedFoto.length) * 50) + Math.round(pct * 0.5 / compressedFoto.length)
+        }, noSuratPrefix || undefined)
+        directIds.push(res)
+        compressedMap.value[compressedFoto[i].name] = { original: compressedMap.value[compressedFoto[i].name]?.original ?? compressedFoto[i].size, compressed: compressedFoto[i].size }
+      }
+    } catch (e: any) {
+      const msg = e?.data?.statusMessage || e?.message || 'Gagal upload foto langsung'
+      error.value = 'Gagal upload foto'; errorDetails.value = msg
+      useToast().add({ title: 'Gagal upload foto', description: msg, color: 'error', duration: 6000 })
+      uploading.value = false; uploadProgress.value = null; uploadStatus.value = ''; activeFileIndex.value = null
+      emit('busy', false); return
+    }
   }
   const fd = new FormData()
   const fields: Record<string, any> = { ...state }
@@ -212,22 +273,38 @@ async function submit() {
   if (props.suratId && existingFiles.value.length) {
     fd.append('keep_file_ids', Array.from(keepIds.value).join(','))
   }
-  for (const f of files.value) fd.append('file', f)
+  // attach direct ids for foto
+  if (directIds.length) {
+    fd.append('direct_file_ids', directIds.map(d => d.id).join(','))
+    fd.append('direct_file_names', directIds.map(d => d.name).join(','))
+  }
+  // only pdf files go as binary via Vercel (foto already via direct)
+  for (const f of pdfRaw) fd.append('file', f)
   try {
     uploading.value = true
-    activeFileIndex.value = 0
-    if (!hasHeic) { uploadProgress.value = 5; uploadStatus.value = 'Menyiapkan upload…' }
+    if (!hasHeic && !fotoRaw.length) { uploadProgress.value = 5; uploadStatus.value = 'Menyiapkan upload…' }
+    else if (directIds.length) { uploadProgress.value = 75; uploadStatus.value = 'Menyimpan data surat…' }
     const base = props.type === 'masuk' ? '/api/surat-masuk' : '/api/surat-keluar'
     const url = props.suratId ? `${base}/${props.suratId}` : base
     const method = props.suratId ? 'PUT' : 'POST'
-    uploadStatus.value = files.value.length > 1 ? `Mengunggah 1/${files.value.length}…` : 'Mengunggah file…'
+    if (!directIds.length) uploadStatus.value = files.value.length > 1 ? `Mengunggah 1/${files.value.length}…` : 'Mengunggah file…'
     const { uploadFormDataWithProgressSequential, mapUploadError } = await import('~/composables/useUploadProgress')
-    const snapshot = [...files.value]
+    const snapshot = pdfRaw.length ? [...pdfRaw] : directIds.length ? [] : [...files.value]
     try {
-      await uploadFormDataWithProgressSequential(url, fd, snapshot, {
-        method,
-        onProgress: (pct, status, idx) => { uploadProgress.value = pct; uploadStatus.value = status; if (idx !== undefined) activeFileIndex.value = idx }
-      })
+      if (snapshot.length || directIds.length) {
+        await uploadFormDataWithProgressSequential(url, fd, snapshot, {
+          method,
+          onProgress: (pct, status, idx) => {
+            // if foto direct done, pct is for pdf part 75-100
+            if (directIds.length && snapshot.length === 0) { uploadProgress.value = 75 + Math.round(pct * 0.25 / 100); uploadStatus.value = status }
+            else { uploadProgress.value = directIds.length ? 75 + Math.round(pct * 0.25 / 100) : pct; uploadStatus.value = status; if (idx !== undefined) activeFileIndex.value = idx }
+          }
+        })
+      } else {
+        // no binary at all (only foto direct)
+        const { uploadFormDataWithProgress } = await import('~/composables/useUploadProgress')
+        await uploadFormDataWithProgress(url, fd, { method, onProgress: (pct, st) => { uploadProgress.value = pct; uploadStatus.value = st } })
+      }
       uploadProgress.value = 100
       uploadStatus.value = 'Berhasil'
       useToast().add({ title: 'Berhasil', description: props.suratId ? 'Surat diperbarui' : 'Surat berhasil disimpan', color: 'success' })
@@ -244,7 +321,6 @@ async function submit() {
     useToast().add({ title: m, description: m, color: 'error', duration: 6000 })
   } finally {
     uploading.value = false
-    // keep progress briefly for success feedback
     if (error.value) { uploadProgress.value = null; uploadStatus.value = ''; activeFileIndex.value = null }
     else setTimeout(()=>{ uploadProgress.value=null; uploadStatus.value=''; activeFileIndex.value=null }, 1000)
     emit('busy', false)
@@ -354,7 +430,7 @@ async function submit() {
           <a :href="`/api/files/${ef.file_drive_id}`" target="_blank" class="text-primary text-xs underline">Unduh</a>
         </div>
       </div>
-      <FileUpload label="Unggah File Surat (multiple, total maks. 25 MB)" description="Format: PDF, JPG, PNG, HEIC (auto JPEG)." :multiple="true" v-model:files="files" :progress="uploadProgress" :uploading="uploading" :status-text="uploadStatus" :active-index="activeFileIndex" />
+      <FileUpload label="Unggah File Surat (multiple, total maks. 25 MB)" description="Foto auto-kompres ≤1MB & bypass Vercel; PDF via Vercel ≤4.5MB." :multiple="true" v-model:files="files" :progress="uploadProgress" :uploading="uploading" :status-text="uploadStatus" :active-index="activeFileIndex" :compressed-map="compressedMap" />
     </div>
 
     <UAlert v-if="error" color="error" variant="soft" :title="error" :description="errorDetails" class="whitespace-pre-wrap" />

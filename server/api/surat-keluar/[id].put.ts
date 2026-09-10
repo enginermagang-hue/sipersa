@@ -31,6 +31,13 @@ export default defineEventHandler(async (event) => {
     }
   }
   const uploaded: { id: string, name: string, type: string, size: number }[] = []
+  const directIdsRaw = (fields.direct_file_ids || '').toString().trim()
+  const directNamesRaw = (fields.direct_file_names || '').toString().trim()
+  if (directIdsRaw) {
+    const ids = directIdsRaw.split(',').map(s=>s.trim()).filter(Boolean)
+    const names = directNamesRaw.split(',').map(s=>s.trim())
+    for (let i=0;i<ids.length;i++) uploaded.push({ id: ids[i], name: names[i]||`foto-${i+1}.jpg`, type: 'image/jpeg', size: 0 })
+  }
   for (const f of files) {
     const up = await uploadToDrive(`${(exist.rows[0] as any).no_surat}_${f.filename}`, f.type, f.data, DROPBOX_FOLDERS.SK)
     uploaded.push({ id: up.id as string, name: f.filename, type: f.type, size: f.data.length })

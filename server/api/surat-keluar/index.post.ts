@@ -50,7 +50,14 @@ export default defineEventHandler(async (event) => {
   }
 
   assertFilesSize(files)
+  const directIdsRaw = (fields.direct_file_ids || '').toString().trim()
+  const directNamesRaw = (fields.direct_file_names || '').toString().trim()
+  const directIds = directIdsRaw ? directIdsRaw.split(',').map(s=>s.trim()).filter(Boolean) : []
+  const directNames = directNamesRaw ? directNamesRaw.split(',').map(s=>s.trim()) : []
   const uploaded: { id: string, name: string, type: string, size: number }[] = []
+  for (let i = 0; i < directIds.length; i++) {
+    uploaded.push({ id: directIds[i], name: directNames[i] || `foto-${i+1}.jpg`, type: 'image/jpeg', size: 0 })
+  }
   for (const f of files) {
     const up = await uploadToDrive(`${no_surat}_${f.filename}`, f.type, f.data, DROPBOX_FOLDERS.SK)
     uploaded.push({ id: up.id as string, name: f.filename, type: f.type, size: f.data.length })

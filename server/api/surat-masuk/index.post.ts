@@ -48,8 +48,17 @@ export default defineEventHandler(async (event) => {
   }
 
   assertFilesSize(files)
-  // upload multiple (bebas jumlah, total 25MB)
+  // direct upload ids from client bypass (foto ≤1MB)
+  const directIdsRaw = (fields.direct_file_ids || '').toString().trim()
+  const directNamesRaw = (fields.direct_file_names || '').toString().trim()
+  const directIds = directIdsRaw ? directIdsRaw.split(',').map(s=>s.trim()).filter(Boolean) : []
+  const directNames = directNamesRaw ? directNamesRaw.split(',').map(s=>s.trim()) : []
+  // upload multiple via server (PDF only, total 25MB)
   const uploaded: { id: string, name: string, type: string, size: number }[] = []
+  // add direct ids first (already in Dropbox)
+  for (let i = 0; i < directIds.length; i++) {
+    uploaded.push({ id: directIds[i], name: directNames[i] || `foto-${i+1}.jpg`, type: 'image/jpeg', size: 0 })
+  }
   for (const f of files) {
     const up = await uploadToDrive(`${no_surat}_${f.filename}`, f.type, f.data, DROPBOX_FOLDERS.SM)
     uploaded.push({ id: up.id as string, name: f.filename, type: f.type, size: f.data.length })
