@@ -25,6 +25,22 @@ const state = reactive({
   klasifikasi_kode: ''
 })
 
+const tujuanItems = ref<string[]>([])
+const tujuanLoading = ref(false)
+async function loadTujuan(q: string) {
+  tujuanLoading.value = true
+  try {
+    const res: any = await $fetch('/api/surat-keluar/tujuan', { query: { q, limit: 20 } })
+    tujuanItems.value = Array.isArray(res) ? res : []
+  } catch { tujuanItems.value = [] } finally { tujuanLoading.value = false }
+}
+loadTujuan('')
+let tujuanDebounce: any = null
+function onTujuanSearchTerm(v: string) {
+  clearTimeout(tujuanDebounce)
+  tujuanDebounce = setTimeout(() => loadTujuan(v || ''), 250)
+}
+
 function isoToCal(iso: string): CalendarDate | null {
   if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null
   const [y, m, d] = iso.split('-').map(Number)
@@ -336,7 +352,15 @@ async function confirmAjukan() { ajukanOpen.value = false; await simpanWithStatu
                   </UInputDate>
                 </UFormField>
                 <UFormField label="Tujuan">
-                  <UInput class="w-full" v-model="state.tujuan" />
+                  <UInputMenu v-model="state.tujuan" mode="autocomplete" :items="tujuanItems" :ignore-filter="true" :trailing-icon="false" :content="{ hideWhenEmpty: true }" placeholder="Ketik tujuan…" class="w-full" @update:search-term="onTujuanSearchTerm">
+                    <template #trailing>
+                      <div class="flex items-center gap-1 pr-1">
+                        <UIcon v-if="tujuanLoading" name="i-lucide-loader-circle" class="size-4 animate-spin text-muted" />
+                        <UButton v-else-if="state.tujuan" variant="ghost" color="neutral" size="xs" icon="i-lucide-x" aria-label="Clear" class="p-0.5 -m-0.5" @click.stop="state.tujuan=''" />
+                        <UIcon name="i-lucide-chevron-down" class="size-4 text-muted shrink-0" />
+                      </div>
+                    </template>
+                  </UInputMenu>
                 </UFormField>
                 <UFormField label="Perihal">
                   <UInput class="w-full" v-model="state.perihal" />

@@ -68,8 +68,16 @@ async function loadTujuan(q: string) {
 }
 if (props.type === 'masuk') loadPengirim('')
 else loadTujuan('')
-function onPengirimSearchTerm(v: string) { loadPengirim(v || '') }
-function onTujuanSearchTerm(v: string) { loadTujuan(v || '') }
+let pengirimDebounce: any = null
+let tujuanDebounce: any = null
+function onPengirimSearchTerm(v: string) {
+  clearTimeout(pengirimDebounce)
+  pengirimDebounce = setTimeout(() => loadPengirim(v || ''), 250)
+}
+function onTujuanSearchTerm(v: string) {
+  clearTimeout(tujuanDebounce)
+  tujuanDebounce = setTimeout(() => loadTujuan(v || ''), 250)
+}
 
 const files = ref<File[]>([])
 const error = ref('')
@@ -235,7 +243,7 @@ async function submit() {
         <UInput v-model="state.no_surat" class="w-full" placeholder="mis. 123/UND/VI/2026 — kosongkan = auto NNN/SM-INST/..." />
       </UFormField>
       <UFormField v-if="type === 'masuk'" label="Pengirim" name="pihak">
-        <UInputMenu v-model="state.pengirim" :items="pengirimItems" :trailing-icon="false" create-item placeholder="Ketik pengirim…" class="w-full" @update:search-term="onPengirimSearchTerm">
+        <UInputMenu v-model="state.pengirim" mode="autocomplete" :items="pengirimItems" :ignore-filter="true" :trailing-icon="false" :content="{ hideWhenEmpty: true }" placeholder="Ketik pengirim…" class="w-full" @update:search-term="onPengirimSearchTerm">
           <template #trailing>
             <div class="flex items-center gap-1 pr-1">
               <UIcon v-if="pengirimLoading" name="i-lucide-loader-circle" class="size-4 animate-spin text-muted" />
@@ -246,7 +254,7 @@ async function submit() {
         </UInputMenu>
       </UFormField>
       <UFormField v-else label="Tujuan" name="pihak">
-        <UInputMenu v-model="state.tujuan" :items="tujuanItems" :trailing-icon="false" create-item placeholder="Ketik tujuan…" class="w-full" @update:search-term="onTujuanSearchTerm">
+        <UInputMenu v-model="state.tujuan" mode="autocomplete" :items="tujuanItems" :ignore-filter="true" :trailing-icon="false" :content="{ hideWhenEmpty: true }" placeholder="Ketik tujuan…" class="w-full" @update:search-term="onTujuanSearchTerm">
           <template #trailing>
             <div class="flex items-center gap-1 pr-1">
               <UIcon v-if="tujuanLoading" name="i-lucide-loader-circle" class="size-4 animate-spin text-muted" />
