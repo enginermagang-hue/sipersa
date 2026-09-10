@@ -3,6 +3,7 @@ import { SURAT_TEMPLATES, assembleTemplate, tembusanBlock, ttdBlock, parafHirark
 import TinyMceEditor from '~/components/TinyMceEditor.client.vue'
 import { useLocalStorage } from '@vueuse/core'
 import { parseRenderConfig, PAPER } from '~/utils/pdf-render'
+import { CalendarDate } from '@internationalized/date'
 
 const route = useRoute()
 const id = route.params.id as string
@@ -26,6 +27,20 @@ const state = reactive({
   penandatangan: '',
   klasifikasi_kode: ''
 })
+function isoToCal(iso: string): CalendarDate | null {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return null
+  return new CalendarDate(y, m, d)
+}
+function calToIso(c: CalendarDate | null): string {
+  return c ? `${c.year}-${String(c.month).padStart(2, '0')}-${String(c.day).padStart(2, '0')}` : ''
+}
+const tglCal = computed({
+  get: () => isoToCal(state.tgl_surat),
+  set: (v: CalendarDate | null) => { state.tgl_surat = calToIso(v) }
+})
+const inputTglRef = useTemplateRef('inputTglRef')
 const isi = ref('')
 const saving = ref(false)
 
@@ -133,6 +148,7 @@ function debouncedSync(fn:()=>void){ clearTimeout(syncTimer); syncTimer=setTimeo
 watch(()=>state.tujuan, v=> debouncedSync(()=> syncDom('hdr-tujuan', escHtml(v)||'..........................................')))
 watch(()=>state.perihal, v=> debouncedSync(()=>{ const h=escHtml(v); syncDom('hdr-perihal', h||''); syncDom('kv-acara', h||'..........................................'); syncDom('opening-perihal', h||'...') }))
 watch(()=>state.no_surat, v=> debouncedSync(()=> syncDom('hdr-nomor', escHtml(v))))
+watch(()=>state.tgl_surat, v=> debouncedSync(()=> syncDom('tgl-surat-ttd', escHtml(tglIndoLong(v)))))
 const tabItems = [{label:'Informasi Surat',value:'informasi',slot:'informasi'},{label:'Opsi Cetak',value:'cetak',slot:'cetak'},{label:'Template',value:'template',slot:'template'}]
 watch(()=>[state.tgl_surat, state.klasifikasi_kode] as const, async([tgl,kode])=>{ if(!kode?.trim()||!tgl) return; try{ const r:any=await $fetch('/api/surat-keluar/next-no',{query:{kode:kode.trim(),tgl_surat:tgl}}); state.no_surat=r.no_surat; state.no_urut=r.no_urut }catch{} })
 function validate():string|null{ if(!state.klasifikasi_kode?.trim()) return 'Kode klasifikasi wajib diisi'; if(!state.tgl_surat) return 'Tanggal surat wajib diisi'; if(!state.tujuan.trim()) return 'Tujuan wajib diisi'; if(!state.perihal.trim()) return 'Perihal wajib diisi'; if(!state.no_surat.trim()) return 'No. surat wajib diisi'; if(!isi.value||!isi.value.replace(/<[^>]*>/g,'').trim()) return 'Isi surat masih kosong'; return null }
@@ -182,7 +198,18 @@ async function confirmAjukan(){ ajukanOpen.value=false; await simpanWithStatus('
             <template #informasi>
               <div class="py-4 px-2 space-y-3">
                 <UFormField label="No. Surat"><UInput class="w-full" v-model="state.no_surat" /></UFormField>
-                <UFormField label="Tanggal Surat"><UInput class="w-full" v-model="state.tgl_surat" type="date" /></UFormField>
+                <UFormField label="Tanggal Surat">
+                  <UInputDate ref="inputTglRef" v-model="tglCal" locale="id-ID" class="w-full">
+                    <template #trailing>
+                      <UPopover>
+                        <UButton color="neutral" variant="link" size="sm" icon="i-lucide-calendar" aria-label="Pilih tanggal" class="px-0" />
+                        <template #content>
+                          <UCalendar v-model="tglCal" class="p-2" locale="id-ID" />
+                        </template>
+                      </UPopover>
+                    </template>
+                  </UInputDate>
+                </UFormField>
                 <UFormField label="Tujuan"><UInput class="w-full" v-model="state.tujuan" /></UFormField>
                 <UFormField label="Perihal"><UInput class="w-full" v-model="state.perihal" /></UFormField>
                 <div class="grid grid-cols-2 gap-3">

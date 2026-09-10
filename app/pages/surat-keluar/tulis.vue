@@ -2,6 +2,7 @@
 import { SURAT_TEMPLATES, assembleTemplate, tembusanBlock, ttdBlock, parafHirarkiBlock } from '~/utils/surat-templates'
 import TinyMceEditor from '~/components/TinyMceEditor.client.vue'
 import { useLocalStorage } from '@vueuse/core'
+import { CalendarDate } from '@internationalized/date'
 
 const toast = useToast()
 const saving = ref(false)
@@ -23,6 +24,21 @@ const state = reactive({
   penandatangan: '',
   klasifikasi_kode: ''
 })
+
+function isoToCal(iso: string): CalendarDate | null {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return null
+  return new CalendarDate(y, m, d)
+}
+function calToIso(c: CalendarDate | null): string {
+  return c ? `${c.year}-${String(c.month).padStart(2, '0')}-${String(c.day).padStart(2, '0')}` : ''
+}
+const tglCal = computed({
+  get: () => isoToCal(state.tgl_surat),
+  set: (v: CalendarDate | null) => { state.tgl_surat = calToIso(v) }
+})
+const inputTglRef = useTemplateRef('inputTglRef')
 
 const isi = ref('')
 
@@ -186,6 +202,7 @@ function debouncedSync(fn:()=>void){ clearTimeout(syncTimer); syncTimer=setTimeo
 watch(()=>state.tujuan, v=> debouncedSync(()=> syncDom('hdr-tujuan', escHtml(v) || '..........................................')))
 watch(()=>state.perihal, v=> debouncedSync(()=>{ const h=escHtml(v); syncDom('hdr-perihal', h||''); syncDom('kv-acara', h||'..........................................'); syncDom('opening-perihal', h||'...') }))
 watch(()=>state.no_surat, v=> debouncedSync(()=> syncDom('hdr-nomor', escHtml(v))))
+watch(()=>state.tgl_surat, v=> debouncedSync(()=> syncDom('tgl-surat-ttd', escHtml(tglIndoLong(v)))))
 
 const tabItems = [
   { label: 'Informasi Surat', value: 'informasi', slot: 'informasi' },
@@ -307,7 +324,16 @@ async function confirmAjukan() { ajukanOpen.value = false; await simpanWithStatu
                   <UInput class="w-full" v-model="state.no_surat" />
                 </UFormField>
                 <UFormField label="Tanggal Surat">
-                  <UInput class="w-full" v-model="state.tgl_surat" type="date" />
+                  <UInputDate ref="inputTglRef" v-model="tglCal" locale="id-ID" class="w-full">
+                    <template #trailing>
+                      <UPopover>
+                        <UButton color="neutral" variant="link" size="sm" icon="i-lucide-calendar" aria-label="Pilih tanggal" class="px-0" />
+                        <template #content>
+                          <UCalendar v-model="tglCal" class="p-2" locale="id-ID" />
+                        </template>
+                      </UPopover>
+                    </template>
+                  </UInputDate>
                 </UFormField>
                 <UFormField label="Tujuan">
                   <UInput class="w-full" v-model="state.tujuan" />

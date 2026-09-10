@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { FormError } from '@nuxt/ui'
+import { CalendarDate } from '@internationalized/date'
 
 const props = defineProps<{ type: 'masuk' | 'keluar'; suratId?: number; surat?: any }>()
 const emit = defineEmits<{ close: []; busy: [boolean] }>()
@@ -9,10 +10,11 @@ const { openPopup } = useKlasifikasiPopup()
 const { data: klas } = await useFetch('/api/klasifikasi')
 const klasOptions = computed(() => (klas.value || []).map((k: any) => ({ label: `${k.kode} - ${k.nama}`, value: k.id })))
 
+const todayIso = new Date().toISOString().slice(0, 10)
 const s = props.surat || {}
 const state = reactive({
-  tgl_surat: s.tgl_surat || '',
-  tgl_terima: s.tgl_terima || '',
+  tgl_surat: s.tgl_surat || todayIso,
+  tgl_terima: s.tgl_terima || (props.type === 'masuk' ? todayIso : ''),
   pengirim: s.pengirim || '',
   tujuan: s.tujuan || '',
   perihal: s.perihal || '',
@@ -25,6 +27,50 @@ const state = reactive({
   no_surat: s.no_surat || '',
   ringkasan: s.ringkasan || ''
 })
+function isoToCal(iso: string): CalendarDate | null {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return null
+  return new CalendarDate(y, m, d)
+}
+function calToIso(c: CalendarDate | null): string {
+  return c ? `${c.year}-${String(c.month).padStart(2, '0')}-${String(c.day).padStart(2, '0')}` : ''
+}
+const tglSuratCal = computed({
+  get: () => isoToCal(state.tgl_surat),
+  set: (v: CalendarDate | null) => { state.tgl_surat = calToIso(v) }
+})
+const tglTerimaCal = computed({
+  get: () => isoToCal(state.tgl_terima),
+  set: (v: CalendarDate | null) => { state.tgl_terima = calToIso(v) }
+})
+const inputSuratRef = useTemplateRef('inputSuratRef')
+const inputTerimaRef = useTemplateRef('inputTerimaRef')
+
+const pengirimItems = ref<string[]>([])
+const tujuanItems = ref<string[]>([])
+const pengirimLoading = ref(false)
+const tujuanLoading = ref(false)
+
+async function loadPengirim(q: string) {
+  pengirimLoading.value = true
+  try {
+    const res: any = await $fetch('/api/surat-masuk/pengirim', { query: { q, limit: 20 } })
+    pengirimItems.value = Array.isArray(res) ? res : []
+  } catch { pengirimItems.value = [] } finally { pengirimLoading.value = false }
+}
+async function loadTujuan(q: string) {
+  tujuanLoading.value = true
+  try {
+    const res: any = await $fetch('/api/surat-keluar/tujuan', { query: { q, limit: 20 } })
+    tujuanItems.value = Array.isArray(res) ? res : []
+  } catch { tujuanItems.value = [] } finally { tujuanLoading.value = false }
+}
+if (props.type === 'masuk') loadPengirim('')
+else loadTujuan('')
+function onPengirimSearchTerm(v: string) { loadPengirim(v || '') }
+function onTujuanSearchTerm(v: string) { loadTujuan(v || '') }
+
 const files = ref<File[]>([])
 const error = ref('')
 const existingFiles = ref<any[]>([])
@@ -59,6 +105,7 @@ const pihak = computed({
     else state.tujuan = v
   }
 })
+// kept for backward compat but not used for input binding directly
 
 const sifatOptions = [
   { label: 'Biasa', value: 'biasa' },
@@ -160,17 +207,54 @@ async function submit() {
     <div class="space-y-3">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <UFormField label="Tanggal Surat" name="tgl_surat">
-          <UInput v-model="state.tgl_surat" class="w-full" type="date" />
+          <UInputDate ref="inputSuratRef" v-model="tglSuratCal" locale="id-ID" class="w-full">
+            <template #trailing>
+              <UPopover>
+                <UButton color="neutral" variant="link" size="sm" icon="i-lucide-calendar" aria-label="Pilih tanggal" class="px-0" />
+                <template #content>
+                  <UCalendar v-model="tglSuratCal" class="p-2" locale="id-ID" />
+                </template>
+              </UPopover>
+            </template>
+          </UInputDate>
         </UFormField>
         <UFormField v-if="type === 'masuk'" label="Tanggal Terima">
-          <UInput v-model="state.tgl_terima" class="w-full" type="date" />
+          <UInputDate ref="inputTerimaRef" v-model="tglTerimaCal" locale="id-ID" class="w-full">
+            <template #trailing>
+              <UPopover>
+                <UButton color="neutral" variant="link" size="sm" icon="i-lucide-calendar" aria-label="Pilih tanggal" class="px-0" />
+                <template #content>
+                  <UCalendar v-model="tglTerimaCal" class="p-2" locale="id-ID" />
+                </template>
+              </UPopover>
+            </template>
+          </UInputDate>
         </UFormField>
       </div>
       <UFormField label="No. Surat" name="no_surat" v-if="type === 'masuk'" hint="Kosongkan untuk generate otomatis">
         <UInput v-model="state.no_surat" class="w-full" placeholder="mis. 123/UND/VI/2026 — kosongkan = auto NNN/SM-INST/..." />
       </UFormField>
-      <UFormField :label="type === 'masuk' ? 'Pengirim' : 'Tujuan'" name="pihak">
-        <UInput v-model="pihak" class="w-full" />
+      <UFormField v-if="type === 'masuk'" label="Pengirim" name="pihak">
+        <UInputMenu v-model="state.pengirim" :items="pengirimItems" :trailing-icon="false" create-item placeholder="Ketik pengirim…" class="w-full" @update:search-term="onPengirimSearchTerm">
+          <template #trailing>
+            <div class="flex items-center gap-1 pr-1">
+              <UIcon v-if="pengirimLoading" name="i-lucide-loader-circle" class="size-4 animate-spin text-muted" />
+              <UButton v-else-if="state.pengirim" variant="ghost" color="neutral" size="xs" icon="i-lucide-x" aria-label="Clear" class="p-0.5 -m-0.5" @click.stop="state.pengirim=''" />
+              <UIcon name="i-lucide-chevron-down" class="size-4 text-muted shrink-0" />
+            </div>
+          </template>
+        </UInputMenu>
+      </UFormField>
+      <UFormField v-else label="Tujuan" name="pihak">
+        <UInputMenu v-model="state.tujuan" :items="tujuanItems" :trailing-icon="false" create-item placeholder="Ketik tujuan…" class="w-full" @update:search-term="onTujuanSearchTerm">
+          <template #trailing>
+            <div class="flex items-center gap-1 pr-1">
+              <UIcon v-if="tujuanLoading" name="i-lucide-loader-circle" class="size-4 animate-spin text-muted" />
+              <UButton v-else-if="state.tujuan" variant="ghost" color="neutral" size="xs" icon="i-lucide-x" aria-label="Clear" class="p-0.5 -m-0.5" @click.stop="state.tujuan=''" />
+              <UIcon name="i-lucide-chevron-down" class="size-4 text-muted shrink-0" />
+            </div>
+          </template>
+        </UInputMenu>
       </UFormField>
       <UFormField label="Perihal" name="perihal">
         <UInput v-model="state.perihal" class="w-full" />

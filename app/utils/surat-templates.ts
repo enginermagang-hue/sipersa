@@ -140,7 +140,7 @@ export function ttdBlock(ctx: TemplateCtx): string {
   <td width="30%"></td>
   <td>
   <div id="blok-ttd" style="text-align:center;margin-top:26px;">
-  <p style="margin:0;">${ctx.tglSurat}</p>
+  <p id="tgl-surat-ttd" style="margin:0;">${esc(ctx.tglSurat)}</p>
   <p style="margin:0;">Mengetahui,</p>
   <p style="margin:0 0 4px;">${jabatan}</p>
   <div style="height:66px;display:flex;align-items:center;justify-content:center;background:#ffffff;">{{%ttd%}}</div>
