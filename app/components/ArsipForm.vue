@@ -122,10 +122,6 @@ async function submit() {
       :status-text="uploadStatus"
     />
     <UAlert v-if="error" color="error" variant="soft" :title="error" :description="errorDetails" class="whitespace-pre-wrap" />
-    <div v-else-if="uploadStatus || uploadProgress !== null" class="space-y-1.5">
-      <UProgress :model-value="uploadProgress ?? undefined" size="sm" />
-      <p v-if="uploadStatus" class="text-xs text-muted">{{ uploadStatus }}<span v-if="uploadProgress !== null"> — {{ uploadProgress }}%</span></p>
-    </div>
     <div v-if="!inline" class="flex justify-end gap-2">
       <UButton variant="ghost" @click="emit('close')">Batal</UButton>
       <UButton type="submit" :loading="loading">{{ isEdit ? 'Perbarui' : 'Simpan' }}</UButton>

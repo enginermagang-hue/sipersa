@@ -3,17 +3,49 @@ export function uploadFormDataWithProgress(
   fd: FormData,
   opts: { method: string; onProgress?: (pct: number, status: string) => void }
 ): Promise<any> {
+  return uploadFormDataWithProgressSequential(url, fd, [], opts)
+}
+
+export function uploadFormDataWithProgressSequential(
+  url: string,
+  fd: FormData,
+  files: File[],
+  opts: { method: string; onProgress?: (pct: number, status: string, fileIndex?: number) => void }
+): Promise<any> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open(opts.method.toUpperCase(), url, true)
     xhr.setRequestHeader('Accept', 'application/json')
 
+    const totalFiles = files.length
+    const totalBytes = files.reduce((a, f) => a + f.size, 0) || 1
+
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && opts.onProgress) {
-        const pct = Math.round((e.loaded / e.total) * 70)
-        opts.onProgress(pct, `Mengunggah file… ${pct}%`)
+        const overallPct = Math.round((e.loaded / e.total) * 70)
+        // derive sequential file index from uploaded bytes proportion
+        let cum = 0
+        let idx = 0
+        let filePct = 0
+        for (let i = 0; i < totalFiles; i++) {
+          const nextCum = cum + files[i].size
+          const shareStart = (cum / totalBytes) * 70
+          const shareEnd = (nextCum / totalBytes) * 70
+          if (e.loaded * 70 / e.total >= shareStart && e.loaded * 70 / e.total < shareEnd) {
+            idx = i
+            filePct = Math.round(((e.loaded * 70 / e.total - shareStart) / (shareEnd - shareStart)) * 100)
+            break
+          }
+          if (e.loaded >= e.total) { idx = totalFiles - 1; filePct = 100 }
+          cum = nextCum
+        }
+        const name = totalFiles ? files[idx]?.name || '' : ''
+        const status = totalFiles > 1
+          ? `Mengunggah ${idx + 1}/${totalFiles} — ${name} ${filePct}%`
+          : `Mengunggah file… ${overallPct}%`
+        opts.onProgress(overallPct, status, idx)
       } else if (opts.onProgress) {
-        opts.onProgress(0, 'Mengunggah file…')
+        opts.onProgress(0, totalFiles > 1 ? `Mengunggah 1/${totalFiles}…` : 'Mengunggah file…', 0)
       }
     }
 

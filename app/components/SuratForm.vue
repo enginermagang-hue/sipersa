@@ -85,6 +85,7 @@ const errorDetails = ref('')
 const uploading = ref(false)
 const uploadProgress = ref<number | null>(null)
 const uploadStatus = ref('')
+const activeFileIndex = ref<number | null>(null)
 const existingFiles = ref<any[]>([])
 const keepIds = ref<Set<number>>(new Set())
 
@@ -198,7 +199,7 @@ async function submit() {
     const m=`Total ukuran file terlalu besar (maks. 25 MB, total ${(total/1024/1024).toFixed(1)} MB)`
     error.value=m; errorDetails.value=m
     useToast().add({ title: 'File terlalu besar', description: m, color: 'error', duration: 6000 })
-    uploading.value=false; uploadProgress.value=null; uploadStatus.value=''
+    uploading.value=false; uploadProgress.value=null; uploadStatus.value=''; activeFileIndex.value=null
     emit('busy', false); return
   }
   const fd = new FormData()
@@ -214,17 +215,18 @@ async function submit() {
   for (const f of files.value) fd.append('file', f)
   try {
     uploading.value = true
+    activeFileIndex.value = 0
     if (!hasHeic) { uploadProgress.value = 5; uploadStatus.value = 'Menyiapkan upload…' }
     const base = props.type === 'masuk' ? '/api/surat-masuk' : '/api/surat-keluar'
     const url = props.suratId ? `${base}/${props.suratId}` : base
     const method = props.suratId ? 'PUT' : 'POST'
-    uploadStatus.value = 'Mengunggah file…'
-    const { uploadFormDataWithProgress, mapUploadError } = await import('~/composables/useUploadProgress')
-    // wrap to catch and map later
+    uploadStatus.value = files.value.length > 1 ? `Mengunggah 1/${files.value.length}…` : 'Mengunggah file…'
+    const { uploadFormDataWithProgressSequential, mapUploadError } = await import('~/composables/useUploadProgress')
+    const snapshot = [...files.value]
     try {
-      await uploadFormDataWithProgress(url, fd, {
+      await uploadFormDataWithProgressSequential(url, fd, snapshot, {
         method,
-        onProgress: (pct, status) => { uploadProgress.value = pct; uploadStatus.value = status }
+        onProgress: (pct, status, idx) => { uploadProgress.value = pct; uploadStatus.value = status; if (idx !== undefined) activeFileIndex.value = idx }
       })
       uploadProgress.value = 100
       uploadStatus.value = 'Berhasil'
@@ -243,8 +245,8 @@ async function submit() {
   } finally {
     uploading.value = false
     // keep progress briefly for success feedback
-    if (error.value) { uploadProgress.value = null; uploadStatus.value = '' }
-    else setTimeout(()=>{ uploadProgress.value=null; uploadStatus.value='' }, 800)
+    if (error.value) { uploadProgress.value = null; uploadStatus.value = ''; activeFileIndex.value = null }
+    else setTimeout(()=>{ uploadProgress.value=null; uploadStatus.value=''; activeFileIndex.value=null }, 1000)
     emit('busy', false)
   }
 }
@@ -352,14 +354,10 @@ async function submit() {
           <a :href="`/api/files/${ef.file_drive_id}`" target="_blank" class="text-primary text-xs underline">Unduh</a>
         </div>
       </div>
-      <FileUpload label="Unggah File Surat (multiple, total maks. 25 MB)" description="Format: PDF, JPG, PNG, HEIC (auto JPEG)." :multiple="true" v-model:files="files" :progress="uploadProgress" :uploading="uploading" :status-text="uploadStatus" />
+      <FileUpload label="Unggah File Surat (multiple, total maks. 25 MB)" description="Format: PDF, JPG, PNG, HEIC (auto JPEG)." :multiple="true" v-model:files="files" :progress="uploadProgress" :uploading="uploading" :status-text="uploadStatus" :active-index="activeFileIndex" />
     </div>
 
     <UAlert v-if="error" color="error" variant="soft" :title="error" :description="errorDetails" class="whitespace-pre-wrap" />
-    <div v-else-if="uploading" class="space-y-1.5">
-      <UProgress :model-value="uploadProgress ?? undefined" size="sm" />
-      <p v-if="uploadStatus" class="text-xs text-muted">{{ uploadStatus }}<span v-if="uploadProgress !== null"> — {{ uploadProgress }}%</span></p>
-    </div>
     <slot name="footer" :close="() => emit('close')" />
   </UForm>
 </template>

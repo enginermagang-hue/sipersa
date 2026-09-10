@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const file = defineModel<File | null>('file', { default: null })
 const files = defineModel<File[]>('files', { default: () => [] })
-const props = defineProps<{ label?: string; description?: string; maxSize?: number; multiple?: boolean; progress?: number | null; uploading?: boolean; statusText?: string }>()
+const props = defineProps<{ label?: string; description?: string; maxSize?: number; multiple?: boolean; progress?: number | null; uploading?: boolean; statusText?: string; activeIndex?: number | null }>()
 const MAX = computed(() => props.maxSize ?? 25 * 1024 * 1024)
 const error = ref('')
 const toast = useToast()
@@ -49,9 +49,15 @@ function removeAt(i: number) {
     <template v-else>
       <UFileUpload v-model="files" :multiple="true" :label="label" :description="description ? `${description} (Total maks. ${Math.round(MAX/1024/1024)} MB)` : `Total maks. ${Math.round(MAX/1024/1024)} MB`" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" class="w-full" />
       <div v-if="files.length" class="space-y-1 mt-2">
-        <div v-for="(f, i) in files" :key="i" class="flex items-center justify-between gap-2 rounded-lg border border-default px-3 py-2 text-sm">
-          <span class="truncate">{{ f.name }} <span class="text-muted text-xs">({{ (f.size/1024).toFixed(0) }} KB)</span></span>
-          <UButton size="xs" variant="ghost" color="error" icon="i-lucide-x" @click="removeAt(i)" />
+        <div v-for="(f, i) in files" :key="i" class="rounded-lg border border-default px-3 py-2 text-sm" :class="uploading && activeIndex === i ? 'border-primary/40 bg-primary/5' : uploading && activeIndex !== null && i < (activeIndex ?? -1) ? 'border-success/30 bg-success/5' : ''">
+          <div class="flex items-center justify-between gap-2">
+            <span class="truncate flex items-center gap-1.5"><UIcon v-if="uploading && activeIndex !== null && i < activeIndex" name="i-lucide-check" class="size-3.5 text-success shrink-0" /><UIcon v-else-if="uploading && activeIndex === i" name="i-lucide-loader-circle" class="size-3.5 animate-spin text-primary shrink-0" />{{ f.name }} <span class="text-muted text-xs">({{ (f.size/1024).toFixed(0) }} KB)</span></span>
+            <UButton v-if="!uploading" size="xs" variant="ghost" color="error" icon="i-lucide-x" @click="removeAt(i)" />
+            <span v-else-if="activeIndex === i" class="text-xs text-primary font-medium shrink-0">proses</span>
+            <span v-else-if="activeIndex !== null && i < activeIndex" class="text-xs text-success font-medium shrink-0">selesai</span>
+            <span v-else class="text-xs text-muted shrink-0">antri</span>
+          </div>
+          <UProgress v-if="uploading" :model-value="activeIndex === i ? undefined : (activeIndex !== null && i < activeIndex ? 100 : 0)" size="2xs" class="mt-1.5" :color="activeIndex !== null && i < activeIndex ? 'success' : undefined" />
         </div>
       </div>
     </template>
