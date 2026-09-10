@@ -81,6 +81,10 @@ function onTujuanSearchTerm(v: string) {
 
 const files = ref<File[]>([])
 const error = ref('')
+const errorDetails = ref('')
+const uploading = ref(false)
+const uploadProgress = ref<number | null>(null)
+const uploadStatus = ref('')
 const existingFiles = ref<any[]>([])
 const keepIds = ref<Set<number>>(new Set())
 
@@ -179,12 +183,24 @@ async function convertHeicClientFiles(list: File[]): Promise<File[]> {
 async function submit() {
   emit('busy', true)
   error.value = ''
-  // client-side HEIC -> JPEG (hybrid C)
-  if (files.value.some(isHeicFileClient)) {
+  errorDetails.value = ''
+  const hasHeic = files.value.some(isHeicFileClient)
+  if (hasHeic) {
+    uploading.value = true
+    uploadProgress.value = 5
+    uploadStatus.value = 'Mengonversi HEIC…'
     try { files.value = await convertHeicClientFiles(files.value) } catch {}
+    uploadProgress.value = 15
+    uploadStatus.value = 'Konversi selesai'
   }
   const total = files.value.reduce((a,f)=>a+f.size,0)
-  if (total > 25*1024*1024) { const m=`Total ukuran file terlalu besar (maks. 25 MB, total ${(total/1024/1024).toFixed(1)} MB)`; error.value=m; useToast().add({title:m, color:'error'}); emit('busy', false); return }
+  if (total > 25*1024*1024) {
+    const m=`Total ukuran file terlalu besar (maks. 25 MB, total ${(total/1024/1024).toFixed(1)} MB)`
+    error.value=m; errorDetails.value=m
+    useToast().add({ title: 'File terlalu besar', description: m, color: 'error', duration: 6000 })
+    uploading.value=false; uploadProgress.value=null; uploadStatus.value=''
+    emit('busy', false); return
+  }
   const fd = new FormData()
   const fields: Record<string, any> = { ...state }
   if (props.type === 'masuk') {
@@ -197,13 +213,38 @@ async function submit() {
   }
   for (const f of files.value) fd.append('file', f)
   try {
+    uploading.value = true
+    if (!hasHeic) { uploadProgress.value = 5; uploadStatus.value = 'Menyiapkan upload…' }
     const base = props.type === 'masuk' ? '/api/surat-masuk' : '/api/surat-keluar'
     const url = props.suratId ? `${base}/${props.suratId}` : base
-    await $fetch(url, { method: props.suratId ? 'PUT' : 'POST', body: fd })
-    emit('close')
+    const method = props.suratId ? 'PUT' : 'POST'
+    uploadStatus.value = 'Mengunggah file…'
+    const { uploadFormDataWithProgress, mapUploadError } = await import('~/composables/useUploadProgress')
+    // wrap to catch and map later
+    try {
+      await uploadFormDataWithProgress(url, fd, {
+        method,
+        onProgress: (pct, status) => { uploadProgress.value = pct; uploadStatus.value = status }
+      })
+      uploadProgress.value = 100
+      uploadStatus.value = 'Berhasil'
+      useToast().add({ title: 'Berhasil', description: props.suratId ? 'Surat diperbarui' : 'Surat berhasil disimpan', color: 'success' })
+      emit('close')
+    } catch (inner: any) {
+      const mapped = mapUploadError(inner)
+      error.value = mapped.title
+      errorDetails.value = mapped.description
+      useToast().add({ title: mapped.title, description: mapped.description, color: 'error', duration: 6000 })
+    }
   } catch (e: any) {
-    const msg = e?.data?.statusMessage || 'Gagal menyimpan'; error.value = msg; useToast().add({ title: msg, color: 'error' })
+    const m = e?.data?.statusMessage || e?.message || 'Gagal menyimpan'
+    error.value = m; errorDetails.value = m
+    useToast().add({ title: m, description: m, color: 'error', duration: 6000 })
   } finally {
+    uploading.value = false
+    // keep progress briefly for success feedback
+    if (error.value) { uploadProgress.value = null; uploadStatus.value = '' }
+    else setTimeout(()=>{ uploadProgress.value=null; uploadStatus.value='' }, 800)
     emit('busy', false)
   }
 }
@@ -311,10 +352,14 @@ async function submit() {
           <a :href="`/api/files/${ef.file_drive_id}`" target="_blank" class="text-primary text-xs underline">Unduh</a>
         </div>
       </div>
-      <FileUpload label="Unggah File Surat (multiple, total maks. 25 MB)" description="Format: PDF, JPG, PNG, HEIC (auto JPEG)." :multiple="true" v-model:files="files" />
+      <FileUpload label="Unggah File Surat (multiple, total maks. 25 MB)" description="Format: PDF, JPG, PNG, HEIC (auto JPEG)." :multiple="true" v-model:files="files" :progress="uploadProgress" :uploading="uploading" :status-text="uploadStatus" />
     </div>
 
-    <p v-if="error" class="text-sm text-error">{{ error }}</p>
+    <UAlert v-if="error" color="error" variant="soft" :title="error" :description="errorDetails" class="whitespace-pre-wrap" />
+    <div v-else-if="uploading" class="space-y-1.5">
+      <UProgress :model-value="uploadProgress ?? undefined" size="sm" />
+      <p v-if="uploadStatus" class="text-xs text-muted">{{ uploadStatus }}<span v-if="uploadProgress !== null"> — {{ uploadProgress }}%</span></p>
+    </div>
     <slot name="footer" :close="() => emit('close')" />
   </UForm>
 </template>

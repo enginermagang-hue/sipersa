@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const file = defineModel<File | null>('file', { default: null })
 const files = defineModel<File[]>('files', { default: () => [] })
-const props = defineProps<{ label?: string; description?: string; maxSize?: number; multiple?: boolean }>()
+const props = defineProps<{ label?: string; description?: string; maxSize?: number; multiple?: boolean; progress?: number | null; uploading?: boolean; statusText?: string }>()
 const MAX = computed(() => props.maxSize ?? 25 * 1024 * 1024)
 const error = ref('')
 const toast = useToast()
@@ -55,6 +55,10 @@ function removeAt(i: number) {
         </div>
       </div>
     </template>
+    <div v-if="uploading" class="space-y-1.5 mt-2">
+      <UProgress :model-value="progress ?? undefined" :status="!!statusText" size="sm" />
+      <p v-if="statusText" class="text-xs text-muted">{{ statusText }}<span v-if="progress !== null && progress !== undefined"> — {{ progress }}%</span></p>
+    </div>
     <p v-if="error" class="text-xs text-error">{{ error }}</p>
   </div>
 </template>

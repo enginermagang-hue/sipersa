@@ -25,6 +25,9 @@ const state = reactive({
 const file = ref<File | null>(null)
 const loading = ref(false)
 const error = ref('')
+const errorDetails = ref('')
+const uploadProgress = ref<number | null>(null)
+const uploadStatus = ref('')
 
 const { data: klas } = await useFetch('/api/klasifikasi')
 const klasOptions = computed(() =>
@@ -40,7 +43,12 @@ function validate(s: Partial<typeof state>): FormError[] {
 async function submit() {
   loading.value = true
   error.value = ''
-  if (file.value && file.value.size > 25*1024*1024) { const m='Ukuran file terlalu besar (maks. 25 MB)'; error.value=m; useToast().add({title:m, color:'error'}); loading.value=false; return }
+  errorDetails.value = ''
+  if (file.value && file.value.size > 25*1024*1024) {
+    const m='Ukuran file terlalu besar (maks. 25 MB)'; error.value=m; errorDetails.value=m
+    useToast().add({ title: 'File terlalu besar', description: m, color: 'error', duration: 6000 })
+    loading.value=false; return
+  }
   const fd = new FormData()
   fd.append('nama_dokumen', state.nama_dokumen)
   fd.append('lokasi', state.lokasi)
@@ -62,10 +70,28 @@ async function submit() {
   if (file.value) fd.append('file', file.value)
   try {
     const url = isEdit.value ? `/api/arsip/${props.arsipId}` : '/api/arsip'
-    await $fetch(url, { method: isEdit.value ? 'PUT' : 'POST', body: fd })
+    const method = isEdit.value ? 'PUT' : 'POST'
+    if (file.value) { uploadProgress.value = 5; uploadStatus.value = 'Menyiapkan upload…' }
+    const { uploadFormDataWithProgress, mapUploadError } = await import('~/composables/useUploadProgress')
+    if (file.value) {
+      await uploadFormDataWithProgress(url, fd, {
+        method,
+        onProgress: (pct, st) => { uploadProgress.value = pct; uploadStatus.value = st }
+      })
+      uploadProgress.value = 100; uploadStatus.value = 'Berhasil'
+      useToast().add({ title: 'Berhasil', description: isEdit.value ? 'Arsip diperbarui' : 'Arsip berhasil disimpan', color: 'success' })
+      setTimeout(()=>{ uploadProgress.value=null; uploadStatus.value='' }, 800)
+    } else {
+      await $fetch(url, { method, body: fd })
+      useToast().add({ title: 'Berhasil', description: isEdit.value ? 'Arsip diperbarui' : 'Arsip berhasil disimpan', color: 'success' })
+    }
     emit('saved')
   } catch (e: any) {
-    const msg = e?.data?.statusMessage || 'Gagal menyimpan'; error.value = msg; useToast().add({ title: msg, color: 'error' })
+    const { mapUploadError } = await import('~/composables/useUploadProgress').catch(()=>({ mapUploadError: (x:any)=>({ title: x?.data?.statusMessage||'Gagal menyimpan', description: x?.data?.statusMessage||'Terjadi kesalahan' }) } as any))
+    const mapped = mapUploadError(e)
+    error.value = mapped.title; errorDetails.value = mapped.description
+    useToast().add({ title: mapped.title, description: mapped.description, color: 'error', duration: 6000 })
+    uploadProgress.value = null; uploadStatus.value = ''
   } finally {
     loading.value = false
   }
@@ -91,8 +117,15 @@ async function submit() {
       :label="isEdit ? 'Ganti File (opsional)' : 'File (opsional)'"
       description="Unggah dokumen (PDF/JPG/PNG, maks. 25 MB)"
       v-model:file="file"
+      :progress="uploadProgress"
+      :uploading="!!uploadProgress || !!uploadStatus"
+      :status-text="uploadStatus"
     />
-    <p v-if="error" class="text-sm text-error">{{ error }}</p>
+    <UAlert v-if="error" color="error" variant="soft" :title="error" :description="errorDetails" class="whitespace-pre-wrap" />
+    <div v-else-if="uploadStatus || uploadProgress !== null" class="space-y-1.5">
+      <UProgress :model-value="uploadProgress ?? undefined" size="sm" />
+      <p v-if="uploadStatus" class="text-xs text-muted">{{ uploadStatus }}<span v-if="uploadProgress !== null"> — {{ uploadProgress }}%</span></p>
+    </div>
     <div v-if="!inline" class="flex justify-end gap-2">
       <UButton variant="ghost" @click="emit('close')">Batal</UButton>
       <UButton type="submit" :loading="loading">{{ isEdit ? 'Perbarui' : 'Simpan' }}</UButton>

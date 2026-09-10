@@ -246,15 +246,25 @@ function validate(): string | null {
 
 const submitting = ref(false)
 const ajukanOpen = ref(false)
+const uploadProgress = ref<number | null>(null)
+const uploadStatus = ref('')
+const uploadError = ref('')
+const uploadErrorDetails = ref('')
 
 async function simpanWithStatus(status: string) {
   const err = validate()
   if (err) {
-    toast.add({ title: 'Data belum lengkap', description: err, color: 'error' })
+    toast.add({ title: 'Data belum lengkap', description: err, color: 'error', duration: 6000 })
+    uploadError.value = 'Data tidak valid'
+    uploadErrorDetails.value = err
     return null
   }
   const isAjukan = status === 'menunggu_persetujuan'
   if (isAjukan) submitting.value = true; else saving.value = true
+  uploadError.value = ''
+  uploadErrorDetails.value = ''
+  uploadProgress.value = 5
+  uploadStatus.value = 'Menyiapkan upload…'
   try {
     const fd = new FormData()
     Object.entries({ ...state }).forEach(([k, v]) => fd.append(k, String(v)))
@@ -262,12 +272,26 @@ async function simpanWithStatus(status: string) {
     if (penandatanganId.value) fd.append('penandatangan_id', String(penandatanganId.value))
     fd.append('html_content', isi.value)
     fd.append('render_config', JSON.stringify({ ukuranKertas: ukuranKertas.value, font: font.value, marginMm: marginMm.value, orientasi: orientasi.value }))
-    const res = await $fetch('/api/surat-keluar', { method: 'POST', body: fd })
+    const { uploadFormDataWithProgress, mapUploadError } = await import('~/composables/useUploadProgress')
+    const res: any = await uploadFormDataWithProgress('/api/surat-keluar', fd, {
+      method: 'POST',
+      onProgress: (pct, st) => { uploadProgress.value = pct; uploadStatus.value = st }
+    })
+    uploadProgress.value = 100
+    uploadStatus.value = 'Berhasil'
     toast.add({ title: 'Berhasil', description: isAjukan ? 'Surat diajukan, menunggu persetujuan pimpinan.' : 'Surat disimpan sebagai draft. Submit untuk persetujuan pimpinan di halaman detail.', color: 'success' })
+    setTimeout(()=>{ uploadProgress.value=null; uploadStatus.value='' }, 800)
     navigateTo(`/surat-keluar/${res.id}`)
     return res
   } catch (e: any) {
-    toast.add({ title: isAjukan ? 'Gagal mengajukan' : 'Gagal menyimpan', description: e?.data?.statusMessage || 'Terjadi kesalahan', color: 'error' })
+    const { mapUploadError } = await import('~/composables/useUploadProgress').catch(()=>({ mapUploadError: (x:any)=>({ title: x?.data?.statusMessage||'Gagal', description: x?.data?.statusMessage||'Terjadi kesalahan' }) } as any))
+    const mapped = mapUploadError(e)
+    const title = e?.statusCode === 409 ? mapped.title : (isAjukan ? `${mapped.title} — Gagal mengajukan` : mapped.title)
+    uploadError.value = title
+    uploadErrorDetails.value = mapped.description
+    toast.add({ title, description: mapped.description, color: 'error', duration: 6000 })
+    uploadProgress.value = null
+    uploadStatus.value = ''
     return null
   } finally {
     saving.value = false; submitting.value = false
@@ -375,6 +399,11 @@ async function confirmAjukan() { ajukanOpen.value = false; await simpanWithStatu
                   </UFormField>
                 </div>
                 <UAlert color="info" variant="soft" icon="i-lucide-info" title="Surat disimpan sebagai draft dan dapat disubmit untuk persetujuan pimpinan." />
+                <div v-if="uploadError" class="mt-2"><UAlert color="error" variant="soft" :title="uploadError" :description="uploadErrorDetails" class="whitespace-pre-wrap" /></div>
+                <div v-else-if="uploadProgress !== null || uploadStatus" class="space-y-1.5 mt-2">
+                  <UProgress :model-value="uploadProgress ?? undefined" size="sm" />
+                  <p v-if="uploadStatus" class="text-xs text-muted">{{ uploadStatus }}<span v-if="uploadProgress !== null"> — {{ uploadProgress }}%</span></p>
+                </div>
               </div>
             </template>
 
