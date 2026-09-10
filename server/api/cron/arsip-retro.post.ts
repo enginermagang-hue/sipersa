@@ -4,9 +4,10 @@ import { logActivity } from '../../utils/logger'
 
 export default defineEventHandler(async (event) => {
   const auth = (event.context as any).auth
-  const cronSecret = getHeader(event, 'x-cron-secret')
-  const expected = process.env.NUXT_CRON_SECRET || (useRuntimeConfig() as any).cronSecret
-  const isCron = expected && cronSecret === expected
+  const authHeader = getHeader(event, 'authorization') || ''
+  const cronSecretHeader = getHeader(event, 'x-cron-secret') || ''
+  const expected = process.env.CRON_SECRET || process.env.NUXT_CRON_SECRET || (useRuntimeConfig() as any).cronSecret || (useRuntimeConfig() as any).cron_secret
+  const isCron = !!expected && (authHeader === `Bearer ${expected}` || cronSecretHeader === expected)
   if (!isCron) {
     if (!auth || auth.role !== 'admin') throw createError({ statusCode: 403, statusMessage: 'Hanya admin' })
   }
